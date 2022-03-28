@@ -1,0 +1,8 @@
+(coq.theory
+ (package coq-vcg)
+ (name vcg)
+ (flags
+   :standard
+   -w -notation-overridden
+   -w -local-declaration
+   -w -ambiguous-paths))

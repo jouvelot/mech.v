@@ -1,6 +1,6 @@
 # mech.v
 
-A formalization project for mechanism design, `mech.v`, with applications to many existing mechanisms, including General VCG,  VCG for Search, Combinatorial VCG, Fixed/First/Second Price and their properties.
+A Coq/SSReflect formalization project for mechanism design, `mech.v`, with applications to many existing mechanisms, including General VCG,  VCG for Search, Combinatorial VCG, Fixed/First/Second Price and their properties.
 
 This is Work In Progress and should do not used for "final consumption".
 

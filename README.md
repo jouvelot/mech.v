@@ -1,4 +1,4 @@
-# VCG
+# mech.v
 
 A formalization project for mechanism design, with applications to many existing mechanisms, including General VCG and of VCG for Search and their properties. This is Work In Progress and should do not used for "final consumption".
 

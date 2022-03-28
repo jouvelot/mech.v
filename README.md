@@ -1,12 +1,14 @@
-# VCG
+# mech.v
 
-A formalization project for mechanism design, with applications to many existing mechanisms, including General VCG and of VCG for Search and their properties. This is Work In Progress and should do not used for "final consumption".
+A formalization project for mechanism design, `mech.v`, with applications to many existing mechanisms, including General VCG,  VCG for Search, Combinatorial VCG, Fixed/First/Second Price and their properties.
+
+This is Work In Progress and should do not used for "final consumption".
 
 See file headers for proper description.
 
 # Bibliography
 
-Find below some links to bibliography and related projects we discussed:
+Find below some links to bibliography and related projects:
 
 - https://arxiv.org/abs/2104.08437
   ITP 2021

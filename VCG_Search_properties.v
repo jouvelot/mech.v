@@ -203,15 +203,8 @@ Qed.
 Lemma sum_diff_ctrs (s0 : slot) (lts0k' : s0 < k') :
   'ctr_s0 - 'ctr_last_slot = \sum_(s < k | s0 < s) ('ctr_(slot_pred s) - 'ctr_s). 
 Proof.
-pose m := k' - s0.+1.
-have -> : forall F, \sum_(s < k | s0 < s) F s = \sum_(s < k | s0 < s <= (last_ord k')) F s.
-  move=> F /=.
-  under [RHS]eq_bigl => s.
-    rewrite leq_ord andbT //.
-  over.
-rewrite //=. 
-rewrite sum_diffs //. 
-by rewrite /antimonotone => x y; exact: S.sorted_ctrs.
+rewrite (eq_bigl (fun s : slot => s0 < s <= (last_ord k'))) => [|s]; last by rewrite leq_ord andbT.
+rewrite sum_diffs // => x y; exact: S.sorted_ctrs.
 Qed.
 
 Lemma truthful_i_loses : value bs' a <= price bs' a. 
@@ -693,8 +686,8 @@ Proof.
 move=> Ro1 j. 
 rewrite /U1 /U /prefs.U /= /v1 (surjective_pairing o1) ffunE. 
 move: (Ro1 j).  
-rewrite (surjective_pairing o1).
-case: ifP => [w //= [[_ /(_ w) [-> ->]]] //|/= -> [] /esym /eqP -> _].
+rewrite (surjective_pairing o1). 
+case: ifP => [w //= [_ /(_ w) [-> ->]] //| /= -> [] /esym /eqP -> _].
 by rewrite S.last_ctr_eq0 /= muln0 sub0n.
 Qed.
 

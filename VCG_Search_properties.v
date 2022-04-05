@@ -200,13 +200,6 @@ rewrite (@ltn_trans (agent_pred sa)) //= (@leq_trans s) // ?leq_ord //.
 by rewrite ltn_predL (@leq_ltn_trans i').
 Qed.
 
-Lemma sum_diff_ctrs (s0 : slot) (lts0k' : s0 < k') :
-  'ctr_s0 - 'ctr_last_slot = \sum_(s < k | s0 < s) ('ctr_(slot_pred s) - 'ctr_s). 
-Proof.
-rewrite (eq_bigl (fun s : slot => s0 < s <= (last_ord k'))) => [|s]; last by rewrite leq_ord andbT.
-rewrite sum_diffs // => x y; exact: S.sorted_ctrs.
-Qed.
-
 Lemma truthful_i_loses : value bs' a <= price bs' a. 
 Proof.
 rewrite /value.
@@ -215,7 +208,10 @@ set sw := slot_won bs' a.
 have -> : val ('ctr_sw) = 'ctr_sw - 'ctr_last_slot by rewrite S.last_ctr_eq0 /= subn0.
 have mini' : minn i' k' = i' by rewrite /minn ifT.
 have ltsw : sw < k' by rewrite /sw /slot_won /= mini'.
-rewrite sum_diff_ctrs //.
+have -> //:   'ctr_sw - 'ctr_last_slot = \sum_(s < k | sw < s) ('ctr_(slot_pred s) - 'ctr_s). 
+  rewrite (eq_bigl (fun s : slot => sw < s <= (last_ord k'))) => [|s]; last by rewrite leq_ord andbT.
+  rewrite sum_diffs //.  
+  by move=> x y; exact: S.sorted_ctrs.
 rewrite big_distrr /= /price /externality (ltn_trans _ (ltnSn k')) //. 
 rewrite mini' leq_sum // => s lti's.
 by rewrite -tv leq_mul // leq_value_loses.

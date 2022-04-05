@@ -1605,7 +1605,7 @@ rewrite -/bs subnDl.
       rewrite /slot_pred /slot_succ cancel_ord_succ //.
       congr (_ * _). 
       by rewrite commuting_succ_agent.
-   -  rewrite -leqNgt leq_eqVlt => /orP [/eqP <-|]; last by rewrite not_lt_last_slot_i.
+    - rewrite -leqNgt leq_eqVlt => /orP [/eqP <-|]; last by rewrite not_lt_last_slot_i.
       rewrite sum0_gt_last (bigD1 last_slot) //= last_ctr_eq0 //= muln0 add0n.
       rewrite big_pred0 /last_slot // => j.
       by rewrite below_last_ord ltnNge andbN.
@@ -1737,7 +1737,7 @@ have -> : s1 = s2.
   rewrite tnth_map ffunE -labelling_in tnth_ord_tuple.
   case: ifP => jino //.
   by rewrite labelling_spec_idxa relabel_slot.
-set s'1 := (X in _ <= X -> _); set s'2 := (X in _ -> _ <= X).
+set s'1 := (X in _ <= X -> _); set s'2 := (X in _ -> _ <= X) => {s1}.
 have -> // : s'1 = s'2.
   apply: eq_bigr => j _.
   rewrite tnth_map ffunE labelling_in tnth_ord_tuple eqlabiota.

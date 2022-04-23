@@ -207,7 +207,7 @@ Qed.
 Lemma max_aperm s i1 i2 (us : uniq s) (ltns : i2 < size s) (lexn : i1 <= i2) :
   \max_(0 <= i < i2.+1) nth 0 s i = \max_(0 <= i < i2.+1) nth 0 (aperm s (iperm s (i1, i2))) i. 
 Proof.
-set s' := aperm s (iperm s (i1, i2)). 
+set s' := (aperm _ _). 
 rewrite -[in LHS](cat_take_drop i2.+1 s) -[in RHS](cat_take_drop i2.+1 s').
 rewrite [LHS](@big_cat_nat _ _ _ i2.+1) // [RHS](@big_cat_nat _ _ _ i2.+1) //=.
 set a := (X in maxn X _ = _); set c := (X in maxn _ X = _).
@@ -280,8 +280,35 @@ Fixpoint swap (s : seq nat) (ts : seq transposition) :=
 
 End Algorithm.
 
+(* Util lemmas on `swap` and `transpositions`. *)
+
 Lemma swap_size ts s : size (swap s ts).2 = size s. 
 Proof. by elim: ts s => [//=|t ts IH s /=]; rewrite IH. Qed.
+
+Lemma perm_eq_take_swap n : forall (s : seq nat),
+    uniq s -> n.+1 < size s ->
+    perm_eq (take n.+1 s) 
+            (take n.+1 (swap s (transpositions s n)).2).
+Proof.
+suff: forall (s : seq nat),
+    uniq s ->
+    forall m, n.+1 + m < size s ->
+         perm_eq (take (n + m.+1) s) (take (n + m.+1) (swap s (transpositions s n)).2).
+  move=> H s us ltn1s. 
+  move: (@H s us 0).
+  by rewrite addn1 addn0 => ->.
+elim: n => [//=|n IH s us m ltn2ms].
+pose ix := index (\max_(0 <= i < n.+2) nth 0 s i) s.
+rewrite (@perm_trans _ (take (n.+1 + m.+1) (aperm s (iperm s (ix, n.+1))))) //.  
+- rewrite perm_eq_take_aperm // -?addSnnS // index_bigmax_lt //.
+  rewrite addSnnS in ltn2ms.
+  by rewrite (@ltn_trans (n.+1 + m.+1)) // ltn_addr.
+- have szap : n.+1 + m.+1 < size (aperm s (iperm s (ix, n.+1))). 
+    by rewrite size_aperm -addSnnS.
+  have us' : uniq (aperm s (iperm s (ix, n.+1))) by rewrite uniq_aperm.
+  move: (@IH (aperm s (iperm s (ix, n.+1))) us' m.+1 szap).
+  by have -> // : n + m.+2 = n.+1 + m.+1 by rewrite addnS addSn.
+Qed.
 
 Section Bubbles.
 
@@ -295,7 +322,7 @@ suff: forall n s, 0 < size s -> uniq s -> n < size s -> (swap s (transpositions 
 clear lt0s s us.
 elim=> [//=|n IH s lt0s us ltns /=].
 apply/andP; split; last by rewrite IH // ?uniq_aperm // ?size_aperm // -?lt0n ltnW.
-set m := \max_(0 <= i < n.+2) nth 0 s i.
+set m := (\max_(_ <= i < _) _).
 have [] := boolP (index m s == n.+1) => nein1 //=.
 move: (@index_bigmax_lt s n.+1 us ltns); rewrite leq_eqVlt. 
 set eqixn1 := (X in (X || _)).
@@ -315,7 +342,7 @@ End Bubbles.
 
 Section Sorted.
 
-(** Check that the `n`-prefix of swapped `s` with `transpositions` is sorted. *)
+(** Check that the `n`-prefix of a `s` swapped with `transpositions` is sorted. *)
 
 Lemma swap_id n s j :
   uniq s ->  n < j -> j < size s -> nth 0 (swap s (transpositions s n)).2 j = nth 0 s j.
@@ -326,34 +353,10 @@ rewrite nth_aperm_id // (@leq_ltn_trans n.+1) // index_bigmax_lt // (@ltn_trans 
 exact: (@ltn_trans n.+1).
 Qed.
 
-Lemma perm_eq_take_swap n : forall (s : seq nat),
-    uniq s -> n.+1 < size s ->
-    perm_eq (take n.+1 s) (take n.+1 (swap s (transpositions s n)).2).
-Proof.
-suff: forall (s : seq nat),
-    uniq s ->
-    forall m, n.+1 + m < size s ->
-         perm_eq (take (n + m.+1) s) (take (n + m.+1) (swap s (transpositions s n)).2).
-  move=> H s us ltn1s. 
-  move: (@H s us 0).
-  by rewrite addn1 addn0 => ->.
-elim: n => [//=|n IH s us m ltn2ms].
-set ix := index (\max_(0 <= i < n.+2) nth 0 s i) s.
-rewrite (@perm_trans _ (take (n.+1 + m.+1) (aperm s (iperm s (ix, n.+1))))) //.  
-- rewrite perm_eq_take_aperm // -?addSnnS // index_bigmax_lt //.
-  rewrite addSnnS in ltn2ms.
-  by rewrite (@ltn_trans (n.+1 + m.+1)) // ltn_addr.
-- have szap : n.+1 + m.+1 < size (aperm s (iperm s (ix, n.+1))). 
-    by rewrite size_aperm -addSnnS.
-  have us' : uniq (aperm s (iperm s (ix, n.+1))) by rewrite uniq_aperm.
-  move: (@IH (aperm s (iperm s (ix, n.+1))) us' m.+1 szap).
-  by have -> // : n + m.+2 = n.+1 + m.+1 by rewrite addnS addSn.
-Qed.
-
 Lemma max_swap n s (ltn1s : n.+1 < size s) (us : uniq s) :
   \max_(0 <= i < n.+2) nth 0 s i = \max_(0 <= i < n.+2) nth 0 (swap s (transpositions s n)).2 i.
 Proof.
-set s' := (swap s (transpositions s n)).2. 
+set s' := (swap _ _).2. 
 rewrite -[in LHS](cat_take_drop n.+1 s) -[in RHS](cat_take_drop n.+1 s').
 rewrite [LHS](@big_cat_nat _ _ _ n.+1) // [RHS](@big_cat_nat _ _ _ n.+1) //=.
 set a := (X in maxn X _ = _); set c := (X in maxn _ X = _).
@@ -391,15 +394,15 @@ Proof.
 elim: n => [//= s us lt0s j|n IH s us ltn1s /= j lejn1].
 - by rewrite leqn0 => /eqP ->; rewrite big_nat1.
 - have lt0s : 0 < size s by rewrite (@ltn_trans n.+1).
-  set ix := index (\max_(0 <= i < n.+2) nth 0 s i) s.
+  set ix := (index _ _).
   have [] := boolP (ix == n.+1) => [/eqP eqixn1|neixn1].
   - rewrite eqixn1 aperm_id.
     have [] := boolP (j <= n) => lejn.
     - by rewrite IH // ?uniq_aperm // ?size_aperm (@ltn_trans n.+1).
     - have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn. 
-      by rewrite swap_id // -{1}eqixn1 nth_index // ?bigmax_in // max_swap.
-  - set p := iperm s (ix, n.+1).
-    set s' := aperm s p.
+      by rewrite swap_id // -{1}eqixn1 nth_index // ?bigmax_in // max_swap. 
+  - set p := (iperm _ _).
+    set s' := (aperm _ _).
     have [] := boolP (j <= n) => lejn.
     - by rewrite (IH s' (uniq_aperm p us)) // size_aperm (@ltn_trans n.+1).
     - have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn.
@@ -450,7 +453,7 @@ End Sorted.
 
 (** Specification of BubbleSort. *)
 
-Lemma bubble_sort_spec (s : seq nat) (us : uniq s) :
+Theorem bubble_sort_spec (s : seq nat) (us : uniq s) :
   exists (ts : seq transposition),
     let: (all_bubbles, s') := swap s ts in
     all_bubbles /\ up_sorted s'.

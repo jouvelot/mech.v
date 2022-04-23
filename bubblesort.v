@@ -127,7 +127,7 @@ apply/(nthP 0).
 move: (@eq_bigmax_nat 0 n (nth 0 s) (ltn0Sn n)) => [ix [mx lx]].
 have [] := boolP (ix < size s) => [ltxs|]; first by exists ix.
 rewrite -leqNgt => lesx.
-exists 0=> //.
+exists 0 => //.
 move: (@leq_bigmax (nth 0 s) n 0 (leq0n n)).
 have eq0: nth 0 s ix = 0 by rewrite nth_default. 
 by rewrite mx eq0 leqn0 => /eqP ->.
@@ -144,7 +144,7 @@ have [] := boolP (n < size s) => [ltns|].
   rewrite nth_uniq // => [/eqP <- //||]; first by rewrite (@leq_ltn_trans n).
   rewrite index_mem.
   apply/(nthP 0).
-  by exists ix=> //; rewrite (@leq_ltn_trans n).
+  by exists ix => //; rewrite (@leq_ltn_trans n).
 - rewrite -leqNgt => lesn. 
   have trim: \max_(0 <= i < n.+1) nth 0 s i = \max_(0 <= i < size s) nth 0 s i.
     rewrite (@big_cat_nat _ _ _ (size s)) //=; last by rewrite (@leq_trans n).
@@ -251,7 +251,7 @@ have -> : a = a'.
 by rewrite /c /c' !big_geq.
 Qed.
 
-Section Algorithm.
+Section Algorithm. 
 
 (** A list of transpositions (to be shown later as forming a list of out-of-order `bubbles`) 
     from indices `0` to `n` (included) in `s`. *)
@@ -265,7 +265,10 @@ Fixpoint transpositions (s : seq nat) n : seq transposition :=
             t :: ts
   end.
 
-(** A sorted version of `s`, with a check that all transpositions are bubbles. *)
+(** `swap` applies a list of transpositions to `s`, returning the swapped list together with 
+    a boolean stating that all these transpositions are bubbles. 
+
+    Applying the list `transpositions s (size s).-1` will yield a sorted version of `s`. *)
 
 Definition is_bubble (s : seq nat) (t : transposition) :=
   let: (i1, i2) := t in (i1 == i2) || (i1 < i2) && (nth 0 s i2 < nth 0 s i1).
@@ -273,11 +276,16 @@ Definition is_bubble (s : seq nat) (t : transposition) :=
 Fixpoint swap (s : seq nat) (ts : seq transposition) :=
   match ts with
   | [::] => (true, s)
-  | t :: ts => let bs' := swap (aperm s (iperm s t)) ts in
+  | t :: ts' => let bs' := swap (aperm s (iperm s t)) ts' in
              (is_bubble s t && bs'.1, bs'.2)
   end.
 
 End Algorithm.
+
+Lemma swap_size ts s : size (swap s ts).2 = size s. 
+Proof. by elim: ts s => [//=|t ts IH s /=]; rewrite IH. Qed.
+
+Section Bubbles.
 
 (** Check there are only bubbles in `transpositions`. *)
 
@@ -305,12 +313,13 @@ have -> //: (nth 0 s n.+1 == \max_(0 <= i < n.+2) nth 0 s i) = false.
   by rewrite (@leq_ltn_trans n.+1) // index_bigmax_lt.
 Qed.
 
-(** Check that swaped `s` is sorted. *)
+End Bubbles.
 
-Lemma swap_size n s : size (swap s (transpositions s n)).2 = size s. 
-Proof. by elim: n s => [s //=|n IH s /=]; rewrite IH size_aperm. Qed.
+Section Sorted.
 
-Lemma tail_swap n s j :
+(** Check that the `n`-prefix of swapped `s` with `transpositions` is sorted. *)
+
+Lemma swap_id n s j :
   uniq s ->  n < j -> j < size s -> nth 0 (swap s (transpositions s n)).2 j = nth 0 s j.
 Proof.
 elim: n s j=> [//=|n IH s j us ltn1j ltjs /=].
@@ -371,7 +380,7 @@ have -> : c = \max_(n.+1 <= i < n.+2) nth 0 s i by rewrite /c cat_take_drop.
 have -> // : c' = \max_(n.+1 <= i < n.+2) nth 0 s i. 
   rewrite /c' big_nat.
   under (eq_bigr (nth 0 s)) => i /andP [ltni ltni2].
-  rewrite cat_take_drop tail_swap // (@leq_ltn_trans n.+1) //.
+  rewrite cat_take_drop swap_id // (@leq_ltn_trans n.+1) //.
   by rewrite [RHS]big_nat. 
 Qed.
 
@@ -390,13 +399,13 @@ elim: n => [//= s us lt0s j|n IH s us ltn1s /= j lejn1].
     have [] := boolP (j <= n) => lejn.
     - by rewrite IH // ?uniq_aperm // ?size_aperm (@ltn_trans n.+1).
     - have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn. 
-      by rewrite tail_swap // -{1}eqixn1 nth_index // ?bigmax_in // max_swap.
+      by rewrite swap_id // -{1}eqixn1 nth_index // ?bigmax_in // max_swap.
   - set p := iperm s (ix, n.+1).
     set s' := aperm s p.
     have [] := boolP (j <= n) => lejn.
     - by rewrite (IH s' (uniq_aperm p us)) // size_aperm (@ltn_trans n.+1).
     - have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn.
-      rewrite tail_swap ?uniq_aperm ?size_aperm //.
+      rewrite swap_id ?uniq_aperm ?size_aperm //.
       rewrite nth_aperm // ?bigmax_in // -max_swap ?size_aperm ?uniq_aperm //.  
       rewrite (@max_aperm _ ix) //. 
       move: (index_bigmax_lt us ltn1s).
@@ -438,6 +447,8 @@ by rewrite (leq_trans lei1i2).
 Qed.
 
 *)
+
+End Sorted.
 
 (** Specification of BubbleSort. *)
 
@@ -527,7 +538,7 @@ have [] := boolP (ip == i1) => [/eqP ->|neip1].
 - by exists i2 => //; rewrite -q (nth_map 0) // /swapped /iperm /= ifT // index_mem.
 - have [] := boolP (ip == i2) => [/eqP ->|neip2].
   - by exists i1 => //; rewrite -q (nth_map 0) // /swapped /iperm /= ifF ?ifT // nonth.
-  - by exists ip => //; by rewrite -q (nth_map 0) // /swapped /iperm /= ifF ?ifF // nonth // eq_sym.
+  - by exists ip => //; by rewrite -q (nth_map 0) // /swapped /iperm /= ifF ?ifF ?nonth 1?eq_sym.
 move=> [i ltis].
 have [] := boolP (i == i1) => [/eqP ->|neip1].
 - by exists i2 => //; rewrite (nth_map 0) // /swapped /iperm /= ifF ?ifT // nonth.

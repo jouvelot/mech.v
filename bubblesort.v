@@ -235,8 +235,8 @@ have sztn1: size (take i2.+1 s) = i2.+1.
   rewrite size_take.
   have [] := boolP (i2.+1 < size s) => [//|ne2s].
   by have/eqP eqzn1 : size s == i2.+1 by rewrite eqn_leq ltns leqNgt ne2s.
-have s'ztn1: size (take i2.+1 s') = i2.+1 by rewrite -{2}sztn1  !size_take size_aperm.  
-rewrite -{1}s'ztn1 -{3}sztn1 => -> ->.
+have sztn1': size (take i2.+1 s') = i2.+1 by rewrite -{2}sztn1  !size_take size_aperm.  
+rewrite -{1}sztn1' -{3}sztn1 => -> ->.
 congr maxn; last by rewrite !big_geq.
 rewrite -!(@big_nth _ _ _ _ _ _ predT id) (perm_big (take i2.+1 s')) //= /s'.
 have [] := boolP (i2 + 1 < size s) => lt2s.
@@ -341,10 +341,10 @@ Section Sorted.
 
 (** Check that the `n`-prefix of a `s` swapped with `transpositions` is sorted. *)
 
-Lemma swap_id n s j :
-  uniq s ->  n < j -> j < size s -> nth 0 (swap s (transpositions s n)).2 j = nth 0 s j.
+Lemma swap_id n s j (us : uniq s) (ltnj : n < j) (ltjs : j < size s) :
+  nth 0 (swap s (transpositions s n)).2 j = nth 0 s j.
 Proof.
-elim: n s j=> [//=|n IH s j us ltn1j ltjs /=].
+elim: n s j us ltnj ltjs => [//=|n IH s j us ltn1j ltjs /=].
 rewrite IH ?uniq_aperm//; last by rewrite size_aperm. 
 rewrite nth_aperm_id // (@leq_ltn_trans n.+1) // index_bigmax_lt // (@ltn_trans j) //. 
 exact: (@ltn_trans n.+1).
@@ -369,8 +369,8 @@ have: a' = \max_(0 <= i < n.+1) nth 0 (take n.+1 s') i.
     rewrite nth_cat size_take swap_size ltn1s ltin1; over.
   by rewrite [RHS]big_nat.  
 move: (size_take n.+1 s) => sztn1; rewrite ltn1s in sztn1.
-move: (size_take n.+1 s') => s'ztn1; rewrite !swap_size ltn1s in s'ztn1.
-rewrite -{1}s'ztn1 -{3}sztn1 => -> ->.
+move: (size_take n.+1 s') => sztn1'; rewrite !swap_size ltn1s in sztn1'.
+rewrite -{1}sztn1' -{3}sztn1 => -> ->.
 congr maxn. 
 - rewrite -!(@big_nth _ _ _ _ _ _ predT id) (perm_big (take n.+1 s')) //=.
   exact: perm_eq_take_swap.
@@ -381,8 +381,7 @@ congr maxn.
 Qed.
 
 Lemma max_swaps n:
-  forall s (us : uniq s),
-    n < size s ->
+  forall s (us : uniq s) (ltns : n < size s),
     let s' := (swap s (transpositions s n)).2 in
     forall j, j <= n -> nth 0 s' j = \max_(O <= i < j.+1) nth 0 s' i.
 Proof.
@@ -438,10 +437,9 @@ Proof.
 have [] := boolP (s == [::]) => [/eqP -> //=|]; first by exists [::].
 rewrite -size_eq0 -lt0n => lt0s.
 exists (transpositions s (size s).-1) => //=.  
-set bs' := (swap _ _).
+set bs' := (swap _ _). 
 rewrite (surjective_pairing bs') bubbles_in_swap //.
-split=> //.
-exact: swap_sorted. 
+by split; last exact: swap_sorted. 
 Qed.
 
 End BubbleSort.
@@ -504,12 +502,12 @@ Proof.
 rewrite perm_sym.
 have [] := boolP (i1 == i2) => [/eqP ->|ne12]; first by rewrite aperm_id perm_refl.
 rewrite /aperm uniq_perm // ?uniq_aperm //.
-have nonth j1 j2: j1 < size s -> j2 < size s -> j1 != j2 -> (nth 0 s j2 == nth 0 s j1) = false.
-  move=> l1s l2s.
+have nonth j1 j2 (ltj1s : j1 < size s) (ltj2s : j2 < size s) :
+  j1 != j2 -> (nth 0 s j2 == nth 0 s j1) = false.
   apply: contra_neqF.
   by rewrite nth_uniq // => /eqP ->.
-move=> j.
-apply/(nthP 0)/(nthP 0); rewrite !size_map. 
+move=> j. 
+apply/(nthP 0)/(nthP 0); rewrite !size_map.
 - move=> [ip ltjps].
   have [] := boolP (ip == i1) => [/eqP ->|neip1].
   - by exists i2 => //; rewrite -q (nth_map 0) // /swapped /= ifT // index_mem.

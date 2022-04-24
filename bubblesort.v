@@ -210,10 +210,9 @@ Proof.
 set s' := (aperm _ _). 
 rewrite -[in LHS](cat_take_drop i2.+1 s) -[in RHS](cat_take_drop i2.+1 s').
 rewrite [LHS](@big_cat_nat _ _ _ i2.+1) // [RHS](@big_cat_nat _ _ _ i2.+1) //=.
-set a := (X in maxn X _ = _); set c := (X in maxn _ X = _).
-set a' := (X in _ = maxn X _); set c' := (X in _ = maxn _ X).  
+set a := (X in maxn X _ = _); set a' := (X in _ = maxn X _).
 have: a = \max_(0 <= i < i2.+1) nth 0 (take i2.+1 s) i. 
-  rewrite /a big_nat. 
+  rewrite /a big_nat.
   have [] := boolP (i2.+1 < size s) => lt2s.
   - under eq_bigr => i /andP [_ lti2].
       rewrite nth_cat size_take lt2s lti2; over.
@@ -223,8 +222,8 @@ have: a = \max_(0 <= i < i2.+1) nth 0 (take i2.+1 s) i.
       rewrite nth_cat size_take eqzn1 ltnn lti2; over.
     by rewrite [RHS]big_nat. 
 have: a' = \max_(0 <= i < i2.+1) nth 0 (take i2.+1 s') i. 
-  rewrite /a' big_nat. 
-  have [] := boolP (i2.+1 < size s) => lt2s.
+  rewrite /a' big_nat.
+  have [] := boolP (i2.+1 < size s) => lt2s. 
   - under eq_bigr => i /andP [_ lti2].
       rewrite nth_cat size_take size_aperm lt2s lti2; over.
     by rewrite [RHS]big_nat.
@@ -236,17 +235,15 @@ have sztn1: size (take i2.+1 s) = i2.+1.
   rewrite size_take.
   have [] := boolP (i2.+1 < size s) => [//|ne2s].
   by have/eqP eqzn1 : size s == i2.+1 by rewrite eqn_leq ltns leqNgt ne2s.
-have s'ztn1: size (take i2.+1 s') = i2.+1.
-  by rewrite -{2}sztn1  !size_take size_aperm.
-rewrite -{1}s'ztn1 -{3}sztn1 => eqa' eqa.
-have -> : a = a'.
-  rewrite eqa eqa' -!(@big_nth _ _ _ _ _ _ predT id) (perm_big (take i2.+1 s')) //= /s'.
-  have [] := boolP (i2 + 1 < size s) => lt2s.
-  - by rewrite -addn1 (@perm_eq_take_aperm 0 s i1 i2 us).
-  - have/eqP <- : size s == i2.+1 by rewrite eqn_leq ltns leqNgt -(addn1 i2) lt2s.
-    rewrite -{2}(@size_aperm _ (iperm s (i1, i2))) !take_size perm_eq_aperm //. 
-    by rewrite (@leq_ltn_trans i2). 
-by rewrite /c /c' !big_geq.
+have s'ztn1: size (take i2.+1 s') = i2.+1 by rewrite -{2}sztn1  !size_take size_aperm.  
+rewrite -{1}s'ztn1 -{3}sztn1 => -> ->.
+congr maxn; last by rewrite !big_geq.
+rewrite -!(@big_nth _ _ _ _ _ _ predT id) (perm_big (take i2.+1 s')) //= /s'.
+have [] := boolP (i2 + 1 < size s) => lt2s.
+- by rewrite -addn1 (@perm_eq_take_aperm 0 s i1 i2 us).
+- have/eqP <- : size s == i2.+1 by rewrite eqn_leq ltns leqNgt -(addn1 i2) lt2s.
+  rewrite -{2}(@size_aperm _ (iperm s (i1, i2))) !take_size perm_eq_aperm //. 
+  by rewrite (@leq_ltn_trans i2). 
 Qed.
 
 Section Algorithm. 
@@ -373,16 +370,14 @@ have: a' = \max_(0 <= i < n.+1) nth 0 (take n.+1 s') i.
   by rewrite [RHS]big_nat.  
 move: (size_take n.+1 s) => sztn1; rewrite ltn1s in sztn1.
 move: (size_take n.+1 s') => s'ztn1; rewrite !swap_size ltn1s in s'ztn1.
-rewrite -{1}s'ztn1 -{3}sztn1 => eqa' eqa.
-have -> : a = a'.
-  rewrite eqa eqa' -!(@big_nth _ _ _ _ _ _ predT id) (perm_big (take n.+1 s')) //=.
+rewrite -{1}s'ztn1 -{3}sztn1 => -> ->.
+congr maxn. 
+- rewrite -!(@big_nth _ _ _ _ _ _ predT id) (perm_big (take n.+1 s')) //=.
   exact: perm_eq_take_swap.
-have -> : c = \max_(n.+1 <= i < n.+2) nth 0 s i by rewrite /c cat_take_drop.
-have -> // : c' = \max_(n.+1 <= i < n.+2) nth 0 s i. 
-  rewrite /c' big_nat.
-  under (eq_bigr (nth 0 s)) => i /andP [ltni ltni2].
+- rewrite /c cat_take_drop /c' [RHS]big_nat.
+  under [RHS](eq_bigr (nth 0 s)) => i /andP [ltni ltni2].
     rewrite cat_take_drop swap_id // (@leq_ltn_trans n.+1) //; over.
-  by rewrite [RHS]big_nat. 
+  by rewrite [LHS]big_nat. 
 Qed.
 
 Lemma max_swaps n:
@@ -391,26 +386,25 @@ Lemma max_swaps n:
     let s' := (swap s (transpositions s n)).2 in
     forall j, j <= n -> nth 0 s' j = \max_(O <= i < j.+1) nth 0 s' i.
 Proof.
-elim: n => [//= s us lt0s j|n IH s us ltn1s /= j lejn1].
-- by rewrite leqn0 => /eqP ->; rewrite big_nat1.
-- have lt0s : 0 < size s by rewrite (@ltn_trans n.+1).
-  set ix := (index _ _).
-  have [] := boolP (ix == n.+1) => [/eqP eqixn1|neixn1].
-  - rewrite eqixn1 aperm_id.
-    have [] := boolP (j <= n) => lejn.
-    - by rewrite IH // ?uniq_aperm // ?size_aperm (@ltn_trans n.+1).
-    - have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn. 
-      by rewrite swap_id // -{1}eqixn1 nth_index // ?bigmax_in // max_swap. 
-  - set p := (iperm _ _).
-    set s' := (aperm _ _).
-    have [] := boolP (j <= n) => lejn.
-    - by rewrite (IH s' (uniq_aperm p us)) // size_aperm (@ltn_trans n.+1).
-    - have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn.
-      rewrite swap_id ?uniq_aperm ?size_aperm //.
-      rewrite nth_aperm // ?bigmax_in // -max_swap ?size_aperm ?uniq_aperm //.  
-      rewrite (@max_aperm _ ix) //. 
-      move: (index_bigmax_lt us ltn1s).
-      by rewrite leq_eqVlt -(negbK (ix == n.+1)) neixn1.
+elim: n => [//= s us lt0s j|n IH s us ltn1s /= j lejn1];
+           first by rewrite leqn0 => /eqP ->; rewrite big_nat1.
+have lt0s : 0 < size s by rewrite (@ltn_trans n.+1).
+set ix := (index _ _).
+have [] := boolP (ix == n.+1) => [/eqP eqixn1|neixn1].
+- rewrite eqixn1 aperm_id.
+  have [] := boolP (j <= n) => lejn.
+  - by rewrite IH // ?uniq_aperm // ?size_aperm (@ltn_trans n.+1).
+  - have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn. 
+    by rewrite swap_id // -{1}eqixn1 nth_index // ?bigmax_in // max_swap. 
+- set p := (iperm _ _); set s' := (aperm _ _).
+  have [] := boolP (j <= n) => lejn.
+  - by rewrite (IH s' (uniq_aperm p us)) // size_aperm (@ltn_trans n.+1).
+  - have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn.
+    rewrite swap_id ?uniq_aperm ?size_aperm //.
+    rewrite nth_aperm // ?bigmax_in // -max_swap ?size_aperm ?uniq_aperm //.  
+    rewrite (@max_aperm _ ix) //. 
+    move: (index_bigmax_lt us ltn1s).
+    by rewrite leq_eqVlt -(negbK (ix == n.+1)) neixn1.
 Qed.
 
 Definition up_sorted (s : seq nat) := sorted leq s.
@@ -431,23 +425,6 @@ rewrite !max_swaps // ?ltn_predL //.
 rewrite [X in _ <= X](@big_cat_nat _ _ _ i.-1.+1) //= ?maxnE ?leq_addr //=.
 by rewrite (@leq_ltn_trans i) // ?leq_pred.
 Qed.
-
-(* Alternative definition.
-
-Definition up_sorted' (s : seq nat) :=
-  forall i1 i2, i2 < size s -> i1 <= i2 -> nth 0 s i1 <= nth 0 s i2.
-
-Lemma swap_sorted' s (us : uniq s) (lt0s : 0 < size s) : 
-  up_sorted' (swap s (transpositions s (size s).-1)).2.
-Proof.
-move=> i1 i2 lti2s lei1i2. 
-have lei2s1 : i2 <= (length s).-1 by rewrite -ltnS prednK; rewrite swap_size in lti2s.
-rewrite !max_swaps // ?ltn_predL //.
-rewrite [X in _ <= X](@big_cat_nat _ _ _ i1.+1) //= maxnE leq_addr //.
-by rewrite (leq_trans lei1i2).
-Qed.
-
-*)
 
 End Sorted.
 
@@ -512,12 +489,12 @@ Proof.
 rewrite map_inj_uniq // /swapped => i1 i2.  
 case: ifP => [/eqP ->|nei1p1].
 - case: ifP => [/eqP -> //|nei2p1].
-  case: ifP => [/eqP -> //|nei2p2 p2i2]; last by rewrite p2i2 eq_refl in nei2p2.
+  by case: ifP => [/eqP ->|nei2p2 p2i2]; last by rewrite p2i2 eq_refl in nei2p2.
 - case: ifP => [/eqP ->|nei1p2].
   - case: ifP => [/eqP -> -> //|nei2p1].
-    case: ifP => [/eqP -> //|nei2p2 p1i2]; last by rewrite p1i2 eq_refl in nei2p1.
+    by case: ifP => [/eqP ->|nei2p2 p1i2]; last by rewrite p1i2 eq_refl in nei2p1.
   - case: ifP => [/eqP -> /eqP i1p2|nei2p1]; first by rewrite i1p2 in nei1p2.
-    case: ifP => [/eqP ->|//]; first by apply: contra_eq; rewrite nei1p1.
+    by case: ifP => [/eqP ->|]; first by apply: contra_eq; rewrite nei1p1.
 Qed.    
 
 Lemma perm_eq_aperm s i1 i2

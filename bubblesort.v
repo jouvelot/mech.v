@@ -260,10 +260,10 @@ Fixpoint transpositions (s : seq nat) n : seq transposition :=
             t :: ts
   end.
 
-(** `swap` applies a list of transpositions to `s`, returning the swapped list together with 
-    a boolean stating that all these transpositions are bubbles. 
+(** `swap` applies the list of transpositions `ts` to `s`, returning the swapped list 
+    together with a boolean stating that all these transpositions are bubbles. 
 
-    Applying the list `transpositions s (size s).-1` will yield a sorted version of `s`. *)
+    Using `transpositions s (size s).-1` for `ts` will yield a sorted version of `s`. *)
 
 Definition is_bubble (s : seq nat) (t : transposition) :=
   let: (i1, i2) := t in (i1 == i2) || (i1 < i2) && (nth 0 s i2 < nth 0 s i1).

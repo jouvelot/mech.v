@@ -7,7 +7,7 @@
   Provides a specification and (inefficient, using `bigop`) implementation for Bubble Sort.
 
   The specification shows the existence of a list of sorted transpositions (bubbles) that 
-  can be applied to any sequence to provide a sorted one.
+  can be applied to any sequence to provide a sorted one. See Theorem `bubble_sort_spec`. 
 
   Pierre Jouvelot, Mines Paris, PSL University
   April 2022
@@ -146,7 +146,6 @@ Qed.
 Lemma bigmax_in s n (lt0s : 0 < length s) (ltns : n < size s) : 
   \max_(0 <= i < n.+1) nth 0 s i \in s. 
 Proof. by rewrite (@mem_take n.+1) ?bigmax_in_take. Qed.
-
 
 Lemma index_bigmax_lt0 s n (lt0s : 0 < size s) (ltns : n < size s) :
   index (\max_(0 <= i < n.+1) nth 0 s i) s < n.+1.
@@ -469,7 +468,7 @@ rewrite !(@nth_map _ 0) ?size_iota ?nth_iota ?add0n /toggle //=.
 by case: ifP => [/eqP ->|ne2]; first by case: ifP => [/eqP -> //|].
 Qed.
 
-Lemma perm_catAC_iota n i1 i2  (l1n : i1 < n) (l2n : i2 < n) (lt12 : i1 < i2) :
+Lemma perm_catACA_iota n i1 i2  (l1n : i1 < n) (l2n : i2 < n) (lt12 : i1 < i2) :
   let s := toggle_iota n i1 i2 in
   let s1 := take i1 s in 
   let s2 := [:: nth 0 s i1] in
@@ -494,7 +493,7 @@ apply: (@eq_from_nth _ 0) => [|i lis].
     have li12 : i - i1.+1 < i2 - i1 - 1 by rewrite subnS -subn1 ?ltn_sub2r // ?ltn_subRL. 
     have mx //: maxn i1.+1 i = i by apply/maxn_idPr. 
     rewrite ifF ?ifT ?nth_take ?nth_drop addn1 -?maxnE ?mx //.
-    rewrite (@ltn_trans (i2 - i1 - 1)) // ltn_addr //.
+    rewrite (@ltn_trans (i2 - i1 - 1)) // ltn_addr //. 
     by rewrite ltnS leqNgt lt1.
   - rewrite -leqNgt => le2i. 
     have [] := boolP (i == i2) => [/eqP ->|ne2].    
@@ -535,35 +534,31 @@ apply: (@eq_from_nth _ 0) => [|i lis].
      - by rewrite eq1i ifT subnn ?(@nth_map _ 0) ?size_iota ?nth_iota ?add0n -?eq1i ?toggleR.
      - rewrite ltnS leqn0 subn_eq0 leqNgt lt1i /=.
        have [] := boolP (i < i2) => [lti2|].
-       - have eqi1 : i1.+1 + (i - i1 - 1) = i by rewrite -subnDA addn1 subnKC.
-         have ltin : i < n by rewrite (@ltn_trans i2).
+       - have eqi1 : i1.+1 + (i - i1 - 1) = i by rewrite -subnDA addn1 subnKC. 
          have lt112 : 1 < i2 - i1 by rewrite ltn_subRL (@leq_ltn_trans i) // addn1.
-         rewrite ifT ?ltn_sub2r // ?nth_take ?nth_drop ?ltn_addr.
-         rewrite (@nth_map _ 0) ?size_iota ?nth_iota ?add0n ?ltn_addr ?eqi1 //. 
-         rewrite toggleD // ?(@gtn_eqF i1) // ltn_eqF //. 
-         by rewrite !ltn_sub2r.
+         rewrite ifT ?ltn_sub2r // ?nth_take ?ltn_sub2r // ?nth_drop.
+         rewrite (@nth_map _ 0) ?size_iota ?nth_iota ?add0n ?ltn_addr
+                 ?eqi1 // ?(@ltn_trans i2 i n) //.
+         by rewrite toggleD // ?(@gtn_eqF i1) // ltn_eqF.
        - rewrite -ltnNge ltnS leq_eqVlt => /orP [/eqP eqi2|lt2i].
-         - rewrite -!subnDA addn1. 
-           rewrite ifF ?subnKC eqi2 ?subnn /= ?(@nth_map _ 0) ?nth_iota ?add0n ?size_iota //. 
-           rewrite toggleL //.
-           rewrite (@leq_ltn_trans i2) // eqi2 leqnn //. 
-           by rewrite ltnn. 
+         - rewrite -!subnDA addn1.  
+           rewrite ifF ?subnKC eqi2 ?ltnn ?subnn /= ?(@nth_map _ 0) ?size_iota //. 
+           rewrite !nth_iota ?add0n ?size_iota // ?toggleL //.
+           by rewrite (@leq_ltn_trans i2) // eqi2 leqnn.
          - have eqi2 : i2.+1 + (i - i1.+1 - (i2 - i1.+1 + 1)) = i. 
              by rewrite -subnDA addnBAC // addn1 subnKC ?subnKC // (@ltn_trans i2). 
            have ltin : i < n. 
              move: lis.
-             rewrite -(@subnDA _ i2) addn1 ltn_sub2r //.
+             rewrite -(@subnDA _ i2) addn1 ltn_sub2r // ?(@leq_ltn_trans i2 i1.+1) //.
              rewrite (@addnC _ (n - i2.+1)) addn1 subnSK ?subnS // ?(@addnC _ (n - i2)).
              rewrite -subnSK ?subnSK -?subnS ?(@addnC (n - i2)) //. 
              rewrite (@sumnK i2) // ?(@ltnW i2) //.
-             rewrite (@addnC 1) addn1 subnSK // subnKC // ltnW //.
-             by rewrite (@leq_ltn_trans i2).
+             by rewrite (@addnC 1) addn1 subnSK // subnKC // ltnW.
            rewrite ifF ?ifF -!(@subnDA _ _ 1) addn1. 
            rewrite nth_drop // ?(@nth_map _ 0) ?size_iota // ?nth_iota // ?add0n // ?eqi2 //. 
            rewrite toggleD // gtn_eqF //.
-           by rewrite subnBA // subnK // ltnS leqNgt subn_gt0 lt2i.
-           move: (lt2i). apply: contra_ltnF. rewrite ltnNge.
-           by rewrite leq_sub2r // ltnW.
+           rewrite subnBA // subnK // ltnS leqNgt subn_gt0 lt2i //.
+           by rewrite ltnNge leq_sub2r // ltnW.
 Qed.
 
 Lemma perm_no_toggle n i (lin : i < n) : perm_eq (toggle_iota n i i) (iota 0 n).  
@@ -588,7 +583,7 @@ wlog: i1 i2 l1n l2n ne12 / i1 < i2 => [H|lt12].
   move: (toggleC n i1 i2) (H i2 i1 l2n l1n ne12 lt21).  
   by rewrite /toggle_iota => ->.
 - set s := (X in perm_eq X) => {ne12}.   
-  move: (perm_catAC_iota l1n l2n lt12) => /=.
+  move: (perm_catACA_iota l1n l2n lt12) => /=.
   rewrite /s /toggle_iota => ->.
   set s1 := take i1 s; set s2 := [:: nth 0 s i1];
   set s3 := take (i2 - i1 -1) (drop i1.+1 s).

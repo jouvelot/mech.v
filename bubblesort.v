@@ -2,6 +2,8 @@
 
   bubblesort.v
 
+  See `bubblesort_not_uniq.v` for a more recent and more general version.
+
   Provides a specification and (inefficient, using `bigop`) implementation for Bubble Sort.
 
   The specification shows the existence of a list of sorted transpositions (bubbles) that 

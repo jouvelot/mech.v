@@ -1,13 +1,13 @@
 (** 
 
-  bubblesort.v
+  bubblesort_not_uniq.v
+
+  This file supersedes the more constrained `bubblesort.v` version.
 
   Provides a specification and (inefficient, using `bigop`) implementation for Bubble Sort.
 
   The specification shows the existence of a list of sorted transpositions (bubbles) that 
   can be applied to any sequence to provide a sorted one.
-
-  Caveat: No duplicate values allowed in the sequence.
 
   Pierre Jouvelot, Mines Paris, PSL University
   April 2022

@@ -285,13 +285,11 @@ Qed.
 
 Section Bubbles.
 
-(** Check there are only bubbles in `transpositions`. *)
+(** Check there are only bubbles in the `n`-prefix of `transpositions s`. *)
 
-Lemma bubbles_in_swap s (lt0s : 0 < size s) : (swap s (transpositions s (size s).-1)).1.
+Lemma bubbles_in_swap : forall n s (lt0s : 0 < size s) (ltns : n < size s),
+  (swap s (transpositions s n)).1.
 Proof.
-suff: forall n s, 0 < size s -> n < size s -> (swap s (transpositions s n)).1. 
-  by apply=> //; rewrite prednK.
-clear lt0s s.
 elim=> [//=|n IH s lt0s ltns /=]. 
 apply/andP; split; last by rewrite IH // ?size_aperm // -?lt0n ltnW.
 set mx := (\max_(_ <= i < _) _).
@@ -402,7 +400,7 @@ have [] := boolP (s == [::]) => [/eqP -> //=|]; first by exists [::].
 rewrite -size_eq0 -lt0n => lt0s.
 exists (transpositions s (size s).-1) => //=.  
 set bs' := (swap _ _). 
-rewrite (surjective_pairing bs') bubbles_in_swap //.
+rewrite (surjective_pairing bs') bubbles_in_swap // ?ltn_predL //.
 by split; last exact: swap_sorted. 
 Qed.
 

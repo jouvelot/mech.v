@@ -459,7 +459,7 @@ Qed.
 
 Definition toggle_iota n i1 i2 := [seq toggle (i1, i2) i | i <- iota 0 n].
 
-Lemma toggleC n i1 i2 : toggle_iota n i2 i1 = toggle_iota n i1 i2.
+Lemma toggle_iotaC n i1 i2 : toggle_iota n i2 i1 = toggle_iota n i1 i2.
 Proof.
 rewrite /toggle_iota.
 apply: (@eq_from_nth _ 0) => [|i ltin]; first by rewrite !size_map.
@@ -468,7 +468,7 @@ rewrite !(@nth_map _ 0) ?size_iota ?nth_iota ?add0n /toggle //=.
 by case: ifP => [/eqP ->|ne2]; first by case: ifP => [/eqP -> //|].
 Qed.
 
-Lemma perm_catACA_iota n i1 i2  (l1n : i1 < n) (l2n : i2 < n) (lt12 : i1 < i2) :
+Lemma perm_toggle_iota n i1 i2  (l1n : i1 < n) (l2n : i2 < n) (lt12 : i1 < i2) :
   let s := toggle_iota n i1 i2 in
   let s1 := take i1 s in 
   let s2 := [:: nth 0 s i1] in
@@ -510,58 +510,56 @@ apply: (@eq_from_nth _ 0) => [|i lis].
       by rewrite addn1 ltnS leqNgt lt1.
 Qed.
 
-Lemma perm_id_iota n i1 i2  (l1n : i1 < n) (l2n : i2 < n) (lt12 : i1 < i2) :
+Lemma perm_untoggle_iota n i1 i2  (l1n : i1 < n) (l2n : i2 < n) (lt12 : i1 < i2) :
   let s := toggle_iota n i1 i2 in
   let s1 := take i1 s in 
   let s2 := [:: nth 0 s i1] in
   let s3 := take (i2 - i1 -1) (drop i1.+1 s) in
   let s4 := [:: nth 0 s i2] in
   let s5 := drop i2.+1 s in
-  s1 ++ (s4 ++ (s3 ++ (s2 ++ s5))) = iota 0 n.
+  (((s1 ++ s4) ++ s3) ++ s2) ++ s5 = iota 0 n.
 Proof.
+move=> /=.
 have l21n: i2 - i1 - 1 < n - i1.+1. 
   by rewrite [X in _ < X]subnS -subn1 !ltn_sub2r ?ltn_subRL // addn1 (@ltn_leq_trans i2.+1).
-apply: (@eq_from_nth _ 0) => [|i lis].  
-- rewrite !size_cat !size_take !size_drop /= !size_map !size_iota l1n ifT //.
-  rewrite (subnS n) (addnC _ _.-1) addn1 prednK ?subn_gt0 // subn1 (addnA 1).
-  by rewrite (addnC 1) addn1 prednK ?subn_gt0 // addnC (@sumnK i2) ?subnK // ltnW.
--  rewrite !nth_cat /= !size_take !size_drop !size_map !size_iota !l1n !l21n.
-   rewrite !size_cat !size_take !size_drop !size_map !size_iota /= l1n in lis.
-   have [] := boolP (i < i1) => [lt1|].
-   - rewrite nth_take ?(@nth_map _ 0) ?nth_iota ?size_iota // 1?(@ltn_trans i1) //. 
-     by rewrite add0n toggleD // ?ltn_eqF // (@ltn_trans i1).
-   - rewrite -ltnNge ltnS leq_eqVlt => /orP [/eqP eq1i|lt1i].
-     - by rewrite eq1i ifT subnn ?(@nth_map _ 0) ?size_iota ?nth_iota ?add0n -?eq1i ?toggleR.
-     - rewrite ltnS leqn0 subn_eq0 leqNgt lt1i /=.
-       have [] := boolP (i < i2) => [lti2|].
-       - have eqi1 : i1.+1 + (i - i1 - 1) = i by rewrite -subnDA addn1 subnKC. 
-         have lt112 : 1 < i2 - i1 by rewrite ltn_subRL (@leq_ltn_trans i) // addn1.
-         rewrite ifT ?ltn_sub2r // ?nth_take ?ltn_sub2r // ?nth_drop.
-         rewrite (@nth_map _ 0) ?size_iota ?nth_iota ?add0n ?ltn_addr
-                 ?eqi1 // ?(@ltn_trans i2 i n) //.
-         by rewrite toggleD // ?(@gtn_eqF i1) // ltn_eqF.
-       - rewrite -ltnNge ltnS leq_eqVlt => /orP [/eqP eqi2|lt2i].
-         - rewrite -!subnDA addn1.  
-           rewrite ifF ?subnKC eqi2 ?ltnn ?subnn /= ?(@nth_map _ 0) ?size_iota //. 
-           rewrite !nth_iota ?add0n ?size_iota // ?toggleL //.
-           by rewrite (@leq_ltn_trans i2) // eqi2 leqnn.
-         - have eqi2 : i2.+1 + (i - i1.+1 - (i2 - i1.+1 + 1)) = i. 
-             by rewrite -subnDA addnBAC // addn1 subnKC ?subnKC // (@ltn_trans i2). 
-           have ltin : i < n. 
-             move: lis.
-             rewrite -(@subnDA _ i2) addn1 ltn_sub2r // ?(@leq_ltn_trans i2 i1.+1) //.
-             rewrite (@addnC _ (n - i2.+1)) addn1 subnSK ?subnS // ?(@addnC _ (n - i2)).
-             rewrite -subnSK ?subnSK -?subnS ?(@addnC (n - i2)) //. 
-             rewrite (@sumnK i2) // ?(@ltnW i2) //.
-             by rewrite (@addnC 1) addn1 subnSK // subnKC // ltnW.
-           rewrite ifF ?ifF -!(@subnDA _ _ 1) addn1. 
-           rewrite nth_drop // ?(@nth_map _ 0) ?size_iota // ?nth_iota // ?add0n // ?eqi2 //. 
-           rewrite toggleD // gtn_eqF //.
-           rewrite subnBA // subnK // ltnS leqNgt subn_gt0 lt2i //.
-           by rewrite ltnNge leq_sub2r // ltnW.
+set s := toggle_iota n i1 i2.  
+have -> : drop i2.+1 s = drop i2.+1 (iota 0 n). 
+  apply: (@eq_from_nth _ 0) => [|i lis]; first by rewrite !size_drop !size_map.
+  rewrite size_drop size_map size_iota ltn_subRL in lis.
+  rewrite !nth_drop (nth_map 0) ?nth_iota ?size_iota ?add0n //.
+  by rewrite toggleD // ?gtn_eqF // ?(@ltn_trans i2 i1 (i2.+1 + i)) // addSnnS ltn_addr.
+have -> : nth 0 s i1 = nth 0 (iota 0 n) i2. 
+  by rewrite (nth_map 0) ?size_iota ?nth_iota // !add0n toggleL.
+rewrite -catA //= -drop_nth ?size_iota // -[RHS](cat_take_drop i2 (iota 0 n)).
+apply/eqP.
+rewrite (@eqseq_cat _ _ _ (drop i2 (iota 0 n))) ?eq_refl ?andbT; 
+  last by rewrite !size_cat !size_take !size_drop !size_map !size_iota l1n l2n l21n /= 
+          -subnDA !addn1 subnKC. 
+rewrite -subnDA addn1. 
+have -> : take (i2 - i1.+1) (drop i1.+1 s) = take (i2 - i1.+1) (drop i1.+1 (iota 0 n)). 
+  apply: (@eq_from_nth _ 0) => [|i lis]; first by rewrite !size_take !size_drop !size_map. 
+  rewrite size_take size_drop !size_map !size_iota -{1}(addn1 i1) subnDA l21n in lis.
+  have lt11 : i1.+1 + i < n by rewrite (@ltn_trans i2) // -ltn_subRL.
+  rewrite !nth_take ?nth_drop /s /toggle_iota ?(nth_map 0) // ?nth_iota // ?add0n ?size_iota //.
+  by rewrite toggleD // ?(@gtn_eqF i1) // addSnnS ?ltn_addr // ltn_eqF // -addSnnS -ltn_subRL.
+rewrite take_drop subnK //.
+have -> : nth 0 s i2 = nth 0 (take i2 (iota 0 n)) i1. 
+  rewrite (nth_map 0) ?size_iota // nth_iota // take_iota toggleR nth_iota ?add0n //.
+  have -> // : minn i2 n = i2 by apply/minn_idPl; rewrite ltnW.
+rewrite -catA //= -drop_nth ?size_take ?size_map  ?size_iota ?l2n //.
+rewrite -[X in _ == X](cat_take_drop i1 (take i2 (iota 0 n))).
+rewrite eqseq_cat ?eq_refl ?andbT; 
+  last by rewrite !size_take /s !size_map !size_iota l2n l1n ifT. 
+rewrite take_take 1?ltnW //.
+have -> // : take i1 s = take i1 (iota 0 n). 
+  apply: (@eq_from_nth _ 0) => [|i lis]; first by rewrite !size_take size_map.
+  rewrite size_take size_map size_iota l1n in lis.
+  have lin : i < n by rewrite (@ltn_trans i1).
+  rewrite !nth_take ?(nth_map 0) ?size_iota // ?nth_iota ?add0n //. 
+  by rewrite toggleD // ?ltn_eqF // (@ltn_trans i1).
 Qed.
 
-Lemma perm_no_toggle n i (lin : i < n) : perm_eq (toggle_iota n i i) (iota 0 n).  
+Lemma perm_no_toggle_iota n i (lin : i < n) : perm_eq (toggle_iota n i i) (iota 0 n).  
 Proof.
 have -> : toggle_iota n i i = iota 0 n.
   rewrite /toggle_iota.
@@ -571,26 +569,26 @@ have -> : toggle_iota n i i = iota 0 n.
 exact: perm_refl.
 Qed.
 
-Lemma perm_toggle n i1 i2 (l1n : i1 < n) (l2n : i2 < n) :
+Lemma perm_eq_toggle_iota n i1 i2 (l1n : i1 < n) (l2n : i2 < n) :
   perm_eq (toggle_iota n i1 i2) (iota 0 n).  
 Proof.
 rewrite /toggle_iota. 
-have [] := boolP (i1 == i2) => [/eqP -> |ne12]; first by exact: perm_no_toggle.
+have [] := boolP (i1 == i2) => [/eqP -> |ne12]; first by exact: perm_no_toggle_iota.
 wlog: i1 i2 l1n l2n ne12 / i1 < i2 => [H|lt12].
 - move: (ne12).
   rewrite neq_ltn => /orP [lt12|lt21]; first by rewrite H.
   rewrite eq_sym in ne12.
-  move: (toggleC n i1 i2) (H i2 i1 l2n l1n ne12 lt21).  
+  move: (toggle_iotaC n i1 i2) (H i2 i1 l2n l1n ne12 lt21).  
   by rewrite /toggle_iota => ->.
 - set s := (X in perm_eq X) => {ne12}.   
-  move: (perm_catACA_iota l1n l2n lt12) => /=.
+  move: (perm_toggle_iota l1n l2n lt12) => /=.
   rewrite /s /toggle_iota => ->.
   set s1 := take i1 s; set s2 := [:: nth 0 s i1];
   set s3 := take (i2 - i1 -1) (drop i1.+1 s).
   set s4 := [:: nth 0 s i2]; set s5 := drop i2.+1 s. 
   rewrite perm_catACA (@perm_trans _ ((s1 ++ s4 ++ s3) ++ s2 ++ s5)) //;
         first by rewrite perm_cat2r (@perm_catl _ s1 _ (s4 ++ s3)) // perm_catC perm_refl.
-  by rewrite -catA (perm_id_iota l1n l2n lt12) perm_refl.
+  by rewrite !catA (perm_untoggle_iota l1n l2n lt12) perm_refl.
 Qed.
 
 Definition aperm s t := [seq nth 0 s (toggle t i) | i <- iota 0 (size s)].
@@ -624,7 +622,7 @@ Lemma perm_eq_aperm s i1 i2 (lt1s : i1 < size s) (lt2s : i2 < length s) :
 Proof.
 apply/(perm_iotaP 0).
 exists (map (toggle (i1, i2)) (iota 0 (size s))).
-- by rewrite size_aperm perm_toggle.
+- by rewrite size_aperm perm_eq_toggle_iota.
 - apply: (@eq_from_nth _ 0) => [|i ltis]; first by rewrite !size_map size_iota.
   rewrite !(@nth_map _ 0) ?size_iota // ?nth_iota // ?add0n ?toggleK // ?toggle_size //.
   by rewrite size_map size_iota.

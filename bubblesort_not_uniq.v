@@ -52,8 +52,7 @@ apply: eq_bigl => i.
 by rewrite andbT -[RHS]andbA andbb -andbA ltnS ltn_neqAle [X in _ && X]andbC.
 Qed.
 
-Lemma eq_bigmax_nat m n F : m < n.+1 ->
-  exists ix, \max_(m <= i < n.+1) F i = F ix /\ ix <= n.
+Lemma eq_bigmax_nat m n F : m < n.+1 -> exists ix, \max_(m <= i < n.+1) F i = F ix /\ ix <= n.
 Proof.
 elim: n=> [|n IH ltmn2]; first by rewrite ltnS leqn0 => /eqP ->; exists 0; rewrite big_nat1.
 rewrite // (bigD1_seq n.+1) ?iota_uniq ?mem_iota //=; last first.
@@ -75,12 +74,10 @@ rewrite // (bigD1_seq n.+1) ?iota_uniq ?mem_iota //=; last first.
     by rewrite maxn0.
 Qed.
 
-Lemma leq_bigmax F n (i0 : nat) (lei0n : i0 <= n) :
-  F i0 <= \max_(0 <= i < n.+1) F i.
+Lemma leq_bigmax F n (i0 : nat) (lei0n : i0 <= n) : F i0 <= \max_(0 <= i < n.+1) F i.
 Proof. by rewrite (bigD1_seq i0) //= ?mem_iota ?iota_uniq ?andbT //= leq_max leqnn. Qed.
 
-Lemma index_iota i n (lt0i : 0 < i) (lein : i <= n) :
-  index i (iota 1 n) = i.-1.
+Lemma index_iota i n (lt0i : 0 < i) (lein : i <= n) : index i (iota 1 n) = i.-1.
 Proof.
 have ii : i = 1 + i.-1 by rewrite -subn1 subnKC.
 have lti1n : i.-1 < n by rewrite (@leq_trans i) // ltn_predL. 
@@ -109,8 +106,7 @@ have [] := boolP (j < i) => [ltji|].
     by rewrite subnS -subn1 addnBA ?subnKC // ?subn1 // ?(ltnW ltij) // subn_gt0.
 Qed.
 
-Lemma big_pred1_eq (i : nat) n F (ltin1 : i < n.+1) :
-  \max_(0 <= j < n.+1 | j == i) F j = F i.
+Lemma big_pred1_eq (i : nat) n F (ltin1 : i < n.+1) : \max_(0 <= j < n.+1 | j == i) F j = F i.
 Proof. 
 rewrite big_nat_cond (big_rem i) //=; last by rewrite mem_iota (leq0n i) subnKC.
 rewrite ifT //= ?ltin1 ?eq_refl //= big_seq_cond.
@@ -271,8 +267,7 @@ Lemma swap_size ts s : size (swap s ts).2 = size s.
 Proof. by elim: ts s => [//=|t ts IH s /=]; rewrite IH. Qed.
 
 Lemma perm_eq_take_swap n : forall (s : seq nat),
-    n.+1 < size s ->
-    perm_eq (take n.+1 s) (take n.+1 (swap s (transpositions s n)).2).
+    n.+1 < size s -> perm_eq (take n.+1 s) (take n.+1 (swap s (transpositions s n)).2).
 Proof.
 suff: forall (s : seq nat),
     forall m, n.+1 + m < size s ->
@@ -295,8 +290,7 @@ Section Bubbles.
 
 (** Check there are only bubbles in `transpositions`. *)
 
-Lemma bubbles_in_swap s (lt0s : 0 < size s) :
-  (swap s (transpositions s (size s).-1)).1.
+Lemma bubbles_in_swap s (lt0s : 0 < size s) : (swap s (transpositions s (size s).-1)).1.
 Proof.
 suff: forall n s, 0 < size s -> n < size s -> (swap s (transpositions s n)).1. 
   by apply=> //; rewrite prednK.
@@ -356,7 +350,7 @@ congr maxn.
   by rewrite [LHS]big_nat. 
 Qed.
 
-Lemma max_swaps n:
+Lemma max_swaps n: 
   forall s (ltns : n < size s),
     let s' := (swap s (transpositions s n)).2 in
     forall j, j <= n -> nth 0 s' j = \max_(O <= i < j.+1) nth 0 s' i.
@@ -384,8 +378,7 @@ Qed.
 
 Definition up_sorted (s : seq nat) := sorted leq s.
 
-Lemma swap_sorted s (lt0s : 0 < size s) : 
-  up_sorted (swap s (transpositions s (size s).-1)).2.
+Lemma swap_sorted s (lt0s : 0 < size s) : up_sorted (swap s (transpositions s (size s).-1)).2.
 Proof.
 apply: (@path_sorted _ leq 0).
 apply/(pathP 0) => i ltiz.
@@ -565,7 +558,7 @@ have -> : toggle_iota n i i = iota 0 n.
   rewrite /toggle_iota.
   apply: (@eq_from_nth _ 0) => [|j ltjs]; first by rewrite size_map.
   rewrite size_map in ltjs.
-  by rewrite (@nth_map _ 0) ?toggle_id.
+  by rewrite (nth_map 0) ?toggle_id.
 exact: perm_refl.
 Qed.
 
@@ -624,7 +617,7 @@ apply/(perm_iotaP 0).
 exists (map (toggle (i1, i2)) (iota 0 (size s))).
 - by rewrite size_aperm perm_eq_toggle_iota.
 - apply: (@eq_from_nth _ 0) => [|i ltis]; first by rewrite !size_map size_iota.
-  rewrite !(@nth_map _ 0) ?size_iota // ?nth_iota // ?add0n ?toggleK // ?toggle_size //.
+  rewrite !(nth_map 0) ?size_iota // ?nth_iota // ?add0n ?toggleK // ?toggle_size //.
   by rewrite size_map size_iota.
 Qed.
 
@@ -634,7 +627,7 @@ Proof.
 rewrite -map_take /aperm take_iota size_take.
 apply: (@eq_from_nth _ 0) => [|i]; first by rewrite !size_map !size_iota.
 rewrite size_map size_iota => ltimn.
-rewrite !(@nth_map _ 0) ?size_iota ?nth_iota // ?add0n //. 
+rewrite !(nth_map 0) ?size_iota ?nth_iota // ?add0n //. 
 have [] := boolP (m <= size s) => [ltim|].
 - rewrite nth_take // /toggle /=. 
   case: ifP => // _.
@@ -644,12 +637,11 @@ have [] := boolP (m <= size s) => [ltim|].
   by rewrite take_oversize // ltnW.
 Qed.
 
-Definition bs_spec := 
-  (bubble_sort_spec aperm_id 
-                    size_aperm
-                    nth_aperm
-                    nth_aperm_id
-                    perm_eq_aperm
-                    take_perm_comm).
+Definition bs_spec :=  (bubble_sort_spec aperm_id 
+                                         size_aperm
+                                         nth_aperm
+                                         nth_aperm_id
+                                         perm_eq_aperm
+                                         take_perm_comm).
 Check bs_spec.
 Print Assumptions bs_spec.

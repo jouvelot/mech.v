@@ -247,7 +247,9 @@ Fixpoint transpositions (s : seq nat) n : seq transposition :=
     Using `transpositions s (size s).-1` for `ts` will yield a sorted version of `s`. *)
 
 Definition is_bubble (s : seq nat) (t : transposition) :=
-  let: (i1, i2) := t in (i1 == i2) || (i1 < i2) && (nth 0 s i2 <= nth 0 s i1).
+  let: (i1, i2) := t in 
+  (i1 < size s) && (i2 < size s) &&
+    ((i1 == i2) || (i1 < i2) && (nth 0 s i2 <= nth 0 s i1)).
 
 Fixpoint swap (s : seq nat) (ts : seq transposition) :=
   match ts with
@@ -287,29 +289,32 @@ Section Bubbles.
 
 (** Check there are only bubbles in the `n`-prefix of `transpositions s`. *)
 
-Lemma bubbles_in_swap : forall n s (lt0s : 0 < size s) (ltns : n < size s),
+Lemma bubbles_in_swap : forall n s (ltns : n < size s),
   (swap s (transpositions s n)).1.
 Proof.
-elim=> [//=|n IH s lt0s ltns /=]. 
+elim=> [//=|n IH s ltn1s /=]. 
 apply/andP; split; last by rewrite IH // ?size_aperm // -?lt0n ltnW.
 set mx := (\max_(_ <= i < _) _).
-have [] := boolP (index mx s == n.+1) => nein1 //=.
-move: (@index_bigmax_lt s n.+1 lt0s ltns); rewrite leq_eqVlt. 
-set eqixn1 := (X in (X || _)).
-rewrite -(negbK eqixn1) nein1 /= => -> //= {eqixn1}. 
-by rewrite nth_index ?bigmax_in // leq_bigmax.
+have lt0s : 0 < size s by rewrite (leq_ltn_trans (leq0n n.+1)).
+have [] := boolP (index mx s == n.+1) => [/eqP eqin1 //=|nein1].
+- move: (@index_bigmax_lt s n.+1 lt0s ltn1s).
+  rewrite leq_eqVlt => /orP [eqixn1|ltxn1]; first by rewrite eqin1 !ltn1s. 
+  by rewrite ltn1s !andbT (@ltn_trans n.+1). 
+- have ltxn1: index mx s < n.+1 by rewrite (@ltn_neqAle _ n.+1) index_bigmax_lt // andbT.
+  by rewrite (@ltn_trans n.+1 _ (size s)) // !ltxn1 ltn1s nth_index ?leq_bigmax ?bigmax_in.
 Qed.
 
 End Bubbles.
+
 
 Section Sorted.
 
 (** Check that the `n`-prefix of a `s` swapped with `transpositions` is sorted. *)
 
-Lemma swap_id n s j (ltnj : n < j) (ltjs : j < size s) :
+Lemma swap_id : forall n s j (ltnj : n < j) (ltjs : j < size s),
   nth 0 (swap s (transpositions s n)).2 j = nth 0 s j.
 Proof.
-elim: n s j ltnj ltjs => [//=|n IH s j ltn1j ltjs /=].
+elim=> [//=|n IH s j ltn1j ltjs /=].
 rewrite IH // ?size_aperm //; last by rewrite (@ltn_trans n.+1 _ j).
 rewrite nth_aperm_id // (@leq_ltn_trans n.+1) // index_bigmax_lt // (@ltn_trans j) //. 
 exact: (@ltn_trans n.+1).
@@ -406,7 +411,7 @@ Qed.
 
 End BubbleSort.
 
-Section Instance.
+Section Permutation.
 
 (** Provide an implementation of the permutation interface. *)
 
@@ -452,25 +457,25 @@ Section TransposeIota.
 
 Variable (n : nat).
 
-Definition transpose_iota t := [seq transpose t i | i <- iota 0 n].
+Definition transposed_iota t := [seq transpose t i | i <- iota 0 n].
 
-Lemma transpose_iotaC i1 i2 : transpose_iota (i2, i1) = transpose_iota (i1, i2).
+Lemma transpose_iotaC i1 i2 : transposed_iota (i2, i1) = transposed_iota (i1, i2).
 Proof.
-rewrite /transpose_iota.
+rewrite /transposed_iota.
 apply: (@eq_from_nth _ 0) => [|i ltin]; first by rewrite !size_map.
 rewrite size_map size_iota in ltin.
 rewrite !(@nth_map _ 0) ?size_iota ?nth_iota ?add0n /transpose //=.
 by case: ifP => [/eqP ->|ne2]; first by case: ifP => [/eqP -> //|].
 Qed.
 
-Lemma perm_transpose_iota i1 i2  (l1n : i1 < n) (l2n : i2 < n) (lt12 : i1 < i2) :
-  let s := transpose_iota (i1, i2) in
+Lemma transpose_iota i1 i2  (l1n : i1 < n) (l2n : i2 < n) (lt12 : i1 < i2) :
+  let s := transposed_iota (i1, i2) in
   let s1 := take i1 s in 
   let s2 := [:: nth 0 s i1] in
   let s3 := take (i2 - i1 -1) (drop i1.+1 s) in
   let s4 := [:: nth 0 s i2] in
   let s5 := drop i2.+1 s in
-  transpose_iota (i1, i2) = (s1 ++ s2) ++ ((s3 ++ s4) ++ s5).
+  s = (s1 ++ s2) ++ ((s3 ++ s4) ++ s5).
 Proof.
 have l21n: i2 - i1 - 1 < n - i1.+1. 
   by rewrite [X in _ < X]subnS -subn1 !ltn_sub2r ?ltn_subRL // addn1 (@ltn_leq_trans i2.+1).
@@ -505,8 +510,8 @@ apply: (@eq_from_nth _ 0) => [|i lis].
       by rewrite addn1 ltnS leqNgt lt1.
 Qed.
 
-Lemma perm_untranspose_iota i1 i2  (l1n : i1 < n) (l2n : i2 < n) (lt12 : i1 < i2) :
-  let s := transpose_iota (i1, i2) in
+Lemma untranspose_iota i1 i2  (l1n : i1 < n) (l2n : i2 < n) (lt12 : i1 < i2) :
+  let s := transposed_iota (i1, i2) in
   let s1 := take i1 s in 
   let s2 := [:: nth 0 s i1] in
   let s3 := take (i2 - i1 -1) (drop i1.+1 s) in
@@ -517,7 +522,7 @@ Proof.
 move=> /=.
 have l21n: i2 - i1 - 1 < n - i1.+1. 
   by rewrite [X in _ < X]subnS -subn1 !ltn_sub2r ?ltn_subRL // addn1 (@ltn_leq_trans i2.+1).
-set s := transpose_iota (i1, i2).  
+set s := transposed_iota (i1, i2).  
 have -> : drop i2.+1 s = drop i2.+1 (iota 0 n). 
   apply: (@eq_from_nth _ 0) => [|i lis]; first by rewrite !size_drop !size_map.
   rewrite size_drop size_map size_iota ltn_subRL in lis.
@@ -556,9 +561,9 @@ have -> // : take i1 s = take i1 (iota 0 n).
   by rewrite transposeD // ?ltn_eqF // (@ltn_trans i1).
 Qed.
 
-Lemma perm_no_transpose_iota i (lin : i < n) : perm_eq (transpose_iota (i, i)) (iota 0 n).  
+Lemma perm_eq_no_transpose_iota i (lin : i < n) : perm_eq (transposed_iota (i, i)) (iota 0 n).  
 Proof.
-have -> : transpose_iota (i, i) = iota 0 n.
+have -> : transposed_iota (i, i) = iota 0 n.
   rewrite /transpose_iota.
   apply: (@eq_from_nth _ 0) => [|j ltjs]; first by rewrite size_map.
   rewrite size_map in ltjs.
@@ -567,9 +572,9 @@ exact: perm_refl.
 Qed.
 
 Lemma perm_eq_transpose_iota i1 i2 (l1n : i1 < n) (l2n : i2 < n) :
-  perm_eq (transpose_iota (i1, i2)) (iota 0 n).  
+  perm_eq (transposed_iota (i1, i2)) (iota 0 n).  
 Proof.
-have [] := boolP (i1 == i2) => [/eqP -> |ne12]; first by exact: perm_no_transpose_iota.
+have [] := boolP (i1 == i2) => [/eqP -> |ne12]; first by exact: perm_eq_no_transpose_iota.
 wlog: i1 i2 l1n l2n ne12 / i1 < i2 => [H|lt12].
 - move: (ne12).
   rewrite neq_ltn => /orP [lt12|lt21]; first by rewrite H.
@@ -577,14 +582,14 @@ wlog: i1 i2 l1n l2n ne12 / i1 < i2 => [H|lt12].
   move: (transpose_iotaC i1 i2) (H i2 i1 l2n l1n ne12 lt21).  
   by rewrite /transpose_iota => ->.
 - set s := (X in perm_eq X) => {ne12}.   
-  move: (perm_transpose_iota l1n l2n lt12) => /=.
+  move: (transpose_iota l1n l2n lt12) => /=.
   rewrite /s => ->.
   set s1 := take i1 s; set s2 := [:: nth 0 s i1];
   set s3 := take (i2 - i1 -1) (drop i1.+1 s).
   set s4 := [:: nth 0 s i2]; set s5 := drop i2.+1 s. 
   rewrite perm_catACA (@perm_trans _ ((s1 ++ s4 ++ s3) ++ s2 ++ s5)) //;
         first by rewrite perm_cat2r (@perm_catl _ s1 _ (s4 ++ s3)) // perm_catC perm_refl.
-  by rewrite !catA (perm_untranspose_iota l1n l2n lt12) perm_refl.
+  by rewrite !catA (untranspose_iota l1n l2n lt12) perm_refl.
 Qed.
 
 End TransposeIota.
@@ -647,6 +652,8 @@ have [] := boolP (m <= size s) => [ltim|].
 - rewrite -ltnNge => lemi.
   by rewrite take_oversize // ltnW.
 Qed.
+
+End Permutation.
 
 Definition bs_spec :=  (bubble_sort_spec aperm_id 
                                          size_aperm

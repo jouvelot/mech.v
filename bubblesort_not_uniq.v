@@ -163,12 +163,12 @@ Implicit Types (i : nat).
 Notation transposition := (nat * nat)%type.
 
 Variable (aperm : seq nat -> transposition -> seq nat).
-Variable (aperm_id : forall s n, aperm s (n, n) = s).
+Variable (aperm_id : forall s i, aperm s (i, i) = s).
 Variable (size_aperm : forall s t, size (aperm s t) = size s).
-Variable (nth_aperm : forall s n x, 
-             n < size s -> x \in s -> nth 0 (aperm s (index x s, n)) n = x).
+Variable (nth_aperm : forall s i m, 
+             i < size s -> m \in s -> nth 0 (aperm s (index m s, i)) i = m).
 Variable (nth_aperm_id : forall s i1 i2 i,
-             i < size s -> i1 < i -> i2 < i -> 
+             i < size s -> i != i1 -> i != i2 -> 
              nth 0 (aperm s (i1, i2)) i = nth 0 s i).
 Variable (perm_eq_aperm : forall s i1 i2, 
              i1 < size s -> i2 < size s -> perm_eq s (aperm s (i1, i2))).
@@ -324,8 +324,8 @@ Lemma swap_id : forall n s j (ltnj : n < j) (ltjs : j < size s),
   nth 0 (swap s (transpositions s n)).2 j = nth 0 s j.
 Proof.
 elim=> [//=|n IH s j ltn1j ltjs /=].
-rewrite IH // ?size_aperm //; last by rewrite (@ltn_trans n.+1 _ j).
-rewrite nth_aperm_id // (@leq_ltn_trans n.+1) // index_bigmax_lt // (@ltn_trans j) //. 
+rewrite IH // ?size_aperm //; last by rewrite (@ltn_trans n.+1 _ j). 
+rewrite nth_aperm_id // gtn_eqF //(@leq_ltn_trans n.+1) // index_bigmax_lt // (@ltn_trans j) //. 
 exact: (@ltn_trans n.+1).
 Qed.
 
@@ -620,25 +620,26 @@ Definition aperm t := [seq nth 0 s (transpose t i) | i <- iota 0 (size s)].
 Lemma size_aperm t : size (aperm t) = size s.
 Proof. by rewrite /aperm size_map size_iota. Qed.
 
-Lemma aperm_id n : aperm (n, n) = s. 
+Lemma aperm_id i : aperm (i, i) = s. 
 Proof.
-apply: (@eq_from_nth _ 0) => [|i ltis /=]; first by rewrite size_aperm.
-rewrite size_aperm in ltis. 
+apply: (@eq_from_nth _ 0) => [|j ltjs /=]; first by rewrite size_aperm.
+rewrite size_aperm in ltjs. 
 by rewrite (nth_map 0) ?size_iota // nth_iota //= add0n  transpose_id.
 Qed.
 
-Lemma nth_aperm i x (ltis : i < size s) (xins : x \in s) :
-  nth 0 (aperm (index x s, i)) i = x.
+Lemma nth_aperm i m (ltis : i < size s) (min : m \in s) :
+  nth 0 (aperm (index m s, i)) i = m.
 Proof. 
 rewrite (nth_map 0) // /transpose /= ?size_iota ?nth_iota // add0n.
 case: ifP => [/eqP -> |]; first by rewrite nth_index.
 by rewrite ifT // nth_index.
 Qed.
 
-Lemma nth_aperm_id i1 i2 i (ltis : i < size s) (lt1j : i1 < i) (lt2j : i2 < i) : 
+Lemma nth_aperm_id i1 i2 i (ltis : i < size s) (nei1 : i != i1) (nei2 : i != i2) : 
   nth 0 (aperm (i1, i2)) i = nth 0 s i.
 Proof.                                                                     
-by rewrite /aperm (nth_map 0) // /transpose /= ?size_iota // nth_iota // add0n ifF ?gtn_eqF.
+have nej j: i != j -> (i == j) = false by apply: contra_neqF => /eqP.
+by rewrite /aperm (nth_map 0) // /transpose ?size_iota // nth_iota //= add0n !ifF 2?nej.
 Qed.
 
 Lemma perm_eq_aperm i1 i2 (lt1s : i1 < size s) (lt2s : i2 < size s) :

@@ -320,8 +320,8 @@ Section Sorted.
 
 (** Check that the `n`-prefix of a `s` swapped with `transpositions s n` is sorted. *)
 
-Lemma swap_id : forall n s j (ltnj : n < j) (ltjs : j < size s),
-  nth 0 (swap s (transpositions s n)).2 j = nth 0 s j.
+Lemma swap_id : forall n s i (ltni : n < i) (ltis : i < size s),
+  nth 0 (swap s (transpositions s n)).2 i = nth 0 s i.
 Proof.
 elim=> [//=|n IH s j ltn1j ltjs /=].
 rewrite IH // ?size_aperm //; last by rewrite (@ltn_trans n.+1 _ j). 
@@ -373,14 +373,13 @@ have [] := boolP (ix == n.+1) => [/eqP eqixn1|neixn1].
   - have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn. 
     by rewrite swap_id // -{1}eqixn1 nth_index // ?bigmax_in // max_swap. 
 - set s' := (aperm _ _).
-  have [] := boolP (j <= n) => lejn.
-  - by rewrite (IH s') // size_aperm (@ltn_trans n.+1).
-  - have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn.
-    rewrite swap_id ?size_aperm //.
-    rewrite nth_aperm // ?bigmax_in // -max_swap ?size_aperm //.  
-    rewrite (@max_aperm _ ix) //. 
-    move: (index_bigmax_lt lt0s ltn1s).
-    by rewrite leq_eqVlt -(negbK (ix == n.+1)) neixn1.
+  have [] := boolP (j <= n) => lejn; first by rewrite (IH s') // size_aperm (@ltn_trans n.+1).
+  have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn.
+  rewrite swap_id ?size_aperm //.
+  rewrite nth_aperm // ?bigmax_in // -max_swap ?size_aperm //.  
+  rewrite (@max_aperm _ ix) //. 
+  move: (index_bigmax_lt lt0s ltn1s).
+  by rewrite leq_eqVlt -(negbK (ix == n.+1)) neixn1.
 Qed.
 
 End Sorted.
@@ -403,9 +402,8 @@ rewrite -lt0n in nei0.
 rewrite swap_size in ltiz.
 have leiz1 : i <= (size s).-1 by rewrite ?ltn_predL -ltnS prednK.
 have lei1z1 : i.-1 <= (size s).-1 by rewrite (@leq_trans i) // leq_pred.
-move: (nei0) => /prednK <-.
-rewrite -nth_behead /behead prednK //.
-rewrite !max_swaps // ?ltn_predL //. 
+move: (nei0) => /prednK <-. 
+rewrite -nth_behead /behead prednK // !max_swaps // ?ltn_predL //. 
 rewrite [X in _ <= X](@big_cat_nat _ _ _ i.-1.+1) //= ?maxnE ?leq_addr //=.
 by rewrite (@leq_ltn_trans i) // ?leq_pred.
 Qed.
@@ -420,8 +418,7 @@ rewrite -size_eq0 -lt0n => lt0s.
 exists (transpositions s (size s).-1) => //=.  
 set bs' := (swap _ _). 
 rewrite (surjective_pairing bs') bubbles_in_swap // ?ltn_predL //. 
-split=> //. 
-exact: bubble_sorted. 
+by split=> //; last by exact: bubble_sorted. 
 Qed.
 
 End Specification.

@@ -69,9 +69,7 @@ rewrite // (bigD1_seq n.+1) ?iota_uniq ?mem_iota //=; last first.
       exact: ltnW.
   - rewrite -ltnNge ltnS => ltnm. 
     have/eqP -> : m == n.+1 by rewrite eqn_leq -ltnS ltmn2 ltnm.
-    exists n.+1. 
-    have -> : \max_(n.+1 <= i < n.+2 | i != n.+1) F i = 0 by rewrite bigmaxD1_nat big_geq.
-    by rewrite maxn0.
+    by exists n.+1; rewrite bigmaxD1_nat big_geq.
 Qed.
 
 Lemma leq_bigmax F n (i0 : nat) (lei0n : i0 <= n) : F i0 <= \max_(0 <= i < n.+1) F i.
@@ -229,8 +227,8 @@ Qed.
 
 Section Algorithm. 
 
-(** A list of transpositions (to be shown later as forming a list of out-of-order `bubbles`) 
-    from indices `0` to `n` (included) in `s`. *)
+(** Bubble Sort is based on transpositions (to be shown later as being out-of-order `bubbles`),
+    here on a prefix of `s`, from indices `0` to `n` (included) in `s`. *)
 
 Fixpoint transpositions (s : seq nat) n : seq transposition :=
   match n with
@@ -242,9 +240,7 @@ Fixpoint transpositions (s : seq nat) n : seq transposition :=
   end.
 
 (** `swap` applies the list of transpositions `ts` to `s`, returning the swapped list 
-    together with a boolean stating that all these transpositions are bubbles. 
-
-    Using `transpositions s (size s).-1` for `ts` will yield a sorted version of `s`. *)
+    together with a boolean checking whether all these transpositions are bubbles.  *)
 
 Definition is_bubble (s : seq nat) (t : transposition) :=
   let: (i1, i2) := t in 
@@ -258,9 +254,13 @@ Fixpoint swap (s : seq nat) (ts : seq transposition) :=
              (is_bubble s t && bs'.1, bs'.2)
   end.
 
+Definition bubble_sort (s : seq nat) := (swap s (transpositions s (size s).-1)).2.
+
 End Algorithm.
 
-(* Util lemmas on `swap` and `transpositions`. *)
+Section Bubbles.
+
+(** Check there are only bubbles in the `n`-prefix of `transpositions s`. *)
 
 Lemma swap_size ts s : size (swap s ts).2 = size s. 
 Proof. by elim: ts s => [//=|t ts IH s /=]; rewrite IH. Qed.
@@ -285,9 +285,19 @@ rewrite (@perm_trans _ (take (n.+1 + m.+1) (aperm s (ix, n.+1)))) //.
   by have -> // : n + m.+2 = n.+1 + m.+1 by rewrite addnS addSn.
 Qed.
 
-Section Bubbles.
-
-(** Check there are only bubbles in the `n`-prefix of `transpositions s`. *)
+Lemma bubble_equiv s t :
+  is_bubble s t <-> let: (i1, i2) := t in 
+                  (i1 < size s) && (i2 < size s) &&
+                  ((i1 <= i2) && (nth 0 s i2 <= nth 0 s i1)).
+Proof.
+rewrite /is_bubble (surjective_pairing t).
+split=> [/andP [/andP [-> ->]] /orP [/eqP -> //|/andP [lt12 ->]]|
+        /andP [/andP [-> ->]] /andP [le12 ->]].
+- - by rewrite !leqnn.
+  - by rewrite ltnW.
+- rewrite leq_eqVlt in le12.
+  by rewrite !andbT le12.
+Qed.
 
 Lemma bubbles_in_swap : forall n s (ltns : n < size s),
   (swap s (transpositions s n)).1.
@@ -306,10 +316,9 @@ Qed.
 
 End Bubbles.
 
-
 Section Sorted.
 
-(** Check that the `n`-prefix of a `s` swapped with `transpositions` is sorted. *)
+(** Check that the `n`-prefix of a `s` swapped with `transpositions s n` is sorted. *)
 
 Lemma swap_id : forall n s j (ltnj : n < j) (ltjs : j < size s),
   nth 0 (swap s (transpositions s n)).2 j = nth 0 s j.
@@ -374,10 +383,19 @@ have [] := boolP (ix == n.+1) => [/eqP eqixn1|neixn1].
     by rewrite leq_eqVlt -(negbK (ix == n.+1)) neixn1.
 Qed.
 
+End Sorted.
+
+Section Specification.
+
 Definition up_sorted (s : seq nat) := sorted leq s.
 
-Lemma swap_sorted s (lt0s : 0 < size s) : up_sorted (swap s (transpositions s (size s).-1)).2.
+Lemma bubble_sorted_nil : bubble_sort [::] = [::].
+Proof. by []. Qed.
+
+Lemma bubble_sorted s : up_sorted (bubble_sort s).
 Proof.
+have [] := boolP (s == [::]) => [/eqP ->|]; first by rewrite bubble_sorted_nil.
+rewrite -size_eq0 -lt0n => lt0s.
 apply: (@path_sorted _ leq 0).
 apply/(pathP 0) => i ltiz.
 have [] := boolP (i == 0) => [/eqP -> //=|nei0].
@@ -392,22 +410,21 @@ rewrite [X in _ <= X](@big_cat_nat _ _ _ i.-1.+1) //= ?maxnE ?leq_addr //=.
 by rewrite (@leq_ltn_trans i) // ?leq_pred.
 Qed.
 
-End Sorted.
-
-(** Specification of BubbleSort. *)
-
 Theorem bubble_sort_spec (s : seq nat) :
   exists (ts : seq transposition),
     let: (all_bubbles, s') := swap s ts in
     all_bubbles /\ up_sorted s'.
 Proof.
-have [] := boolP (s == [::]) => [/eqP -> //=|]; first by exists [::].
+have [] := boolP (s == [::]) => [/eqP -> |]; first by exists [::].
 rewrite -size_eq0 -lt0n => lt0s.
 exists (transpositions s (size s).-1) => //=.  
 set bs' := (swap _ _). 
-rewrite (surjective_pairing bs') bubbles_in_swap // ?ltn_predL //.
-by split; last exact: swap_sorted. 
+rewrite (surjective_pairing bs') bubbles_in_swap // ?ltn_predL //. 
+split=> //. 
+exact: bubble_sorted. 
 Qed.
+
+End Specification.
 
 End BubbleSort.
 

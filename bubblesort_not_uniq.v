@@ -2,8 +2,6 @@
 
   bubblesort_not_uniq.v
 
-  This file supersedes the more constrained `bubblesort.v` version.
-
   This file prodes a specification and (inefficient, using `bigop`) implementation for
   a variant of Bubble Sort.
 
@@ -19,7 +17,6 @@
 *)
 
 From mathcomp Require Import all_ssreflect.
-From mathcomp Require Import all_algebra.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -31,7 +28,7 @@ Lemma ltn_addr n m : n < n + m.+1.
 Proof. by rewrite -addSnnS leq_addr. Qed.
 
 Lemma ltn_leq_trans n m p : m < n -> n <= p -> m < p.
-Proof. exact (@leq_trans _ _ _). Qed.
+Proof. exact: leq_trans. Qed.
 
 Lemma sumnK (m n p : nat) (lepm : p <= m) (lemn : m <= n) : 
   (m - p) + (n - m) = n - p.
@@ -262,7 +259,7 @@ End Algorithm.
 
 Section Bubbles.
 
-(** Check there are only bubbles in the `n`-prefix of `transpositions s`. *)
+(** Proof that there are only bubbles in the `n`-prefix of `transpositions s`. *)
 
 Lemma perm_eq_take_swap n : forall (s : seq nat),
     n.+1 < size s -> perm_eq (take n.+1 s) (take n.+1 (swap s (transpositions s n)).2).
@@ -319,7 +316,7 @@ End Bubbles.
 
 Section Sorted.
 
-(** Check that the `n`-prefix of a `s` swapped with `transpositions s n` is sorted. *)
+(** Proof that the `n`-prefix of a `s` swapped with `transpositions s n` is sorted. *)
 
 Lemma swap_size ts s : size (swap s ts).2 = size s. 
 Proof. by elim: ts s => [//=|t ts IH s /=]; rewrite IH. Qed.
@@ -414,7 +411,7 @@ Qed.
 
 Theorem bubble_sort_spec (s : seq nat) :
   exists (ts : seq transposition),
-    let: (all_bubbles, s') := swap s ts in
+    let: (all_bubbles, s') := swap s ts in 
     all_bubbles /\ up_sorted s'.
 Proof.
 have [] := boolP (s == [::]) => [/eqP -> |]; first by exists [::].

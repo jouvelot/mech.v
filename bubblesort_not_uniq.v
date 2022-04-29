@@ -4,12 +4,14 @@
 
   This file supersedes the more constrained `bubblesort.v` version.
 
-  Provides a specification and (inefficient, using `bigop`) implementation for Bubble Sort.
+  This file prodes a specification and (inefficient, using `bigop`) implementation for
+  a variant of Bubble Sort.
 
-  The specification shows the existence of a list of sorted transpositions (bubbles) that 
-  can be applied to any sequence to provide a sorted one. See Theorem `bubble_sort_spec`. 
+  The specification states the existence of a list of sorted transpositions (bubbles) that 
+  can be applied to any sequence to provide a sorted one (see Theorem `bubble_sort_spec`).
 
   Pierre Jouvelot, Mines Paris, PSL University
+
   April 2022
 
   Licence: CeCILL-B.
@@ -262,9 +264,6 @@ Section Bubbles.
 
 (** Check there are only bubbles in the `n`-prefix of `transpositions s`. *)
 
-Lemma swap_size ts s : size (swap s ts).2 = size s. 
-Proof. by elim: ts s => [//=|t ts IH s /=]; rewrite IH. Qed.
-
 Lemma perm_eq_take_swap n : forall (s : seq nat),
     n.+1 < size s -> perm_eq (take n.+1 s) (take n.+1 (swap s (transpositions s n)).2).
 Proof.
@@ -284,6 +283,8 @@ rewrite (@perm_trans _ (take (n.+1 + m.+1) (aperm s (ix, n.+1)))) //.
   move: (@IH (aperm s (ix, n.+1)) m.+1 szap).
   by have -> // : n + m.+2 = n.+1 + m.+1 by rewrite addnS addSn.
 Qed.
+
+(* Side lemma, not used in the proof. *)
 
 Lemma bubble_equiv s t :
   is_bubble s t <-> let: (i1, i2) := t in 
@@ -319,6 +320,9 @@ End Bubbles.
 Section Sorted.
 
 (** Check that the `n`-prefix of a `s` swapped with `transpositions s n` is sorted. *)
+
+Lemma swap_size ts s : size (swap s ts).2 = size s. 
+Proof. by elim: ts s => [//=|t ts IH s /=]; rewrite IH. Qed.
 
 Lemma swap_id : forall n s i (ltni : n < i) (ltis : i < size s),
   nth 0 (swap s (transpositions s n)).2 i = nth 0 s i.

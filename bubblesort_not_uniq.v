@@ -483,7 +483,7 @@ rewrite !(@nth_map _ 0) ?size_iota ?nth_iota ?add0n /transpose //=.
 by case: ifP => [/eqP ->|ne2]; first by case: ifP => [/eqP -> //|].
 Qed.
 
-Definition within (s : seq nat) t := take (t.2 - t.1 -1) (drop t.1.+1 s).
+Definition within (s : seq nat) t := take (t.2 - t.1.+1) (drop t.1.+1 s).
 
 Lemma transpose_iota i1 i2  (l1n : i1 < n) (l2n : i2 < n) (lt12 : i1 < i2) :
   let s := transposed_iota (i1, i2) in
@@ -491,37 +491,31 @@ Lemma transpose_iota i1 i2  (l1n : i1 < n) (l2n : i2 < n) (lt12 : i1 < i2) :
     (take i1 s, [:: nth 0 s i1], within s (i1, i2), [:: nth 0 s i2], drop i2.+1 s) in
   s = (s1 ++ s2) ++ ((s3 ++ s4) ++ s5).
 Proof.
-have l21n: i2 - i1 - 1 < n - i1.+1. 
-  by rewrite [X in _ < X]subnS -subn1 !ltn_sub2r ?ltn_subRL // addn1 (@ltn_leq_trans i2.+1).
+have l21n: i2 - i1.+1 < n - i1.+1 by rewrite ltn_sub2r // (@ltn_leq_trans i2.+1).
 apply: (@eq_from_nth _ 0) => [|i lis]. 
 - rewrite !size_cat !size_take !size_drop /= !size_map !size_iota l1n ifT //.
-  rewrite subnK ?subn_gt0 //. 
-  by rewrite addnC ?(@addnC (i2 - i1)) -addnA addn1 addnS subnK ?(@ltnW i1) // subnK.
+  by rewrite addn1 !addnA subnKC // addn1 subnKC.
 - rewrite !nth_cat !size_cat /= !size_take !size_drop !size_map !size_iota !l1n !l21n.
   have [] := boolP (i < i1) => lt1; first by rewrite ifT ?nth_take // (@ltn_trans i1) ?ltn_addr.
   rewrite -ltnNge ltnS in lt1.
   have [] := boolP (i == i1) => [/eqP ->|ne1]; first by rewrite subnn /= ifT // ltn_addr. 
   rewrite leq_eqVlt -(negbK (i1 == i)) eq_sym ne1 /= in lt1.
   have [] := boolP (i < i2) => [lt2|].
-  - have lt112: i1 + 1 < i2 by rewrite (@leq_ltn_trans i) // addn1.   
-    have li12 : i - i1.+1 < i2 - i1 - 1 by rewrite subnS -subn1 ?ltn_sub2r // ?ltn_subRL. 
-    have mx //: maxn i1.+1 i = i by apply/maxn_idPr. 
-    rewrite ifF ?ifT ?nth_take ?nth_drop addn1 -?maxnE ?mx //.
-    rewrite (@ltn_trans (i2 - i1 - 1)) // ltn_addr //. 
-    by rewrite ltnS leqNgt lt1.
+  - have lt112: i1 + 1 < i2 by rewrite (@leq_ltn_trans i) // addn1.    
+    have lti12 : i - i1.+1 < i2 - i1.+1 by rewrite ?ltn_sub2r // (@ltn_leq_trans i.+1).
+    have lti121: i - i1.+1 < i2 - i1.+1 + 1 by rewrite (@ltn_trans (i2 - i1.+1)) // ltn_addr.
+    have mx //: maxn i1.+1 i = i by apply/maxn_idPr.
+    by rewrite ifF ?ifT addn1 //= ?nth_take ?nth_drop -?maxnE ?mx //= ltnS leqNgt lt1.
   - rewrite -leqNgt => le2i. 
-    have [] := boolP (i == i2) => [/eqP ->|ne2].    
-    - by rewrite ifF ?subnDA ?ltn_addr ?ltnn ?subnn //= addn1 ltnS leqNgt lt12.
-    - rewrite leq_eqVlt -(negbK (i2 == i)) eq_sym ne2 /= in le2i. 
-      rewrite ifF ?subnDA ?ifF ?nth_drop.
-      have -> // : i2.+1 + (i - i1 - 1 - (i2 - i1 - 1) -1) = i. 
-        rewrite !subn1 -subnS prednK ?subn_gt0 // addnBA.
-        rewrite -addn1 -addnA -subn1 subnKC ?subn_gt0 //.
-        rewrite addnBCA // ?(@ltnW i1) // -addnBA ?subnn ?addn0 //.
-        by rewrite -ltnS prednK ?subn_gt0 // ltn_sub2r.
+    have [] := boolP (i == i2) => [/eqP -> /=|ne2].    
+    - by rewrite ifF addn1 ?ltn_addr ?ltnn ?subnn //= ltnS leqNgt lt12.
+    - rewrite leq_eqVlt -(negbK (i2 == i)) eq_sym ne2 /= in le2i.  
+      rewrite ifF ?subnDA ?ifF ?nth_drop //=; last by rewrite addn1 ltnS leqNgt lt1. 
+      have -> // : i2.+1 + (i - i1 - 1 - (i2 - i1.+1) -1) = i. 
+        rewrite -(@subnDA i1) -subnDA !addn1 subnSK -?subnDA ?(@addnBCA i1.+1) ?(@ltnW i1 i2) //.
+        by rewrite subSnn addn1 subnKC.
       rewrite ?subnK ltnNge ?subn1 -ltnS ?prednK ?ltn_sub2r // ?subn_gt0 //.
-      rewrite -ltnNge ltnS subn_gt0 //.
-      by rewrite addn1 ltnS leqNgt lt1.
+      by rewrite addn1 (@subnSK _ i2) // ltn_sub2r.
 Qed.
 
 Lemma untranspose_iota i1 i2  (lt1n : i1 < n) (lt2n : i2 < n) (lt12 : i1 < i2) :
@@ -530,8 +524,7 @@ Lemma untranspose_iota i1 i2  (lt1n : i1 < n) (lt2n : i2 < n) (lt12 : i1 < i2) :
     (take i1 s, [:: nth 0 s i1], within s (i1, i2), [:: nth 0 s i2], drop i2.+1 s) in
   (((s1 ++ s4) ++ s3) ++ s2) ++ s5 = iota 0 n.
 Proof.
-have l21n: i2 - i1 - 1 < n - i1.+1. 
-  by rewrite [X in _ < X]subnS -subn1 !ltn_sub2r ?ltn_subRL // addn1 (@ltn_leq_trans i2.+1).
+have l21n: i2 - i1.+1 < n - i1.+1 by rewrite ltn_sub2r // (@ltn_leq_trans i2.+1).
 set s := transposed_iota (i1, i2) => /=.
 have -> : drop i2.+1 s = drop i2.+1 (iota 0 n). 
   apply: (@eq_from_nth _ 0) => [|i lis]; first by rewrite !size_drop !size_map.
@@ -542,13 +535,12 @@ have -> : nth 0 s i1 = nth 0 (iota 0 n) i2.
   by rewrite (nth_map 0) ?size_iota ?nth_iota // !add0n transposeL.
 rewrite -catA //= -drop_nth ?size_iota // -[RHS](cat_take_drop i2 (iota 0 n)).
 apply/eqP. 
-rewrite (@eqseq_cat _ _ _ (drop i2 (iota 0 n))) ?eq_refl ?andbT; 
-  last by rewrite !size_cat !size_take !size_drop !size_map !size_iota lt1n lt2n l21n /= 
-          -subnDA !addn1 subnKC. 
-rewrite /within -subnDA addn1. 
+rewrite (@eqseq_cat _ _ _ (drop i2 (iota 0 n))) ?eq_refl ?andbT /within; 
+  last by rewrite !size_cat !size_take !size_drop !size_map !size_iota lt1n lt2n l21n
+                  addn1 subnKC.  
 have -> : take (i2 - i1.+1) (drop i1.+1 s) = take (i2 - i1.+1) (drop i1.+1 (iota 0 n)). 
   apply: (@eq_from_nth _ 0) => [|i ltis]; first by rewrite !size_take !size_drop !size_map. 
-  rewrite size_take size_drop !size_map !size_iota -{1}(addn1 i1) subnDA l21n in ltis.
+  rewrite size_take size_drop !size_map !size_iota l21n in ltis.
   have lt11 : i1.+1 + i < n by rewrite (@ltn_trans i2) // -ltn_subRL.
   rewrite !nth_take ?nth_drop /s /transpose_iota 
           ?(nth_map 0) // ?nth_iota // ?add0n ?size_iota //.
@@ -558,9 +550,8 @@ rewrite take_drop subnK //.
 have -> : nth 0 s i2 = nth 0 (take i2 (iota 0 n)) i1. 
   rewrite (nth_map 0) ?size_iota // nth_iota // take_iota transposeR nth_iota ?add0n //.
   have -> // : minn i2 n = i2 by apply/minn_idPl; rewrite ltnW.
-rewrite -catA //= -drop_nth ?size_take ?size_map ?size_iota ?lt2n //.
-rewrite -[X in _ == X](cat_take_drop i1).  
-rewrite eqseq_cat ?eq_refl ?andbT; 
+rewrite -catA //= -drop_nth ?size_take ?size_map ?size_iota ?lt2n //. 
+rewrite -[X in _ == X](cat_take_drop i1) eqseq_cat ?eq_refl ?andbT; 
   last by rewrite !size_take /s !size_map !size_iota lt2n lt1n ifT. 
 rewrite take_take 1?ltnW //.
 have -> // : take i1 s = take i1 (iota 0 n). 
@@ -595,7 +586,7 @@ wlog: i1 i2 lt1n lt2n ne12 / i1 < i2 => [H|lt12].
   move: (transpose_iota lt1n lt2n lt12) => /=.
   rewrite /s => ->.
   set s1 := take i1 s; set s2 := [:: nth 0 s i1];
-  set s3 := take (i2 - i1 -1) (drop i1.+1 s).
+  set s3 := within s (i1, i2);
   set s4 := [:: nth 0 s i2]; set s5 := drop i2.+1 s. 
   rewrite perm_catACA (@perm_trans _ ((s1 ++ s4 ++ s3) ++ s2 ++ s5)) //;
         first by rewrite perm_cat2r (@perm_catl _ s1 _ (s4 ++ s3)) // perm_catC perm_refl.

@@ -483,13 +483,12 @@ rewrite !(@nth_map _ 0) ?size_iota ?nth_iota ?add0n /transpose //=.
 by case: ifP => [/eqP ->|ne2]; first by case: ifP => [/eqP -> //|].
 Qed.
 
+Definition within (s : seq nat) t := take (t.2 - t.1 -1) (drop t.1.+1 s).
+
 Lemma transpose_iota i1 i2  (l1n : i1 < n) (l2n : i2 < n) (lt12 : i1 < i2) :
   let s := transposed_iota (i1, i2) in
-  let s1 := take i1 s in 
-  let s2 := [:: nth 0 s i1] in
-  let s3 := take (i2 - i1 -1) (drop i1.+1 s) in
-  let s4 := [:: nth 0 s i2] in
-  let s5 := drop i2.+1 s in
+  let: (s1, s2, s3, s4, s5) := 
+    (take i1 s, [:: nth 0 s i1], within s (i1, i2), [:: nth 0 s i2], drop i2.+1 s) in
   s = (s1 ++ s2) ++ ((s3 ++ s4) ++ s5).
 Proof.
 have l21n: i2 - i1 - 1 < n - i1.+1. 
@@ -527,17 +526,13 @@ Qed.
 
 Lemma untranspose_iota i1 i2  (lt1n : i1 < n) (lt2n : i2 < n) (lt12 : i1 < i2) :
   let s := transposed_iota (i1, i2) in
-  let s1 := take i1 s in 
-  let s2 := [:: nth 0 s i1] in
-  let s3 := take (i2 - i1 -1) (drop i1.+1 s) in
-  let s4 := [:: nth 0 s i2] in
-  let s5 := drop i2.+1 s in
+  let: (s1, s2, s3, s4, s5) := 
+    (take i1 s, [:: nth 0 s i1], within s (i1, i2), [:: nth 0 s i2], drop i2.+1 s) in
   (((s1 ++ s4) ++ s3) ++ s2) ++ s5 = iota 0 n.
 Proof.
-move=> /=.
 have l21n: i2 - i1 - 1 < n - i1.+1. 
   by rewrite [X in _ < X]subnS -subn1 !ltn_sub2r ?ltn_subRL // addn1 (@ltn_leq_trans i2.+1).
-set s := transposed_iota (i1, i2).  
+set s := transposed_iota (i1, i2) => /=.
 have -> : drop i2.+1 s = drop i2.+1 (iota 0 n). 
   apply: (@eq_from_nth _ 0) => [|i lis]; first by rewrite !size_drop !size_map.
   rewrite size_drop size_map size_iota ltn_subRL in lis.
@@ -550,7 +545,7 @@ apply/eqP.
 rewrite (@eqseq_cat _ _ _ (drop i2 (iota 0 n))) ?eq_refl ?andbT; 
   last by rewrite !size_cat !size_take !size_drop !size_map !size_iota lt1n lt2n l21n /= 
           -subnDA !addn1 subnKC. 
-rewrite -subnDA addn1. 
+rewrite /within -subnDA addn1. 
 have -> : take (i2 - i1.+1) (drop i1.+1 s) = take (i2 - i1.+1) (drop i1.+1 (iota 0 n)). 
   apply: (@eq_from_nth _ 0) => [|i ltis]; first by rewrite !size_take !size_drop !size_map. 
   rewrite size_take size_drop !size_map !size_iota -{1}(addn1 i1) subnDA l21n in ltis.

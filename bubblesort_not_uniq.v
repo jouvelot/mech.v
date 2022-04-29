@@ -27,17 +27,6 @@ Section Nat.
 Lemma ltn_addr n m : n < n + m.+1.
 Proof. by rewrite -addSnnS leq_addr. Qed.
 
-Lemma ltn_leq_trans n m p : m < n -> n <= p -> m < p.
-Proof. exact: leq_trans. Qed.
-
-Lemma sumnK (m n p : nat) (lepm : p <= m) (lemn : m <= n) : 
-  (m - p) + (n - m) = n - p.
-Proof.
-rewrite addnBAC //. 
-congr (_ - _).
-by rewrite subnKC // ?leq_sub2l // (@leq_ltn_trans i) // ?leq_subr.
-Qed.
-
 End Nat.
 
 (** Bigops utilities that can be used on `nat`, inspired by `bigop.v`. *)
@@ -207,7 +196,7 @@ have: a' = \max_(0 <= i < i2.+1) nth 0 (take i2.+1 s') i.
     by rewrite [RHS]big_nat.
   - have/eqP eqzn1 : size s == i2.+1 by rewrite eqn_leq lt2s leqNgt lt21s. 
     under eq_bigr => i /andP [_ lti2].
-      rewrite nth_cat size_take -eqzn1 size_aperm ltnn (@ltn_leq_trans i2.+1) // eqzn1; over.
+      rewrite nth_cat size_take -eqzn1 size_aperm ltnn (@leq_trans i2.+1) // eqzn1; over.
     by rewrite [RHS]big_nat. 
 have szt2: size (take i2.+1 s) = i2.+1.
   rewrite size_take.
@@ -491,7 +480,7 @@ Lemma transpose_iota i1 i2  (l1n : i1 < n) (l2n : i2 < n) (lt12 : i1 < i2) :
     (take i1 s, [:: nth 0 s i1], within s (i1, i2), [:: nth 0 s i2], drop i2.+1 s) in
   s = (s1 ++ s2) ++ ((s3 ++ s4) ++ s5).
 Proof.
-have l21n: i2 - i1.+1 < n - i1.+1 by rewrite ltn_sub2r // (@ltn_leq_trans i2.+1).
+have l21n: i2 - i1.+1 < n - i1.+1 by rewrite ltn_sub2r // (@leq_trans i2.+1).
 apply: (@eq_from_nth _ 0) => [|i lis]. 
 - rewrite !size_cat !size_take !size_drop /= !size_map !size_iota l1n ifT //.
   by rewrite addn1 !addnA subnKC // addn1 subnKC.
@@ -502,7 +491,7 @@ apply: (@eq_from_nth _ 0) => [|i lis].
   rewrite leq_eqVlt -(negbK (i1 == i)) eq_sym ne1 /= in lt1.
   have [] := boolP (i < i2) => [lt2|].
   - have lt112: i1 + 1 < i2 by rewrite (@leq_ltn_trans i) // addn1.    
-    have lti12 : i - i1.+1 < i2 - i1.+1 by rewrite ?ltn_sub2r // (@ltn_leq_trans i.+1).
+    have lti12 : i - i1.+1 < i2 - i1.+1 by rewrite ?ltn_sub2r // (@leq_trans i.+1).
     have lti121: i - i1.+1 < i2 - i1.+1 + 1 by rewrite (@ltn_trans (i2 - i1.+1)) // ltn_addr.
     have mx //: maxn i1.+1 i = i by apply/maxn_idPr.
     by rewrite ifF ?ifT addn1 //= ?nth_take ?nth_drop -?maxnE ?mx //= ltnS leqNgt lt1.
@@ -524,7 +513,7 @@ Lemma untranspose_iota i1 i2  (lt1n : i1 < n) (lt2n : i2 < n) (lt12 : i1 < i2) :
     (take i1 s, [:: nth 0 s i1], within s (i1, i2), [:: nth 0 s i2], drop i2.+1 s) in
   (((s1 ++ s4) ++ s3) ++ s2) ++ s5 = iota 0 n.
 Proof.
-have l21n: i2 - i1.+1 < n - i1.+1 by rewrite ltn_sub2r // (@ltn_leq_trans i2.+1).
+have l21n: i2 - i1.+1 < n - i1.+1 by rewrite ltn_sub2r // (@leq_trans i2.+1).
 set s := transposed_iota (i1, i2) => /=.
 have -> : drop i2.+1 s = drop i2.+1 (iota 0 n). 
   apply: (@eq_from_nth _ 0) => [|i lis]; first by rewrite !size_drop !size_map.

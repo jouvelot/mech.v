@@ -86,8 +86,7 @@ have [] := boolP (j < i) => [ltji|].
   apply/(nthP 0).
   have ltj1n : j.-1 < n by rewrite (@leq_trans j) // ltn_predL.
   exists (j - i.+1). 
-  - rewrite size_drop size_iota subnS predn_sub.
-    by rewrite ltn_subLR ?subnKC // -ltnS (ltn_predK ltij).
+  - by rewrite size_drop size_iota subnS predn_sub ltn_subLR ?subnKC // -ltnS (ltn_predK ltij).
   - rewrite nth_drop nth_iota 1?addnA ?add1n ?subnKC //. 
     by rewrite subnS -subn1 addnBA ?subnKC // ?subn1 // ?(ltnW ltij) // subn_gt0.
 Qed.
@@ -99,7 +98,7 @@ rewrite ifT //= ?ltin1 ?eq_refl //= big_seq_cond.
 apply/maxn_idPl.   
 under (eq_bigl pred0) => j //=.
   case: ifP => [/eqP <-|nei0]; 
-              first by rewrite mem_iota andbC andbA eqn0Ngt -[X in X && _]andbA andNb andbF.
+    first by rewrite mem_iota andbC andbA eqn0Ngt -[X in X && _]andbA andNb andbF.
   rewrite andbA [X in X && _](@andb_id2r _ _ (j != i)) => [|ltjn1]. 
   - by rewrite [X in X && _]andbC -andbA andNb andbF //=. 
   - rewrite in_cons.  
@@ -170,8 +169,7 @@ Proof.
 have -> : take (i2 + m.+1) (aperm s (i1, i2)) = aperm (take (i2 + m.+1) s) (i1, i2).  
   rewrite take_perm_comm // ?nth_take //= // (@leq_ltn_trans i2) ?ltn_addr //.
   by rewrite (@ltn_trans (i2 + m.+1)) ?ltn_addr.
-rewrite perm_eq_aperm ?size_take // lt2m1s ?ltn_addr //.
-by rewrite (@leq_ltn_trans i2) // ltn_addr.
+by rewrite perm_eq_aperm ?size_take // lt2m1s ?ltn_addr // (@leq_ltn_trans i2) // ltn_addr.
 Qed.
 
 Lemma max_aperm s i1 i2 (lt2s : i2 < size s) (le12 : i1 <= i2) :
@@ -209,8 +207,7 @@ rewrite -!(@big_nth _ _ _ _ _ _ predT id) (perm_big (take i2.+1 s')) //= /s'.
 have [] := boolP (i2 + 1 < size s) => lt21s.
 - by rewrite -addn1 (@perm_eq_take_aperm 0 s i1 i2).
 - have/eqP <- : size s == i2.+1 by rewrite eqn_leq lt2s leqNgt -(addn1 i2) lt21s.
-  rewrite -{2}(@size_aperm _ (i1, i2)) !take_size perm_eq_aperm //. 
-  by rewrite (@leq_ltn_trans i2). 
+  by rewrite -{2}(@size_aperm _ (i1, i2)) !take_size perm_eq_aperm // (@leq_ltn_trans i2). 
 Qed.
 
 Section Algorithm. 
@@ -358,15 +355,13 @@ have lt0s : 0 < size s by rewrite (@ltn_trans n.+1).
 set ix := (index _ _).
 have [] := boolP (ix == n.+1) => [/eqP eqixn1|neixn1].
 - rewrite eqixn1 aperm_id.
-  have [] := boolP (j <= n) => lejn.
-  - by rewrite IH // // ?size_aperm (@ltn_trans n.+1).
-  - have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn. 
-    by rewrite swap_id // -{1}eqixn1 nth_index // ?bigmax_in // max_swap. 
+  have [] := boolP (j <= n) => lejn; first by rewrite IH // // ?size_aperm (@ltn_trans n.+1).
+  have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn. 
+  by rewrite swap_id // -{1}eqixn1 nth_index // ?bigmax_in // max_swap. 
 - set s' := (aperm _ _).
   have [] := boolP (j <= n) => lejn; first by rewrite (IH s') // size_aperm (@ltn_trans n.+1).
   have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn.
-  rewrite swap_id ?size_aperm //.
-  rewrite nth_aperm // ?bigmax_in // -max_swap ?size_aperm //.  
+  rewrite swap_id ?size_aperm // nth_aperm // ?bigmax_in // -max_swap ?size_aperm //.  
   rewrite (@max_aperm _ ix) //. 
   move: (index_bigmax_lt lt0s ltn1s).
   by rewrite leq_eqVlt -(negbK (ix == n.+1)) neixn1.
@@ -534,7 +529,7 @@ have -> : take (i2 - i1.+1) (drop i1.+1 s) = take (i2 - i1.+1) (drop i1.+1 (iota
   rewrite !nth_take ?nth_drop /s /transpose_iota 
           ?(nth_map 0) // ?nth_iota // ?add0n ?size_iota //.
   by rewrite transposeD // ?(@gtn_eqF i1) // addSnnS ?ltn_addr //
-             ltn_eqF // -addSnnS -ltn_subRL.
+             ltn_eqF // -addSnnS -ltn_subRL. 
 rewrite take_drop subnK //. 
 have -> : nth 0 s i2 = nth 0 (take i2 (iota 0 n)) i1. 
   rewrite (nth_map 0) ?size_iota // nth_iota // take_iota transposeR nth_iota ?add0n //.

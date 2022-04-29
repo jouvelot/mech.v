@@ -6,7 +6,8 @@
   a variant of Bubble Sort.
 
   The specification states the existence of a list of sorted transpositions (bubbles) that 
-  can be applied to any sequence to provide a sorted one (see Theorem `bubble_sort_spec`).
+  can be applied to any sequence to provide a sorted one (see Theorem `bubble_sort_spec`
+  and the `bs_spec` instance).
 
   Pierre Jouvelot, Mines Paris, PSL University
 

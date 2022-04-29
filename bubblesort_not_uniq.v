@@ -2,8 +2,8 @@
 
   bubblesort_not_uniq.v
 
-  This file prodes a specification and (inefficient, using `bigop`) implementation for
-  a variant of Bubble Sort.
+  A specification and (inefficient, using `bigop`) implementation for a variant of 
+  Bubble Sort.
 
   The specification states the existence of a list of sorted transpositions (bubbles) that 
   can be applied to any sequence to provide a sorted one (see Theorem `bubble_sort_spec`
@@ -90,7 +90,7 @@ Proof. by rewrite -ltnS index_ltn ?bigmax_in_take. Qed.
 
 End Bigop.
 
-(** Bubble sort definition and specification. *)
+(** Bubble Sort definition and specification. *)
 
 Section BubbleSort.
 
@@ -176,7 +176,7 @@ Fixpoint transpositions (s : seq nat) n : seq transposition :=
             t :: ts
   end.
 
-(** `swap` applies the list of transpositions `ts` to `s`, returning the swapped list 
+(* `swap` applies the list of transpositions `ts` to `s`, returning the swapped list 
     together with a boolean checking whether all these transpositions are bubbles.  *)
 
 Definition is_bubble (s : seq nat) (t : transposition) :=
@@ -362,7 +362,7 @@ End Specification.
 
 End BubbleSort.
 
-(** An implementation of the permutation interface. *)
+(** An instance of the permutation interface. *)
 
 Section Permutation.
 

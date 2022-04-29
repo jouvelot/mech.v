@@ -29,39 +29,7 @@ Proof. by rewrite -addSnnS leq_addr. Qed.
 
 End Nat.
 
-(** Bigops utilities that can be used on `nat`, inspired by `bigop.v`. *)
-
-Section Bigop.
-
-Lemma bigmaxD1_nat m n F : \max_(m <= i < n.+1 | i != n) F i = \max_(m <= i < n) F i.
-Proof.
-rewrite [RHS]big_nat_cond [RHS](@big_nat_widen _ _ _ m n n.+1) // [LHS]big_nat_cond.
-apply: eq_bigl => i.
-by rewrite andbT -[RHS]andbA andbb -andbA ltnS ltn_neqAle [X in _ && X]andbC.
-Qed.
-
-Lemma eq_bigmax_nat m n F : m < n.+1 -> exists ix, \max_(m <= i < n.+1) F i = F ix /\ ix <= n.
-Proof.
-elim: n=> [|n IH ltmn2]; first by rewrite ltnS leqn0 => /eqP ->; exists 0; rewrite big_nat1.
-rewrite // (bigD1_seq n.+1) ?iota_uniq ?mem_iota //=; last first.
-- rewrite ltnS in ltmn2. 
-  by rewrite {1}ltmn2 subnKC ?ltnSn // (leq_trans ltmn2).
-- have [] := boolP (m < n.+1) => [ltmn1|]. 
-  - move: (IH ltmn1) => [ix [mx ltx]].
-    - have [] := boolP (F n.+1 <= F ix) => leF1.
-      exists ix; rewrite bigmaxD1_nat mx; split; last by rewrite (leq_trans ltx).
-      by apply/maxn_idPr.
-    - rewrite -ltnNge in leF1.  
-      exists n.+1; rewrite bigmaxD1_nat mx; split; last by rewrite ltnSn.
-      apply/maxn_idPl. 
-      exact: ltnW.
-  - rewrite -ltnNge ltnS => ltnm. 
-    have/eqP -> : m == n.+1 by rewrite eqn_leq -ltnS ltmn2 ltnm.
-    by exists n.+1; rewrite bigmaxD1_nat big_geq.
-Qed.
-
-Lemma leq_bigmax F n (i0 : nat) (lei0n : i0 <= n) : F i0 <= \max_(0 <= i < n.+1) F i.
-Proof. by rewrite (bigD1_seq i0) //= ?mem_iota ?iota_uniq ?andbT //= leq_max leqnn. Qed.
+Section Seq.
 
 Lemma index_iota i n (lt0i : 0 < i) (lein : i <= n) : index i (iota 1 n) = i.-1.
 Proof.
@@ -91,6 +59,42 @@ have [] := boolP (j < i) => [ltji|].
     by rewrite subnS -subn1 addnBA ?subnKC // ?subn1 // ?(ltnW ltij) // subn_gt0.
 Qed.
 
+End Seq.
+
+(** Bigop-like utilities for `max` on non-empty intervals, which can be used on `nat`. *)
+
+Section Bigop.
+
+Lemma bigmaxD1_nat m n F : \max_(m <= i < n.+1 | i != n) F i = \max_(m <= i < n) F i.
+Proof.
+rewrite [RHS]big_nat_cond [RHS](@big_nat_widen _ _ _ m n n.+1) // [LHS]big_nat_cond.
+apply: eq_bigl => i.
+by rewrite andbT -[RHS]andbA andbb -andbA ltnS ltn_neqAle [X in _ && X]andbC.
+Qed.
+
+Lemma ex_bigmax_nat m n F : m < n.+1 -> exists ix, \max_(m <= i < n.+1) F i = F ix /\ ix <= n.
+Proof.
+elim: n=> [|n IH ltmn2]; first by rewrite ltnS leqn0 => /eqP ->; exists 0; rewrite big_nat1.
+rewrite // (bigD1_seq n.+1) ?iota_uniq ?mem_iota //=; last first.
+- rewrite ltnS in ltmn2. 
+  by rewrite {1}ltmn2 subnKC ?ltnSn // (leq_trans ltmn2).
+- have [] := boolP (m < n.+1) => [ltmn1|]. 
+  - move: (IH ltmn1) => [ix [mx ltx]].
+    - have [] := boolP (F n.+1 <= F ix) => leF1.
+      exists ix; rewrite bigmaxD1_nat mx; split; last by rewrite (leq_trans ltx).
+      by apply/maxn_idPr.
+    - rewrite -ltnNge in leF1.  
+      exists n.+1; rewrite bigmaxD1_nat mx; split; last by rewrite ltnSn.
+      apply/maxn_idPl. 
+      exact: ltnW.
+  - rewrite -ltnNge ltnS => ltnm. 
+    have/eqP -> : m == n.+1 by rewrite eqn_leq -ltnS ltmn2 ltnm.
+    by exists n.+1; rewrite bigmaxD1_nat big_geq.
+Qed.
+
+Lemma leq_bigmax F n (i0 : nat) (lei0n : i0 <= n) : F i0 <= \max_(0 <= i < n.+1) F i.
+Proof. by rewrite (bigD1_seq i0) //= ?mem_iota ?iota_uniq ?andbT //= leq_max leqnn. Qed.
+
 Lemma big_pred1_eq (i : nat) n F (ltin1 : i < n.+1) : \max_(0 <= j < n.+1 | j == i) F j = F i.
 Proof. 
 rewrite big_nat_cond (big_rem i) //=; last by rewrite mem_iota (leq0n i) subnKC.
@@ -112,7 +116,7 @@ Lemma bigmax_in_take s n (lt0s : 0 < size s) (ltns : n < size s) :
   \max_(0 <= i < n.+1) nth 0 s i \in take n.+1 s. 
 Proof.
 apply/(nthP 0).
-move: (@eq_bigmax_nat 0 n (nth 0 s) (ltn0Sn n)) => [ix [mx lx]]. 
+move: (@ex_bigmax_nat 0 n (nth 0 s) (ltn0Sn n)) => [ix [mx lx]]. 
 rewrite -ltnS in lx.
 have [] := boolP (ix < size s) => [ltxs|].
 - exists ix; first by rewrite size_take; case: ifP.

@@ -30,38 +30,6 @@ Proof. by rewrite -addSnnS leq_addr. Qed.
 
 End Nat.
 
-Section Seq.
-
-Lemma index_iota i n (lt0i : 0 < i) (lein : i <= n) : index i (iota 1 n) = i.-1.
-Proof.
-have ii : i = 1 + i.-1 by rewrite -subn1 subnKC.
-have lti1n : i.-1 < n by rewrite (@leq_trans i) // ltn_predL. 
-move: (@nth_iota 0 1 n i.-1 lti1n).
-rewrite addnC (addn1 i.-1) prednK // => eqnthi.
-by rewrite -{1}eqnthi index_uniq // ?iota_uniq // size_iota.
-Qed.
-
-Lemma in_rem i j n (lt0i : 0 < i) (lein : i <= n) (lt0j : 0 < j) (lejn : j <= n) :
-  (j \in rem i (iota 1 n)) = (j != i).
-Proof.
-have [] := boolP (j == i) => [/eqP ->|neji //=]; first by rewrite mem_rem_uniqF //= iota_uniq.
-rewrite remE mem_cat.
-have [] := boolP (j < i) => [ltji|].
-- rewrite in_take ?index_iota ?ltn_predRL ?(ltn_predK lt0j) ?ltji ?orTb //.
-  by rewrite mem_iota lt0j addnC addn1 ltnS.
-- rewrite -leqNgt leq_eqVlt => /orP [|ltij]; first by rewrite -(negbK (i == j)) eq_sym neji. 
-  apply/orP; right.
-  rewrite index_iota ?prednK //.
-  apply/(nthP 0).
-  have ltj1n : j.-1 < n by rewrite (@leq_trans j) // ltn_predL.
-  exists (j - i.+1). 
-  - by rewrite size_drop size_iota subnS predn_sub ltn_subLR ?subnKC // -ltnS (ltn_predK ltij).
-  - rewrite nth_drop nth_iota 1?addnA ?add1n ?subnKC //. 
-    by rewrite subnS -subn1 addnBA ?subnKC // ?subn1 // ?(ltnW ltij) // subn_gt0.
-Qed.
-
-End Seq.
-
 (** Bigop-like utilities for `max` on non-empty intervals, which can be used on `nat`. *)
 
 Section Bigop.
@@ -96,24 +64,7 @@ Qed.
 Lemma leq_bigmax F n (i0 : nat) (lei0n : i0 <= n) : F i0 <= \max_(0 <= i < n.+1) F i.
 Proof. by rewrite (bigD1_seq i0) //= ?mem_iota ?iota_uniq ?andbT //= leq_max leqnn. Qed.
 
-Lemma big_pred1_eq (i : nat) n F (ltin1 : i < n.+1) : \max_(0 <= j < n.+1 | j == i) F j = F i.
-Proof. 
-rewrite big_nat_cond (big_rem i) //=; last by rewrite mem_iota (leq0n i) subnKC.
-rewrite ifT //= ?ltin1 ?eq_refl //= big_seq_cond.
-apply/maxn_idPl.   
-under (eq_bigl pred0) => j //=.
-  case: ifP => [/eqP <-|nei0]; 
-    first by rewrite mem_iota andbC andbA eqn0Ngt -[X in X && _]andbA andNb andbF.
-  rewrite andbA [X in X && _](@andb_id2r _ _ (j != i)) => [|ltjn1]. 
-  - by rewrite [X in X && _]andbC -andbA andNb andbF //=. 
-  - rewrite in_cons.  
-    have [] := boolP (j == 0) => [/eqP ->|nej0]; first by rewrite orTb nei0. 
-    rewrite eq_sym in nei0.
-    by rewrite orFb in_rem // neq0_lt0n // ?(negbTE nej0).
-by rewrite big_pred0.
-Qed.
-
-Lemma bigmax_in_take s n (lt0s : 0 < size s) (ltns : n < size s) : 
+Local Lemma bigmax_in_take s n (lt0s : 0 < size s) (ltns : n < size s) : 
   \max_(0 <= i < n.+1) nth 0 s i \in take n.+1 s. 
 Proof.
 apply/(nthP 0).
@@ -133,13 +84,9 @@ Lemma bigmax_in s n (lt0s : 0 < size s) (ltns : n < size s) :
   \max_(0 <= i < n.+1) nth 0 s i \in s. 
 Proof. by rewrite (@mem_take n.+1) ?bigmax_in_take. Qed.
 
-Lemma index_bigmax_lt0 s n (lt0s : 0 < size s) (ltns : n < size s) :
-  index (\max_(0 <= i < n.+1) nth 0 s i) s < n.+1.
-Proof. by rewrite index_ltn ?bigmax_in_take. Qed.
-
 Lemma index_bigmax_lt s n (lt0s : 0 < size s)(ltns : n < size s) :
   index (\max_(0 <= i < n.+1) nth 0 s i) s <= n. 
-Proof. by rewrite -ltnS index_bigmax_lt0 //. Qed.
+Proof. by rewrite -ltnS index_ltn ?bigmax_in_take. Qed.
 
 End Bigop.
 

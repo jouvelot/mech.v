@@ -90,16 +90,16 @@ Proof. by rewrite -ltnS index_ltn ?bigmax_in_take. Qed.
 
 End Bigop.
 
+(** Bubble sort definition and specification. *)
+
 Section BubbleSort.
-
-(** The `Variable` definitions below provide an interface for permutations using indices `i`, 
-    inspired in part by `perm.v`, although this one is working on `nat`. 
-
-    Some utility lemmas are also given. *)
 
 Implicit Types (i : nat).
 
 Notation transposition := (nat * nat)%type.
+
+(* The `Variable` declarations provide an interface for permutations using indices `i`, 
+   inspired in part by `perm.v`, although this one is working on `nat`. *)
 
 Variable (aperm : seq nat -> transposition -> seq nat).
 Variable (aperm_id : forall s i, aperm s (i, i) = s).
@@ -162,10 +162,10 @@ have [] := boolP (i2 + 1 < size s) => lt21s.
   by rewrite -{2}(@size_aperm _ (i1, i2)) !take_size perm_eq_aperm // (@leq_ltn_trans i2). 
 Qed.
 
-Section Algorithm. 
-
 (** Bubble Sort is based on transpositions (to be shown later as being out-of-order `bubbles`),
     here on a prefix of `s`, from indices `0` to `n` (included) in `s`. *)
+
+Section Algorithm. 
 
 Fixpoint transpositions (s : seq nat) n : seq transposition :=
   match n with
@@ -195,9 +195,9 @@ Definition bubble_sort (s : seq nat) := (swap s (transpositions s (size s).-1)).
 
 End Algorithm.
 
-Section Bubbles.
-
 (** Proof that there are only bubbles in the `n`-prefix of `transpositions s`. *)
+
+Section Bubbles.
 
 Lemma perm_eq_take_swap n : forall (s : seq nat),
     n.+1 < size s -> perm_eq (take n.+1 s) (take n.+1 (swap s (transpositions s n)).2).
@@ -252,9 +252,9 @@ Qed.
 
 End Bubbles.
 
-Section Sorted.
-
 (** Proof that the `n`-prefix of a `s` swapped with `transpositions s n` is sorted. *)
+
+Section Sorted.
 
 Lemma swap_size ts s : size (swap s ts).2 = size s. 
 Proof. by elim: ts s => [//=|t ts IH s /=]; rewrite IH. Qed.
@@ -362,9 +362,9 @@ End Specification.
 
 End BubbleSort.
 
-Section Permutation.
+(** An implementation of the permutation interface. *)
 
-(** Provide an implementation of the permutation interface. *)
+Section Permutation.
 
 Notation transposition := (nat * nat)%type.
 
@@ -592,6 +592,8 @@ have [] := boolP (m <= size s) => [ltim|].
 Qed.
 
 End Permutation.
+
+(** A complete instance of `bubble_sort_spec`. *)
 
 Definition bs_spec :=  (bubble_sort_spec aperm_id 
                                          size_aperm

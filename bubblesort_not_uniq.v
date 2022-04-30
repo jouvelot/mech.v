@@ -34,6 +34,8 @@ End Nat.
 
 Section Bigmax.
 
+Implicit Types (m n : nat) (s : seq nat).
+
 Lemma bigmaxD1r m n F : \max_(m <= i < n.+1 | i != n) F i = \max_(m <= i < n) F i.
 Proof.
 rewrite [RHS]big_nat_cond [RHS](@big_nat_widen _ _ _ m n n.+1) // [LHS]big_nat_cond.
@@ -44,24 +46,18 @@ Qed.
 Lemma ex_bigmax_index m n F (ltmn1 : m < n.+1) : exists ix, \max_(m <= i < n.+1) F i = F ix /\ ix <= n.
 Proof.
 elim: n ltmn1 => [|n IH ltmn2]; first by rewrite ltnS leqn0 => /eqP ->; exists 0; rewrite big_nat1.
-rewrite // (bigD1_seq n.+1) ?iota_uniq ?mem_iota //=; last first.
-- rewrite ltnS in ltmn2. 
-  by rewrite {1}ltmn2 subnKC ?ltnSn // (leq_trans ltmn2).
-- have [] := boolP (m < n.+1) => [ltmn1|]. 
-  - move: (IH ltmn1) => [ix [mx ltx]].
-    have [] := boolP (F n.+1 <= F ix) => leF1.
-    - exists ix; rewrite bigmaxD1r mx; split; last by rewrite (leq_trans ltx).
-      by apply/maxn_idPr.
-    - rewrite -ltnNge in leF1.  
-      exists n.+1; rewrite bigmaxD1r mx; split; last by rewrite ltnSn.
-      apply/maxn_idPl. 
-      exact: ltnW.
-  - rewrite -ltnNge ltnS => ltnm. 
-    have/eqP -> : m == n.+1 by rewrite eqn_leq -ltnS ltmn2 ltnm.
-    by exists n.+1; rewrite bigmaxD1r big_geq.
+rewrite // (bigD1_seq n.+1) ?iota_uniq ?mem_iota //=; 
+  last by rewrite -ltnS ltmn2 subnKC ?(ltnW ltmn2) ?ltnSn.
+have [] := boolP (m < n.+1) => [ltmn1|]. 
+- move: (IH ltmn1) => [ix [mx ltx]].  
+  case: leqP => leF1; last by exists n.+1; rewrite ltnSn.
+  by exists ix; rewrite bigmaxD1r mx; split=> //; last by rewrite (leq_trans ltx).
+- rewrite -ltnNge ltnS => ltnm. 
+  have/eqP -> : m == n.+1 by rewrite eqn_leq -ltnS ltmn2 ltnm.
+  by exists n.+1; rewrite bigmaxD1r big_geq.
 Qed.
 
-Lemma leq_bigmax_nat n F (i0 : nat) (lei0n : i0 <= n) : F i0 <= \max_(0 <= i < n.+1) F i.
+Lemma leq_bigmax_nat n F i0 (lei0n : i0 <= n) : F i0 <= \max_(0 <= i < n.+1) F i.
 Proof. by rewrite (bigD1_seq i0) //= ?mem_iota ?iota_uniq ?andbT //= leq_max leqnn. Qed.
 
 Local Lemma bigmax_nth_in_take s n (lt0s : 0 < size s) (ltns : n < size s) : 
@@ -80,11 +76,11 @@ have [] := boolP (ix < size s) => [ltxs|].
   by rewrite nth_take // mx eq0 leqn0 => /eqP.
 Qed.
 
-Lemma bigmax_nth_in s n (lt0s : 0 < size s) (ltns : n < size s) : 
+Lemma bigmax_nth_in n s (lt0s : 0 < size s) (ltns : n < size s) : 
   \max_(0 <= i < n.+1) nth 0 s i \in s. 
 Proof. by rewrite (@mem_take n.+1) ?bigmax_nth_in_take. Qed.
 
-Lemma bigmax_nth_index_leq s n (lt0s : 0 < size s)(ltns : n < size s) :
+Lemma bigmax_nth_index_leq n s (lt0s : 0 < size s)(ltns : n < size s) :
   index (\max_(0 <= i < n.+1) nth 0 s i) s <= n. 
 Proof. by rewrite -ltnS index_ltn ?bigmax_nth_in_take. Qed.
 
@@ -106,9 +102,9 @@ End Bigmax.
 
 Section BubbleSort.
 
-Implicit Types (i : nat).
-
 Notation transposition := (nat * nat)%type.
+
+Implicit Types (i n m : nat) (s : seq nat) (t : transposition).
 
 (* The `Variable` declarations provide an interface for permutations using indices `i`, 
    inspired in part by `perm.v`, although this one is working on `nat`. *)
@@ -152,7 +148,7 @@ Qed.
 
 Section Algorithm. 
 
-Fixpoint transpositions (s : seq nat) n : seq transposition :=
+Fixpoint transpositions s n : seq transposition :=
   match n with
   | 0 => [::]
   | n'.+1 => let max := \max_(O <= i < n.+1) nth 0 s i in 
@@ -164,19 +160,19 @@ Fixpoint transpositions (s : seq nat) n : seq transposition :=
 (* `swap` applies the list of transpositions `ts` to `s`, returning the swapped list 
     together with a boolean checking whether all these transpositions are bubbles.  *)
 
-Definition is_bubble (s : seq nat) (t : transposition) :=
+Definition is_bubble s t : bool :=
   let: (i1, i2) := t in 
   (i1 < size s) && (i2 < size s) &&
     ((i1 == i2) || (i1 < i2) && (nth 0 s i2 <= nth 0 s i1)).
 
-Fixpoint swap (s : seq nat) (ts : seq transposition) :=
+Fixpoint swap s (ts : seq transposition) : bool * seq nat :=
   match ts with
   | [::] => (true, s)
   | t :: ts' => let bs' := swap (aperm s t) ts' in
              (is_bubble s t && bs'.1, bs'.2)
   end.
 
-Definition bubble_sort (s : seq nat) := (swap s (transpositions s (size s).-1)).2.
+Definition bubble_sort s : seq nat := (swap s (transpositions s (size s).-1)).2.
 
 End Algorithm.
 
@@ -184,12 +180,11 @@ End Algorithm.
 
 Section Bubbles.
 
-Lemma perm_eq_take_swap n : forall (s : seq nat),
+Lemma perm_eq_take_swap n : forall s,
     n.+1 < size s -> perm_eq (take n.+1 s) (take n.+1 (swap s (transpositions s n)).2).
 Proof.
-suff: forall (s : seq nat),
-    forall m, n.+1 + m < size s ->
-         perm_eq (take (n + m.+1) s) (take (n + m.+1) (swap s (transpositions s n)).2).
+suff: forall s m, n.+1 + m < size s ->
+             perm_eq (take (n + m.+1) s) (take (n + m.+1) (swap s (transpositions s n)).2).
   move=> H s ltn1s. 
   move: (@H s 0).
   by rewrite addn1 addn0 => ->.
@@ -219,15 +214,14 @@ split=> [/andP [/andP [-> ->]] /orP [/eqP -> //|/andP [lt12 ->]]|
   by rewrite !andbT le12.
 Qed.
 
-Lemma bubbles_in_swap : forall n s (ltns : n < size s),
-  (swap s (transpositions s n)).1.
+Lemma bubbles_in_swap : forall n s (ltns : n < size s), (swap s (transpositions s n)).1.
 Proof.
 elim=> [//=|n IH s ltn1s /=]. 
 apply/andP; split; last by rewrite IH // ?size_aperm // -?lt0n ltnW.
 set mx := (\max_(_ <= i < _) _).
 have lt0s : 0 < size s by rewrite (leq_ltn_trans (leq0n n.+1)).
 have [] := boolP (index mx s == n.+1) => [/eqP eqin1 //=|nein1].
-- move: (@bigmax_nth_index_leq s n.+1 lt0s ltn1s).
+- move: (@bigmax_nth_index_leq n.+1 s lt0s ltn1s).
   rewrite leq_eqVlt => /orP [eqixn1|ltxn1]; first by rewrite eqin1 !ltn1s. 
   by rewrite ltn1s !andbT (@ltn_trans n.+1). 
 - have ltxn1: index mx s < n.+1 by rewrite (@ltn_neqAle _ n.+1) bigmax_nth_index_leq // andbT.
@@ -263,8 +257,7 @@ set s' := (swap _ _).2.
 by rewrite -!(big_nth 0 predT id) (perm_big (take n.+1 s')) //= perm_eq_take_swap.
 Qed.
 
-Lemma max_swaps n: 
-  forall s (ltns : n < size s),
+Lemma max_swaps n: forall s (ltns : n < size s),
     let s' := (swap s (transpositions s n)).2 in
     forall j, j <= n -> nth 0 s' j = \max_(O <= i < j.+1) nth 0 s' i.
 Proof.
@@ -289,7 +282,7 @@ End Sorted.
 
 Section Specification.
 
-Definition up_sorted (s : seq nat) := sorted leq s.
+Definition up_sorted s := sorted leq s.
 
 Lemma bubble_sorted_nil : bubble_sort [::] = [::].
 Proof. by []. Qed.
@@ -311,7 +304,7 @@ rewrite [X in _ <= X](@big_cat_nat _ _ _ i.-1.+1) //= ?maxnE ?leq_addr //=.
 by rewrite (@leq_ltn_trans i) // ?leq_pred.
 Qed.
 
-Theorem bubble_sort_spec (s : seq nat) :
+Theorem bubble_sort_spec s :
   exists (ts : seq transposition),
     let: (all_bubbles, s') := swap s ts in 
     all_bubbles /\ up_sorted s'.
@@ -334,7 +327,7 @@ Section Permutation.
 
 Notation transposition := (nat * nat)%type.
 
-Implicit Types (t : transposition).
+Implicit Types (i m n : nat) (s : seq nat) (t : transposition).
 
 Section Transpose.
 
@@ -385,7 +378,7 @@ rewrite !(@nth_map _ 0) ?size_iota ?nth_iota ?add0n /transpose //=.
 by case: ifP => [/eqP ->|ne2]; first by case: ifP => [/eqP -> //|].
 Qed.
 
-Definition within (s : seq nat) t := take (t.2 - t.1.+1) (drop t.1.+1 s).
+Definition within s t := take (t.2 - t.1.+1) (drop t.1.+1 s).
 
 Lemma transpose_iota i1 i2  (lt1n : i1 < n) (lt2n : i2 < n) (lt12 : i1 < i2) :
   let s := transposed_iota (i1, i2) in

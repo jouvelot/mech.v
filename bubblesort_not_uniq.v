@@ -91,14 +91,13 @@ Proof. by rewrite -ltnS index_ltn ?bigmax_nth_in_take. Qed.
 Lemma bigmax_nth_take m n s (lemn : m <= n) (ltns : n < size s) :
   \max_(m <= i < n.+1) nth 0 s i = \max_(m <= i < size (take n.+1 s)) nth 0 (take n.+1 s) i. 
 Proof.
-have sztk: size (take n.+1 s) = n.+1.
+have sztk: size (take n.+1 s) = n.+1. 
   rewrite size_take.
   have [] := boolP (n.+1 < size s) => [//|nen1s].
   by have/eqP eqzn1 : size s == n.+1 by rewrite eqn_leq ltns leqNgt nen1s.
-rewrite -[in LHS](cat_take_drop n.+1 s) [LHS](@big_cat_nat _ _ _ n.+1) //=. 
+rewrite -[in LHS](cat_take_drop n.+1 s) [LHS](@big_cat_nat _ _ _ n.+1) 1?(@leq_trans n m) //=.
 rewrite (@big_geq _ _ _ n.+1) // maxn0 !big_nat -{1 2}sztk.
-apply: eq_bigr => i /andP [_ ltn1]; by rewrite nth_cat ltn1.
-exact: (@leq_trans n).
+by apply: eq_bigr => i /andP [_ ltn1]; by rewrite nth_cat ltn1.
 Qed.
 
 End Bigmax.

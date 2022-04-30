@@ -444,7 +444,7 @@ have -> : take (i2 - i1.+1) (drop i1.+1 s) = take (i2 - i1.+1) (drop i1.+1 (iota
 rewrite take_drop subnK //. 
 have -> : nth 0 s i2 = nth 0 (take i2 (iota 0 n)) i1. 
   rewrite (nth_map 0) ?size_iota // nth_iota // take_iota transposeR nth_iota ?add0n //.
-  have -> // : minn i2 n = i2 by apply/minn_idPl; rewrite ltnW.
+  by have -> // : minn i2 n = i2 by apply/minn_idPl; rewrite ltnW.
 rewrite -catA //= -drop_nth ?size_take ?size_map ?size_iota ?lt2n //. 
 rewrite -[X in _ == X](cat_take_drop i1) eqseq_cat ?eq_refl ?andbT; 
   last by rewrite !size_take /s !size_map !size_iota lt2n lt1n ifT. 
@@ -541,13 +541,11 @@ rewrite -map_take /aperm take_iota size_take.
 apply: (@eq_from_nth _ 0) => [|i]; first by rewrite !size_map !size_iota.
 rewrite size_map size_iota => ltimn.
 rewrite !(nth_map 0) ?size_iota ?nth_iota // ?add0n //. 
-have [] := boolP (m <= size s) => [ltim|].
-- rewrite nth_take // /transpose /=. 
-  case: ifP => // _.
-  case: ifP => // _; first by rewrite (@leq_ltn_trans i2). 
-  by move: ltim => /minn_idPl => <-.
-- rewrite -ltnNge => lemi.
-  by rewrite take_oversize // ltnW.
+have [] := boolP (m <= size s) => ltim; last by rewrite take_oversize // ltnW // ltnNge.
+rewrite nth_take // /transpose /=. 
+case: ifP => // _.
+case: ifP => // _; first by rewrite (@leq_ltn_trans i2).
+by move: ltim => /minn_idPl <-.
 Qed.
 
 End Permutation.

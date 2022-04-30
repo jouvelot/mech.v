@@ -89,16 +89,15 @@ Lemma bigmax_nth_index_leq s n (lt0s : 0 < size s)(ltns : n < size s) :
 Proof. by rewrite -ltnS index_ltn ?bigmax_nth_in_take. Qed.
 
 Lemma bigmax_nth_take m n s (lemn : m <= n) (ltns : n < size s) :
-  \max_(m <= i < n.+1) nth 0 s i = \max_(m <= i < n.+1) nth 0 (take n.+1 s) i. 
+  \max_(m <= i < n.+1) nth 0 s i = \max_(m <= i < size (take n.+1 s)) nth 0 (take n.+1 s) i. 
 Proof.
+have sztk: size (take n.+1 s) = n.+1.
+  rewrite size_take.
+  have [] := boolP (n.+1 < size s) => [//|nen1s].
+  by have/eqP eqzn1 : size s == n.+1 by rewrite eqn_leq ltns leqNgt nen1s.
 rewrite -[in LHS](cat_take_drop n.+1 s) [LHS](@big_cat_nat _ _ _ n.+1) //=. 
-rewrite (@big_geq _ _ _ n.+1) // maxn0.
-rewrite !big_nat.
-apply: eq_bigr => i /andP [_ ltn1]. 
-rewrite nth_cat size_take. 
-have [] := boolP (n.+1 < size s) => ltn1s; first by rewrite ltn1. 
-have/eqP -> : size s == n.+1 by rewrite eqn_leq ltns leqNgt ltn1s.
-by rewrite ltn1.
+rewrite (@big_geq _ _ _ n.+1) // maxn0 !big_nat -{1 2}sztk.
+apply: eq_bigr => i /andP [_ ltn1]; by rewrite nth_cat ltn1.
 exact: (@leq_trans n).
 Qed.
 
@@ -142,13 +141,7 @@ Lemma max_aperm s i1 i2 (lt2s : i2 < size s) (le12 : i1 <= i2) :
   \max_(0 <= i < i2.+1) nth 0 s i = \max_(0 <= i < i2.+1) nth 0 (aperm s (i1, i2)) i. 
 Proof.
 rewrite bigmax_nth_take // [RHS]bigmax_nth_take // ?size_aperm //.
-have szt2: size (take i2.+1 s) = i2.+1.
-  rewrite size_take.
-  have [] := boolP (i2.+1 < size s) => [//|ne2s].
-  by have/eqP eqzn1 : size s == i2.+1 by rewrite eqn_leq lt2s leqNgt ne2s.
 set s' := (aperm _ _).   
-have szt2': size (take i2.+1 s') = i2.+1 by rewrite -{2}szt2  !size_take size_aperm.  
-rewrite -{3}szt2' -{1}szt2.
 rewrite -!(@big_nth _ _ _ _ _ _ predT id) (perm_big (take i2.+1 s')) //= /s'.
 have [] := boolP (i2 + 1 < size s) => lt21s.
 - by rewrite -addn1 (@perm_eq_take_aperm 0 s i1 i2).

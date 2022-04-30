@@ -41,16 +41,16 @@ apply: eq_bigl => i.
 by rewrite andbT -[RHS]andbA andbb -andbA ltnS ltn_neqAle [X in _ && X]andbC.
 Qed.
 
-Lemma ex_bigmax_index m n F : m < n.+1 -> exists ix, \max_(m <= i < n.+1) F i = F ix /\ ix <= n.
+Lemma ex_bigmax_index m n F (ltmn1 : m < n.+1) : exists ix, \max_(m <= i < n.+1) F i = F ix /\ ix <= n.
 Proof.
-elim: n=> [|n IH ltmn2]; first by rewrite ltnS leqn0 => /eqP ->; exists 0; rewrite big_nat1.
+elim: n ltmn1 => [|n IH ltmn2]; first by rewrite ltnS leqn0 => /eqP ->; exists 0; rewrite big_nat1.
 rewrite // (bigD1_seq n.+1) ?iota_uniq ?mem_iota //=; last first.
 - rewrite ltnS in ltmn2. 
   by rewrite {1}ltmn2 subnKC ?ltnSn // (leq_trans ltmn2).
 - have [] := boolP (m < n.+1) => [ltmn1|]. 
   - move: (IH ltmn1) => [ix [mx ltx]].
-    - have [] := boolP (F n.+1 <= F ix) => leF1.
-      exists ix; rewrite bigmaxD1r mx; split; last by rewrite (leq_trans ltx).
+    have [] := boolP (F n.+1 <= F ix) => leF1.
+    - exists ix; rewrite bigmaxD1r mx; split; last by rewrite (leq_trans ltx).
       by apply/maxn_idPr.
     - rewrite -ltnNge in leF1.  
       exists n.+1; rewrite bigmaxD1r mx; split; last by rewrite ltnSn.
@@ -88,14 +88,14 @@ Lemma bigmax_nth_index_leq s n (lt0s : 0 < size s)(ltns : n < size s) :
   index (\max_(0 <= i < n.+1) nth 0 s i) s <= n. 
 Proof. by rewrite -ltnS index_ltn ?bigmax_nth_in_take. Qed.
 
-Lemma bigmax_nth_take m n s (lemn : m <= n) (ltns : n < size s) :
+Lemma bigmax_nth_take m n s (ltmn1 : m < n.+1) (ltns : n < size s) :
   \max_(m <= i < n.+1) nth 0 s i = \max_(m <= i < size (take n.+1 s)) nth 0 (take n.+1 s) i. 
 Proof.
 have sztk: size (take n.+1 s) = n.+1. 
   rewrite size_take.
   have [] := boolP (n.+1 < size s) => [//|nen1s].
   by have/eqP eqzn1 : size s == n.+1 by rewrite eqn_leq ltns leqNgt nen1s.
-rewrite -[in LHS](cat_take_drop n.+1 s) [LHS](@big_cat_nat _ _ _ n.+1) 1?(@leq_trans n m) //=.
+rewrite -[in LHS](cat_take_drop n.+1 s) [LHS](@big_cat_nat _ _ _ n.+1) 1?(@leq_trans n m) //=. 
 rewrite (@big_geq _ _ _ n.+1) // maxn0 !big_nat -{1 2}sztk.
 by apply: eq_bigr => i /andP [_ ltn1]; by rewrite nth_cat ltn1.
 Qed.
@@ -140,12 +140,11 @@ Lemma max_aperm s i1 i2 (lt2s : i2 < size s) (le12 : i1 <= i2) :
   \max_(0 <= i < i2.+1) nth 0 s i = \max_(0 <= i < i2.+1) nth 0 (aperm s (i1, i2)) i. 
 Proof.
 rewrite bigmax_nth_take // [RHS]bigmax_nth_take // ?size_aperm //.
-set s' := (aperm _ _).   
-rewrite -!(@big_nth _ _ _ _ _ _ predT id) (perm_big (take i2.+1 s')) //= /s'.
-have [] := boolP (i2 + 1 < size s) => lt21s.
-- by rewrite -addn1 (@perm_eq_take_aperm 0 s i1 i2).
-- have/eqP <- : size s == i2.+1 by rewrite eqn_leq lt2s leqNgt -(addn1 i2) lt21s.
-  by rewrite -{2}(@size_aperm _ (i1, i2)) !take_size perm_eq_aperm // (@leq_ltn_trans i2). 
+set s' := (aperm _ _).    
+rewrite -!(big_nth 0 predT id) (perm_big (take i2.+1 s')) //= /s'.
+have [] := boolP (i2.+1 < size s) => lt21s; first by rewrite -addn1 perm_eq_take_aperm // addn1.
+have/eqP <- : size s == i2.+1 by rewrite eqn_leq lt2s leqNgt lt21s.
+by rewrite -{2}(@size_aperm _ (i1, i2)) !take_size perm_eq_aperm // (@leq_ltn_trans i2). 
 Qed.
 
 (** Bubble Sort is based on transpositions (to be shown later as being out-of-order `bubbles`),
@@ -242,7 +241,7 @@ End Bubbles.
 
 Section Sorted.
 
-Lemma swap_size ts s : size (swap s ts).2 = size s. 
+Lemma size_swap ts s : size (swap s ts).2 = size s. 
 Proof. by elim: ts s => [//=|t ts IH s /=]; rewrite IH. Qed.
 
 Lemma swap_id : forall n s i (ltni : n < i) (ltis : i < size s),
@@ -256,30 +255,12 @@ Qed.
 
 Lemma max_swap n s (ltn1s : n.+1 < size s) :
   \max_(0 <= i < n.+2) nth 0 s i = \max_(0 <= i < n.+2) nth 0 (swap s (transpositions s n)).2 i.
-Proof.
-set s' := (swap _ _).2. 
-rewrite -[in LHS](cat_take_drop n.+1 s) -[in RHS](cat_take_drop n.+1 s').
-rewrite [LHS](@big_cat_nat _ _ _ n.+1) // [RHS](@big_cat_nat _ _ _ n.+1) //=.
-set a := (X in maxn X _ = _); set c := (X in maxn _ X = _).
-set a' := (X in _ = maxn X _); set c' := (X in _ = maxn _ X). 
-have: a = \max_(0 <= i < n.+1) nth 0 (take n.+1 s) i. 
-  rewrite /a big_nat. 
-  under eq_bigr => i /andP [_ ltin1]. rewrite nth_cat size_take ltn1s ltin1; over.
-  by rewrite [RHS]big_nat.
-have: a' = \max_(0 <= i < n.+1) nth 0 (take n.+1 s') i. 
-  rewrite /a' big_nat. 
-  under eq_bigr => i /andP [_ ltin1]. rewrite nth_cat size_take swap_size ltn1s ltin1; over.
-  by rewrite [RHS]big_nat.  
-move: (size_take n.+1 s) => szt1; rewrite ltn1s in szt1.
-move: (size_take n.+1 s') => szt1'; rewrite !swap_size ltn1s in szt1'.
-rewrite -{1}szt1' -{3}szt1 => -> ->.
-congr maxn. 
-- rewrite -!(@big_nth _ _ _ _ _ _ predT id) (perm_big (take n.+1 s')) //=.
-  exact: perm_eq_take_swap.
-- rewrite /c cat_take_drop /c' [RHS]big_nat.
-  under [RHS](eq_bigr (nth 0 s)) => i /andP [ltni ltni2].
-    rewrite cat_take_drop swap_id // (@leq_ltn_trans n.+1) //; over.
-  by rewrite [LHS]big_nat. 
+Proof. 
+rewrite big_nat_recr //= [RHS]big_nat_recr //=.
+rewrite bigmax_nth_take ?[in RHS]bigmax_nth_take // ?size_swap ?(@ltn_trans n.+1 n (size s)) //.
+congr maxn; last by rewrite swap_id.
+set s' := (swap _ _).2.  
+by rewrite -!(big_nth 0 predT id) (perm_big (take n.+1 s')) //= perm_eq_take_swap.
 Qed.
 
 Lemma max_swaps n: 
@@ -322,7 +303,7 @@ apply: (@path_sorted _ leq 0).
 apply/(pathP 0) => i ltiz.
 have [] := boolP (i == 0) => [/eqP -> //=|nei0].
 rewrite -lt0n in nei0.  
-rewrite swap_size in ltiz.
+rewrite size_swap in ltiz.
 have leiz1 : i <= (size s).-1 by rewrite ?ltn_predL -ltnS prednK.
 have lei1z1 : i.-1 <= (size s).-1 by rewrite (@leq_trans i) // leq_pred.
 move: (nei0) => /prednK <-. 

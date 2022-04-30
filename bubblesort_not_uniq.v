@@ -269,9 +269,9 @@ Lemma max_swaps n:
     forall j, j <= n -> nth 0 s' j = \max_(O <= i < j.+1) nth 0 s' i.
 Proof.
 elim: n => [//= s lt0s j|n IH s ltn1s /= j lejn1];
-           first by rewrite leqn0 => /eqP ->; rewrite big_nat1.
+  first by rewrite leqn0 => /eqP ->; rewrite big_nat1.
 have lt0s : 0 < size s by rewrite (@ltn_trans n.+1).
-set ix := (index _ _).
+set ix := (index _ _). 
 have [] := boolP (ix == n.+1) => [/eqP eqixn1|neixn1].
 - rewrite eqixn1 aperm_id.
   have [] := boolP (j <= n) => lejn; first by rewrite IH // // ?size_aperm (@ltn_trans n.+1).
@@ -280,8 +280,7 @@ have [] := boolP (ix == n.+1) => [/eqP eqixn1|neixn1].
 - set s' := (aperm _ _).
   have [] := boolP (j <= n) => lejn; first by rewrite (IH s') // size_aperm (@ltn_trans n.+1).
   have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn.
-  rewrite swap_id ?size_aperm // nth_aperm // ?bigmax_nth_in // -max_swap ?size_aperm //.  
-  rewrite (@max_aperm _ ix) //. 
+  rewrite swap_id ?nth_aperm ?bigmax_nth_in -?max_swap ?size_aperm // (@max_aperm _ ix) //. 
   move: (bigmax_nth_index_leq lt0s ltn1s).
   by rewrite leq_eqVlt -(negbK (ix == n.+1)) neixn1.
 Qed.

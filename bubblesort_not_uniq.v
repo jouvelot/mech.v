@@ -313,7 +313,7 @@ have [] := boolP (s == [::]) => [/eqP -> |]; first by exists [::].
 rewrite -size_eq0 -lt0n => lt0s.
 exists (transpositions s (size s).-1) => //=.  
 set bs' := (swap _ _). 
-rewrite (surjective_pairing bs') bubbles_in_swap // ?ltn_predL //. 
+rewrite (surjective_pairing bs') bubbles_in_swap ?ltn_predL //.
 by split=> //; last by exact: bubble_sorted. 
 Qed.
 
@@ -344,9 +344,12 @@ Proof. rewrite /transpose /=; case: ifP => [/eqP ->//|_]; by rewrite eq_refl. Qe
 Lemma transposeL : transpose (i1, i2) i1 = i2.
 Proof. by rewrite /transpose eq_refl. Qed.
 
-Lemma transposeD (ne1 : (i == i1) = false) (ne2 : (i == i2) = false) : 
-  transpose (i1, i2) i = i.
-Proof. by rewrite /transpose /= ifF ?ifF. Qed.
+Lemma transposeD (ne1 : i != i1) (ne2 : i != i2) : transpose (i1, i2) i = i.
+Proof. 
+rewrite /transpose /= ifF ?ifF //. 
+- by move: ne2; apply: contra_neqF => /eqP.
+- by move: ne1; apply: contra_neqF => /eqP.
+Qed.
 
 Lemma transpose_bound n (lt1n : i1 < n) (lt2n : i2 < n) (ltin : i < n) :
   transpose (i1, i2) i < n.
@@ -367,9 +370,11 @@ Section TransposeIota.
 
 Variable (n : nat).
 
+Variable (i1 i2 : nat) (lt1n : i1 < n) (lt2n : i2 < n).
+
 Definition transposed_iota t := [seq transpose t i | i <- iota 0 n].
 
-Lemma transpose_iotaC i1 i2 : transposed_iota (i2, i1) = transposed_iota (i1, i2).
+Lemma transposed_iotaC : transposed_iota (i2, i1) = transposed_iota (i1, i2).
 Proof.
 rewrite /transposed_iota.
 apply: (@eq_from_nth _ 0) => [|i ltin]; first by rewrite !size_map.
@@ -378,114 +383,39 @@ rewrite !(@nth_map _ 0) ?size_iota ?nth_iota ?add0n /transpose //=.
 by case: ifP => [/eqP ->|ne2]; first by case: ifP => [/eqP -> //|].
 Qed.
 
-Definition within s t := take (t.2 - t.1.+1) (drop t.1.+1 s).
+Lemma size_transposed t : size (transposed_iota t) = n.
+Proof. by rewrite size_map size_iota. Qed.
 
-Lemma transpose_iota i1 i2  (lt1n : i1 < n) (lt2n : i2 < n) (lt12 : i1 < i2) :
-  let s := transposed_iota (i1, i2) in
-  let: (s1, s2, s3, s4, s5) := 
-    (take i1 s, [:: nth 0 s i1], within s (i1, i2), [:: nth 0 s i2], drop i2.+1 s) in
-  s = (s1 ++ s2) ++ ((s3 ++ s4) ++ s5).
+Lemma uniq_transposed_iota : uniq (transposed_iota (i1, i2)). 
 Proof.
-have l21n: i2 - i1.+1 < n - i1.+1 by rewrite ltn_sub2r // (@leq_trans i2.+1).
-apply: (@eq_from_nth _ 0) => [|i lis]. 
-- rewrite !size_cat !size_take !size_drop /= !size_map !size_iota lt1n ifT //.
-  by rewrite addn1 !addnA subnKC // addn1 subnKC.
-- rewrite !nth_cat !size_cat /= !size_take !size_drop !size_map !size_iota !lt1n !l21n.
-  have [] := boolP (i < i1) => lt1; first by rewrite ifT ?nth_take // (@ltn_trans i1) ?ltn_addr.
-  rewrite -ltnNge ltnS in lt1.
-  have [] := boolP (i == i1) => [/eqP ->|ne1]; first by rewrite subnn /= ifT // ltn_addr. 
-  rewrite leq_eqVlt -(negbK (i1 == i)) eq_sym ne1 /= in lt1.
-  have [] := boolP (i < i2) => [lt2|].
-  - have lt112: i1 + 1 < i2 by rewrite (@leq_ltn_trans i) // addn1.    
-    have lti12 : i - i1.+1 < i2 - i1.+1 by rewrite ?ltn_sub2r // (@leq_trans i.+1).
-    have lti121: i - i1.+1 < i2 - i1.+1 + 1 by rewrite (@ltn_trans (i2 - i1.+1)) // ltn_addr.
-    have mx //: maxn i1.+1 i = i by apply/maxn_idPr.
-    by rewrite ifF ?ifT addn1 //= ?nth_take ?nth_drop -?maxnE ?mx //= ltnS leqNgt lt1.
-  - rewrite -leqNgt => le2i. 
-    have [] := boolP (i == i2) => [/eqP -> /=|ne2].    
-    - by rewrite ifF addn1 ?ltn_addr ?ltnn ?subnn //= ltnS leqNgt lt12.
-    - rewrite leq_eqVlt -(negbK (i2 == i)) eq_sym ne2 /= in le2i.  
-      rewrite ifF ?subnDA ?ifF ?nth_drop //=; last by rewrite addn1 ltnS leqNgt lt1. 
-      have -> // : i2.+1 + (i - i1 - 1 - (i2 - i1.+1) - 1) = i. 
-        rewrite -(@subnDA i1) -subnDA !addn1 subnSK -?subnDA ?(@addnBCA i1.+1) ?(@ltnW i1 i2) //.
-        by rewrite subSnn addn1 subnKC.
-      rewrite ?subnK ltnNge ?subn1 -ltnS ?prednK ?ltn_sub2r // ?subn_gt0 //.
-      by rewrite addn1 (@subnSK _ i2) // ltn_sub2r.
+rewrite (@map_uniq _ _ (nth 0 (transposed_iota (i1, i2)))) //.
+set ti := (X in uniq X). 
+have -> : ti = iota 0 n.
+  apply: (@eq_from_nth _ 0) => [|i ltis]; first by rewrite size_map size_transposed size_iota.
+  rewrite size_map size_transposed in ltis.
+  rewrite !(nth_map 0) ?size_transposed ?nth_iota ?add0n ?size_iota ?transpose_bound //.
+  exact: transposeK.
+exact: iota_uniq.
 Qed.
 
-Lemma untranspose_iota i1 i2  (lt1n : i1 < n) (lt2n : i2 < n) (lt12 : i1 < i2) :
-  let s := transposed_iota (i1, i2) in
-  let: (s1, s2, s3, s4, s5) := 
-    (take i1 s, [:: nth 0 s i1], within s (i1, i2), [:: nth 0 s i2], drop i2.+1 s) in
-  (((s1 ++ s4) ++ s3) ++ s2) ++ s5 = iota 0 n.
+Lemma perm_eq_transposed_iota : perm_eq (transposed_iota (i1, i2)) (iota 0 n).  
 Proof.
-have l21n: i2 - i1.+1 < n - i1.+1 by rewrite ltn_sub2r // (@leq_trans i2.+1).
-set s := transposed_iota (i1, i2) => /=.
-have -> : drop i2.+1 s = drop i2.+1 (iota 0 n). 
-  apply: (@eq_from_nth _ 0) => [|i lis]; first by rewrite !size_drop !size_map.
-  rewrite size_drop size_map size_iota ltn_subRL in lis.
-  rewrite !nth_drop (nth_map 0) ?nth_iota ?size_iota ?add0n //.
-  by rewrite transposeD // ?gtn_eqF // ?(@ltn_trans i2 i1 (i2.+1 + i)) // addSnnS ltn_addr.
-have -> : nth 0 s i1 = nth 0 (iota 0 n) i2. 
-  by rewrite (nth_map 0) ?size_iota ?nth_iota // !add0n transposeL.
-rewrite -catA //= -drop_nth ?size_iota // -[RHS](cat_take_drop i2 (iota 0 n)).
-apply/eqP. 
-rewrite (@eqseq_cat _ _ _ (drop i2 (iota 0 n))) ?eq_refl ?andbT /within; 
-  last by rewrite !size_cat !size_take !size_drop !size_map !size_iota lt1n lt2n l21n
-                  addn1 subnKC.  
-have -> : take (i2 - i1.+1) (drop i1.+1 s) = take (i2 - i1.+1) (drop i1.+1 (iota 0 n)). 
-  apply: (@eq_from_nth _ 0) => [|i ltis]; first by rewrite !size_take !size_drop !size_map. 
-  rewrite size_take size_drop !size_map !size_iota l21n in ltis.
-  have lt11 : i1.+1 + i < n by rewrite (@ltn_trans i2) // -ltn_subRL.
-  rewrite !nth_take ?nth_drop /s /transpose_iota 
-          ?(nth_map 0) // ?nth_iota // ?add0n ?size_iota //.
-  by rewrite transposeD // ?(@gtn_eqF i1) // addSnnS ?ltn_addr //
-             ltn_eqF // -addSnnS -ltn_subRL. 
-rewrite take_drop subnK //. 
-have -> : nth 0 s i2 = nth 0 (take i2 (iota 0 n)) i1. 
-  rewrite (nth_map 0) ?size_iota // nth_iota // take_iota transposeR nth_iota ?add0n //.
-  by have -> // : minn i2 n = i2 by apply/minn_idPl; rewrite ltnW.
-rewrite -catA //= -drop_nth ?size_take ?size_map ?size_iota ?lt2n //. 
-rewrite -[X in _ == X](cat_take_drop i1) eqseq_cat ?eq_refl ?andbT; 
-  last by rewrite !size_take /s !size_map !size_iota lt2n lt1n ifT. 
-rewrite take_take 1?ltnW //.
-have -> // : take i1 s = take i1 (iota 0 n). 
-  apply: (@eq_from_nth _ 0) => [|i ltis]; first by rewrite !size_take size_map.
-  rewrite size_take size_map size_iota lt1n in ltis.
-  have ltin : i < n by rewrite (@ltn_trans i1).
-  rewrite !nth_take ?(nth_map 0) ?size_iota // ?nth_iota ?add0n //. 
-  by rewrite transposeD // ?ltn_eqF // (@ltn_trans i1).
-Qed.
-
-Lemma perm_eq_no_transpose_iota i (ltin : i < n) : perm_eq (transposed_iota (i, i)) (iota 0 n).  
-Proof.
-have -> : transposed_iota (i, i) = iota 0 n.
-  rewrite /transpose_iota.
-  apply: (@eq_from_nth _ 0) => [|j ltjs]; first by rewrite size_map.
-  rewrite size_map in ltjs.
-  by rewrite (nth_map 0) ?transpose_id.
-exact: perm_refl.
-Qed.
-
-Lemma perm_eq_transpose_iota i1 i2 (lt1n : i1 < n) (lt2n : i2 < n) :
-  perm_eq (transposed_iota (i1, i2)) (iota 0 n).  
-Proof.
-have [] := boolP (i1 == i2) => [/eqP -> |ne12]; first by exact: perm_eq_no_transpose_iota.
-wlog: i1 i2 lt1n lt2n ne12 / i1 < i2 => [H|lt12].
-- move: (ne12).
-  rewrite neq_ltn => /orP [lt12|lt21]; first by rewrite H.
-  rewrite eq_sym in ne12.
-  move: (transpose_iotaC i1 i2) (H i2 i1 lt2n lt1n ne12 lt21).  
-  by rewrite /transpose_iota => ->.
-- set s := (X in perm_eq X) => {ne12}.   
-  move: (transpose_iota lt1n lt2n lt12) => /=.
-  rewrite /s => ->.
-  set s1 := take i1 s; set s2 := [:: nth 0 s i1];
-  set s3 := within s (i1, i2);
-  set s4 := [:: nth 0 s i2]; set s5 := drop i2.+1 s. 
-  rewrite perm_catACA (@perm_trans _ ((s1 ++ s4 ++ s3) ++ s2 ++ s5)) //;
-        first by rewrite perm_cat2r (@perm_catl _ s1 _ (s4 ++ s3)) // perm_catC perm_refl.
-  by rewrite !catA (untranspose_iota lt1n lt2n lt12) perm_refl.
+rewrite uniq_perm ?iota_uniq // ?uniq_transposed_iota // => x. 
+set ti := (transposed_iota _).   
+apply/(nthP 0)/(nthP 0); rewrite ?size_iota ?size_transposed.
+- move=> [i ltit <-].
+  have [] := boolP (~~ (i == i1) && ~~ (i == i2)) => [/andP [ne1 ne2]|/nandP].
+  - by exists i => //;  rewrite (nth_map 0) ?size_iota ?transposeD ?nth_iota ?add0n.
+  - rewrite !negbK; move=> [/eqP ->|/eqP ->]. 
+    - by exists i2 => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeL.
+    - by exists i1 => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeR.
+- move=> [i ltit].
+  rewrite nth_iota ?add0n // => <-.
+  have [] := boolP (~~ (i == i1) && ~~ (i == i2)) => [/andP [ne1 ne2]|/nandP].
+  - by exists i => //; rewrite (nth_map 0) ?size_iota ?transposeD ?nth_iota ?add0n. 
+  - rewrite !negbK; move=> [/eqP ->|/eqP ->]. 
+    - by exists i2 => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeR.
+    - by exists i1 => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeL.
 Qed.
 
 End TransposeIota.
@@ -526,7 +456,7 @@ Lemma perm_eq_aperm i1 i2 (lt1s : i1 < size s) (lt2s : i2 < size s) :
 Proof.
 apply/(perm_iotaP 0).
 exists (map (transpose (i1, i2)) (iota 0 (size s))).
-- by rewrite size_aperm perm_eq_transpose_iota.
+- by rewrite size_aperm perm_eq_transposed_iota.
 - apply: (@eq_from_nth _ 0) => [|i ltis]; first by rewrite !size_map size_iota.
   rewrite !(nth_map 0) ?size_iota // ?nth_iota // ?add0n ?transposeK // ?transpose_bound //.
   by rewrite size_map size_iota.

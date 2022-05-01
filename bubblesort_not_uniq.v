@@ -367,15 +367,6 @@ Variable (i1 i2 : nat) (lt1n : i1 < n) (lt2n : i2 < n).
 
 Definition transposed_iota t := [seq transpose t i | i <- iota 0 n].
 
-Lemma transposed_iotaC : transposed_iota (i2, i1) = transposed_iota (i1, i2).
-Proof.
-rewrite /transposed_iota.
-apply: (@eq_from_nth _ 0) => [|i ltin]; first by rewrite !size_map.
-rewrite size_map size_iota in ltin.
-rewrite !(@nth_map _ 0) ?size_iota ?nth_iota ?add0n /transpose //=.
-by case: ifP => [/eqP ->|ne2]; first by case: ifP => [/eqP -> //|].
-Qed.
-
 Lemma size_transposed t : size (transposed_iota t) = n.
 Proof. by rewrite size_map size_iota. Qed.
 

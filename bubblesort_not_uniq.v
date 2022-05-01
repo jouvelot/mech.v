@@ -198,21 +198,6 @@ rewrite (@perm_trans _ (take (n.+1 + m.+1) (aperm s (ix, n.+1)))) //.
   by have -> // : n + m.+2 = n.+1 + m.+1 by rewrite addnS addSn.
 Qed.
 
-(* Side lemma, not used in the proof. *)
-
-Lemma bubble_equiv s t :
-  is_bubble s t <-> let: (i1, i2) := t in 
-                  (i1 < size s) && (i2 < size s) && ((i1 <= i2) && (nth 0 s i2 <= nth 0 s i1)).
-Proof.
-rewrite /is_bubble (surjective_pairing t).
-split=> [/andP [/andP [-> ->]] /orP [/eqP -> //|/andP [lt12 ->]]|
-        /andP [/andP [-> ->]] /andP [le12 ->]].
-- - by rewrite !leqnn.
-  - by rewrite ltnW.
-- rewrite leq_eqVlt in le12.
-  by rewrite !andbT le12.
-Qed.
-
 Lemma bubbles_in_swap : forall n s (ltns : n < size s), (swap s (transpositions s n)).1.
 Proof.
 elim=> [//=|n IH s ltn1s /=]. 
@@ -396,7 +381,7 @@ apply/(nthP 0)/(nthP 0); rewrite ?size_iota ?size_transposed.
 - move=> [i ltit].
   rewrite nth_iota ?add0n // => <-.
   have [] := boolP (~~ (i == i1) && ~~ (i == i2)) => [/andP [ne1 ne2]|/nandP].
-  - by exists i => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n  ?transposeD. 
+  - by exists i => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeD. 
   - rewrite !negbK; move=> [/eqP ->|/eqP ->]. 
     - by exists i2 => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeR.
     - by exists i1 => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeL.

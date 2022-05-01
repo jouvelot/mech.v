@@ -180,24 +180,6 @@ End Algorithm.
 
 Section Bubbles.
 
-Lemma perm_eq_take_swap n : forall s,
-    n.+1 < size s -> perm_eq (take n.+1 s) (take n.+1 (swap s (transpositions s n)).2).
-Proof.
-suff: forall s m, n.+1 + m < size s ->
-             perm_eq (take (n + m.+1) s) (take (n + m.+1) (swap s (transpositions s n)).2).
-  move=> H s ltn1s. 
-  move: (@H s 0).
-  by rewrite addn1 addn0 => ->.
-elim: n => [//=|n IH s m ltn2ms].
-pose ix := index (\max_(0 <= i < n.+2) nth 0 s i) s.
-rewrite (@perm_trans _ (take (n.+1 + m.+1) (aperm s (ix, n.+1)))) //.  
-- rewrite perm_eq_take_aperm // -?addSnnS // bigmax_nth_index_leq //(@ltn_trans (n.+2 + m)) //.
-  by rewrite addSnnS ltn_addr.
-- have szap : n.+1 + m.+1 < size (aperm s (ix, n.+1)) by rewrite size_aperm -addSnnS.
-  move: (@IH (aperm s (ix, n.+1)) m.+1 szap).
-  by have -> // : n + m.+2 = n.+1 + m.+1 by rewrite addnS addSn.
-Qed.
-
 Lemma bubbles_in_swap : forall n s (ltns : n < size s), (swap s (transpositions s n)).1.
 Proof.
 elim=> [//=|n IH s ltn1s /=]. 
@@ -221,6 +203,24 @@ Section Sorted.
 
 Lemma size_swap ts s : size (swap s ts).2 = size s. 
 Proof. by elim: ts s => [//=|t ts IH s /=]; rewrite IH. Qed.
+
+Lemma perm_eq_take_swap n : forall s,
+    n.+1 < size s -> perm_eq (take n.+1 s) (take n.+1 (swap s (transpositions s n)).2).
+Proof.
+suff: forall s m, n.+1 + m < size s ->
+             perm_eq (take (n + m.+1) s) (take (n + m.+1) (swap s (transpositions s n)).2).
+  move=> H s ltn1s. 
+  move: (@H s 0).
+  by rewrite addn1 addn0 => ->.
+elim: n => [//=|n IH s m ltn2ms].
+pose ix := index (\max_(0 <= i < n.+2) nth 0 s i) s.
+rewrite (@perm_trans _ (take (n.+1 + m.+1) (aperm s (ix, n.+1)))) //.  
+- rewrite perm_eq_take_aperm // -?addSnnS // bigmax_nth_index_leq //(@ltn_trans (n.+2 + m)) //.
+  by rewrite addSnnS ltn_addr.
+- have szap : n.+1 + m.+1 < size (aperm s (ix, n.+1)) by rewrite size_aperm -addSnnS.
+  move: (@IH (aperm s (ix, n.+1)) m.+1 szap).
+  by have -> // : n + m.+2 = n.+1 + m.+1 by rewrite addnS addSn.
+Qed.
 
 Lemma swap_id : forall n s i (ltni : n < i) (ltis : i < size s),
   nth 0 (swap s (transpositions s n)).2 i = nth 0 s i.

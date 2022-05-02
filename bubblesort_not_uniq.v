@@ -232,7 +232,7 @@ Qed.
 
 End Aperm.
 
-Lemma take_perm_comm s i1 i2 m (le12 : i1 <= i2) (lt2s : i2 < size s) (lt2m : i2 < m):
+Lemma take_perm_comm s i1 i2 m (le12 : i1 <= i2) (lt2s : i2 < size s) (lt2m : i2 < m) :
   take m (aperm s (i1, i2)) = aperm (take m s) (i1, i2).
 Proof. 
 rewrite -map_take /aperm take_iota size_take.
@@ -373,10 +373,10 @@ rewrite (@perm_trans _ (take (n.+1 + m.+1) (aperm s (ix, n.+1)))) //.
   by have -> // : n + m.+2 = n.+1 + m.+1 by rewrite addnS addSn.
 Qed.
 
-Lemma swap_id : forall n s i (ltni : n < i) (ltis : i < size s),
+Lemma swap_id n : forall s i (ltni : n < i) (ltis : i < size s),
   nth 0 (swap s (transpositions s n)).2 i = nth 0 s i.
 Proof.
-elim=> [//=|n IH s j ltn1j ltjs /=].
+elim: n => [//=|n IH s j ltn1j ltjs /=].
 rewrite IH // ?size_aperm //; last by rewrite (@ltn_trans n.+1 _ j). 
 rewrite nth_aperm_id // gtn_eqF //(@leq_ltn_trans n.+1) //. 
 by rewrite bigmax_nth_index_leq // (@ltn_trans j) // (@ltn_trans n.+1).
@@ -392,7 +392,7 @@ set s' := (swap _ _).2.
 by rewrite -!(big_nth 0 predT id) (perm_big (take n.+1 s')) //= perm_eq_take_swap.
 Qed.
 
-Lemma max_swaps n: forall s (ltns : n < size s),
+Lemma max_swaps n : forall s (ltns : n < size s),
     let s' := (swap s (transpositions s n)).2 in
     forall j, j <= n -> nth 0 s' j = \max_(O <= i < j.+1) nth 0 s' i.
 Proof.
@@ -433,11 +433,11 @@ have [] := boolP (i == 0) => [/eqP -> //=|nei0].
 rewrite -lt0n in nei0.  
 rewrite size_swap in ltiz.
 have lts1 : (size s).-1 < size s by rewrite ltn_predL.
-have lti1s1 : i.-1 < (size s).-1 by rewrite (@leq_trans i) ?ltn_predL // -ltnS prednK.
-by rewrite -(@prednK i) // -nth_behead prednK // ?ltn_predL // -{2}(@prednK i) // swap_sorted.
+have lti1s1 : i.-1 < (size s).-1 by rewrite (@leq_trans i) ?ltn_predL // -ltnS prednK. 
+by rewrite -(@prednK i) // -nth_behead swap_sorted.
 Qed.
 
-Theorem bubble_sort_spec:
+Theorem bubble_sort_spec :
   exists ts : seq transposition,
     let: (all_bubbles, s') := swap s ts in 
     all_bubbles /\ sorted leq s'.

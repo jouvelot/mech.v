@@ -242,7 +242,6 @@ have [] := boolP (m <= size s) => lems; last by rewrite take_oversize // ltnW //
 rewrite nth_take // /transpose /=. 
 case: ifP => // _.
 case: ifP => // _; first by rewrite (@leq_ltn_trans i2). 
-Search (minn _).
 by move: lems => /minn_idPl <-.
 Qed.
 

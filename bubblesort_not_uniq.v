@@ -100,7 +100,7 @@ End Bigmax.
 
 (** A dedicated Permutation module for Bubble Sort.
 
-   These definitions provide an implementation for permutations using indices `i`, 
+   These definitions provide an implementation for permutations based on indices `i`, 
    inspired in part by `perm.v`, although this one is working on `nat`. *)
 
 Module Permutation.
@@ -437,7 +437,7 @@ by rewrite (@leq_ltn_trans i) // ?leq_pred.
 Qed.
 
 Theorem bubble_sort_spec s :
-  exists (ts : seq transposition),
+  exists ts : seq transposition,
     let: (all_bubbles, s') := swap s ts in 
     all_bubbles /\ up_sorted s'.
 Proof.

@@ -419,6 +419,8 @@ Qed.
 
 End Sorted.
 
+(** Bubble Sort specification, as applying a list of bubble swaps, yielding a sorted sequence. *)
+
 Section Specification.
 
 Variable (s : seq nat).
@@ -429,12 +431,11 @@ have [] := boolP (s == [::]) => [/eqP -> //=|].
 rewrite -size_eq0 -lt0n => lt0s.
 apply: (@path_sorted _ leq 0).
 apply/(pathP 0) => i ltiz.
-have [] := boolP (i == 0) => [/eqP -> //=|nei0].
+have [] := boolP (i == 0) => [/eqP -> //=|nei0]. 
 rewrite -lt0n in nei0.  
 rewrite size_swap in ltiz.
-have lts1 : (size s).-1 < size s by rewrite ltn_predL.
 have lti1s1 : i.-1 < (size s).-1 by rewrite (@leq_trans i) ?ltn_predL // -ltnS prednK. 
-by rewrite -(@prednK i) // -nth_behead swap_sorted.
+by rewrite -(@prednK i) // -nth_behead swap_sorted // ltn_predL.
 Qed.
 
 Theorem bubble_sort_spec :

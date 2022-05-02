@@ -259,7 +259,7 @@ Notation transposition := (nat * nat)%type.
 
 Implicit Types (i n m : nat) (s : seq nat) (t : transposition).
 
-(* Minimum set of definitions from Permutation needed. *) 
+(* Minimum set of needed definitions from Permutation. *) 
 
 Definition aperm : seq nat -> transposition -> seq nat := P.aperm.
 Definition aperm_id : forall s i, aperm s (i, i) = s := P.aperm_id.

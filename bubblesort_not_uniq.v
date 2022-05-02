@@ -348,7 +348,7 @@ Qed.
 
 End Bubbles.
 
-(** Proof that the `n`-prefix of a `s` swapped with `transpositions s n` is sorted. *)
+(** Proof that the `n`-prefix of a sequence `s` swapped with `transpositions s n` is sorted. *)
 
 Section Sorted.
 
@@ -409,36 +409,38 @@ have [] := boolP (ix == n.+1) => [/eqP eqixn1|neixn1].
   by rewrite leq_eqVlt -(negbK (ix == n.+1)) neixn1.
 Qed.
 
+Lemma swap_sorted n s (ltns : n < size s) :
+  let s' := (swap s (transpositions s n)).2 in
+  forall j, j < n -> nth 0 s' j <= nth 0 s' j.+1.
+Proof.  
+move=> /= j ltjn.
+by rewrite !max_swaps ?(@ltnW j n) ?[X in _ <= X](@big_cat_nat _ _ _ j.+1) //= ?maxnE ?leq_addr.
+Qed.
+
 End Sorted.
 
 Section Specification.
 
-Definition up_sorted s := sorted leq s.
+Variable (s : seq nat).
 
-Lemma bubble_sorted_nil : bubble_sort [::] = [::].
-Proof. by []. Qed.
-
-Lemma bubble_sorted s : up_sorted (bubble_sort s).
+Lemma bubble_sorted : sorted leq (bubble_sort s).
 Proof.
-have [] := boolP (s == [::]) => [/eqP ->|]; first by rewrite bubble_sorted_nil.
+have [] := boolP (s == [::]) => [/eqP -> //=|].
 rewrite -size_eq0 -lt0n => lt0s.
 apply: (@path_sorted _ leq 0).
 apply/(pathP 0) => i ltiz.
 have [] := boolP (i == 0) => [/eqP -> //=|nei0].
 rewrite -lt0n in nei0.  
 rewrite size_swap in ltiz.
-have leiz1 : i <= (size s).-1 by rewrite ?ltn_predL -ltnS prednK.
-have lei1z1 : i.-1 <= (size s).-1 by rewrite (@leq_trans i) // leq_pred.
-move: (nei0) => /prednK <-. 
-rewrite -nth_behead /behead prednK // !max_swaps // ?ltn_predL //. 
-rewrite [X in _ <= X](@big_cat_nat _ _ _ i.-1.+1) //= ?maxnE ?leq_addr //=.
-by rewrite (@leq_ltn_trans i) // ?leq_pred.
+have lts1 : (size s).-1 < size s by rewrite ltn_predL.
+have lti1s1 : i.-1 < (size s).-1 by rewrite (@leq_trans i) ?ltn_predL // -ltnS prednK.
+by rewrite -(@prednK i) // -nth_behead prednK // ?ltn_predL // -{2}(@prednK i) // swap_sorted.
 Qed.
 
-Theorem bubble_sort_spec s :
+Theorem bubble_sort_spec:
   exists ts : seq transposition,
     let: (all_bubbles, s') := swap s ts in 
-    all_bubbles /\ up_sorted s'.
+    all_bubbles /\ sorted leq s'.
 Proof.
 have [] := boolP (s == [::]) => [/eqP -> |]; first by exists [::].
 rewrite -size_eq0 -lt0n => lt0s.

@@ -238,11 +238,32 @@ rewrite -map_take /aperm take_iota size_take.
 apply: (@eq_from_nth _ 0) => [|i]; first by rewrite !size_map !size_iota.
 rewrite size_map size_iota => ltimn.
 rewrite !(nth_map 0) ?size_iota ?nth_iota // ?add0n //. 
-have [] := boolP (m <= size s) => ltim; last by rewrite take_oversize // ltnW // ltnNge.
+have [] := boolP (m <= size s) => lems; last by rewrite take_oversize // ltnW // ltnNge.
 rewrite nth_take // /transpose /=. 
 case: ifP => // _.
 case: ifP => // _; first by rewrite (@leq_ltn_trans i2). 
-by move: ltim => /minn_idPl <-.
+Search (minn _).
+by move: lems => /minn_idPl <-.
+Qed.
+
+Lemma perm_eq_take_aperm m s i1 i2 (lt2m1s : i2 + m.+1 < size s) (le12 : i1 <= i2) : 
+  perm_eq (take (i2 + m.+1) s) (take (i2 + m.+1) (aperm s (i1, i2))).
+Proof.
+have -> : take (i2 + m.+1) (aperm s (i1, i2)) = aperm (take (i2 + m.+1) s) (i1, i2).  
+  rewrite take_perm_comm // ?nth_take //= // (@leq_ltn_trans i2) ?ltn_addr //.
+  by rewrite (@ltn_trans (i2 + m.+1)) ?ltn_addr.
+by rewrite perm_eq_aperm ?size_take // lt2m1s ?ltn_addr // (@leq_ltn_trans i2) // ltn_addr.
+Qed.
+
+Lemma max_aperm s i n (ltns : n < size s) (lein : i <= n) :
+  \max_(0 <= j < n.+1) nth 0 s j = \max_(0 <= j < n.+1) nth 0 (aperm s (i, n)) j. 
+Proof.
+rewrite bigmax_nth_take // [RHS]bigmax_nth_take // ?size_aperm //.
+set s' := (aperm _ _).    
+rewrite -!(big_nth 0 predT id) (perm_big (take n.+1 s')) //= /s'.
+have [] := boolP (n.+1 < size s) => ltn1s; first by rewrite -addn1 perm_eq_take_aperm // addn1.
+have/eqP <- : size s == n.+1 by rewrite eqn_leq ltns leqNgt ltn1s.
+by rewrite -{2}(@size_aperm _ (i, n)) !take_size perm_eq_aperm // (@leq_ltn_trans n). 
 Qed.
 
 End Transposition.
@@ -257,43 +278,18 @@ Notation transposition := (nat * nat)%type.
 
 Implicit Types (i n m : nat) (s : seq nat) (t : transposition).
 
-(* Minimum set of needed definitions from Permutation. *) 
+(* Needed definitions from Transposition. *) 
 
-Definition aperm : seq nat -> transposition -> seq nat := T.aperm.
-Definition aperm_id : forall s i, aperm s (i, i) = s := T.aperm_id.
-Definition size_aperm : forall s t, size (aperm s t) = size s := T.size_aperm.
-Definition nth_aperm : 
-  forall s i, i < size s -> forall m, m \in s -> nth 0 (aperm s (index m s, i)) i = m := T.nth_aperm.
-Definition nth_aperm_id : 
-  forall s i1 i2 i, i < size s -> i != i1 -> i != i2 -> 
-               nth 0 (aperm s (i1, i2)) i = nth 0 s i := T.nth_aperm_id.
-Definition perm_eq_aperm : 
-  forall s i1 i2, i1 < size s -> i2 < size s -> perm_eq s (aperm s (i1, i2)) := T.perm_eq_aperm.
-Definition take_perm_comm : 
-  forall s i1 i2 m, i1 <= i2 -> i2 < size s -> i2 < m ->
-               take m (aperm s (i1, i2)) = aperm (take m s) (i1, i2) := T.take_perm_comm.
+Notation aperm := T.aperm.
+Notation aperm_id := T.aperm_id.
+Notation size_aperm := T.size_aperm.
+Notation nth_aperm := T.nth_aperm.
+Notation nth_aperm_id := T.nth_aperm_id.
+Notation perm_eq_aperm := T.perm_eq_aperm.
+Notation perm_eq_take_aperm := T.perm_eq_take_aperm.
+Notation max_aperm := T.max_aperm.
 
-Lemma perm_eq_take_aperm m s i1 i2 (lt2m1s : i2 + m.+1 < size s) (le12 : i1 <= i2) : 
-  perm_eq (take (i2 + m.+1) s) (take (i2 + m.+1) (aperm s (i1, i2))).
-Proof.
-have -> : take (i2 + m.+1) (aperm s (i1, i2)) = aperm (take (i2 + m.+1) s) (i1, i2).  
-  rewrite take_perm_comm // ?nth_take //= // (@leq_ltn_trans i2) ?ltn_addr //.
-  by rewrite (@ltn_trans (i2 + m.+1)) ?ltn_addr.
-by rewrite perm_eq_aperm ?size_take // lt2m1s ?ltn_addr // (@leq_ltn_trans i2) // ltn_addr.
-Qed.
-
-Lemma max_aperm s i1 i2 (lt2s : i2 < size s) (le12 : i1 <= i2) :
-  \max_(0 <= i < i2.+1) nth 0 s i = \max_(0 <= i < i2.+1) nth 0 (aperm s (i1, i2)) i. 
-Proof.
-rewrite bigmax_nth_take // [RHS]bigmax_nth_take // ?size_aperm //.
-set s' := (aperm _ _).    
-rewrite -!(big_nth 0 predT id) (perm_big (take i2.+1 s')) //= /s'.
-have [] := boolP (i2.+1 < size s) => lt21s; first by rewrite -addn1 perm_eq_take_aperm // addn1.
-have/eqP <- : size s == i2.+1 by rewrite eqn_leq lt2s leqNgt lt21s.
-by rewrite -{2}(@size_aperm _ (i1, i2)) !take_size perm_eq_aperm // (@leq_ltn_trans i2). 
-Qed.
-
-(** Bubble Sort is based on transpositions (to be shown later as being out-of-order `bubbles`),
+(** Bubble Sort builds upon transpositions (to be shown later as being out-of-order `bubbles`),
     here on a prefix of `s`, from indices `0` to `n` (included) in `s`. *)
 
 Section Algorithm. 

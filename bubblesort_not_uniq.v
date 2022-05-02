@@ -150,14 +150,14 @@ Variable (n : nat).
 
 Variable (i1 i2 : nat) (lt1n : i1 < n) (lt2n : i2 < n).
 
-Definition transposed_iota t := [seq transpose t i | i <- iota 0 n].
+Definition transposed_iota := [seq transpose (i1, i2) i | i <- iota 0 n].
 
-Lemma size_transposed t : size (transposed_iota t) = n.
+Lemma size_transposed : size transposed_iota = n.
 Proof. by rewrite size_map size_iota. Qed.
 
-Lemma uniq_transposed_iota : uniq (transposed_iota (i1, i2)). 
+Lemma uniq_transposed_iota : uniq transposed_iota. 
 Proof.
-rewrite (@map_uniq _ _ (nth 0 (transposed_iota (i1, i2)))) //. 
+rewrite (@map_uniq _ _ (nth 0 transposed_iota)) //. 
 set ti := (X in uniq X). 
 have -> : ti = iota 0 n.
   apply: (@eq_from_nth _ 0) => [|i ltis]; first by rewrite size_map size_transposed size_iota.
@@ -167,10 +167,9 @@ have -> : ti = iota 0 n.
 exact: iota_uniq.
 Qed.
 
-Lemma perm_eq_transposed_iota : perm_eq (transposed_iota (i1, i2)) (iota 0 n).  
+Lemma perm_eq_transposed_iota : perm_eq transposed_iota (iota 0 n).  
 Proof.
 rewrite uniq_perm ?iota_uniq // ?uniq_transposed_iota // => x. 
-set ti := (transposed_iota _).   
 apply/(nthP 0)/(nthP 0); rewrite ?size_iota ?size_transposed.
 - move=> [i ltit <-].
   have [] := boolP (~~ (i == i1) && ~~ (i == i2)) => [/andP [ne1 ne2]|/nandP].
@@ -193,19 +192,21 @@ Section Aperm.
 
 Variable (s : seq nat).
 
+Variable (i1 i2 i : nat) (ltis : i < size s) (lt1s : i1 < size s) (lt2s : i2 < size s).
+
 Definition aperm t := [seq nth 0 s (transpose t i) | i <- iota 0 (size s)].
 
 Lemma size_aperm t : size (aperm t) = size s.
 Proof. by rewrite /aperm size_map size_iota. Qed.
 
-Lemma aperm_id i : aperm (i, i) = s. 
+Lemma aperm_id : aperm (i, i) = s. 
 Proof.
 apply: (@eq_from_nth _ 0) => [|j ltjs /=]; first by rewrite size_aperm.
 rewrite size_aperm in ltjs. 
 by rewrite (nth_map 0) ?size_iota // nth_iota //= add0n  transpose_id.
 Qed.
 
-Lemma nth_aperm i m (ltis : i < size s) (min : m \in s) :
+Lemma nth_aperm m (min : m \in s) :
   nth 0 (aperm (index m s, i)) i = m.
 Proof. 
 rewrite (nth_map 0) // /transpose /= ?size_iota ?nth_iota // add0n.
@@ -213,20 +214,18 @@ case: ifP => [/eqP -> |]; first by rewrite nth_index.
 by rewrite ifT // nth_index.
 Qed.
 
-Lemma nth_aperm_id i1 i2 i (ltis : i < size s) (nei1 : i != i1) (nei2 : i != i2) : 
-  nth 0 (aperm (i1, i2)) i = nth 0 s i.
+Lemma nth_aperm_id (ne1 : i != i1) (ne2 : i != i2) : nth 0 (aperm (i1, i2)) i = nth 0 s i.
 Proof.                                                                     
 have nej j: i != j -> (i == j) = false by apply: contra_neqF => /eqP.
 by rewrite /aperm (nth_map 0) // /transpose ?size_iota // nth_iota //= add0n !ifF 2?nej.
 Qed.
 
-Lemma perm_eq_aperm i1 i2 (lt1s : i1 < size s) (lt2s : i2 < size s) :
-  perm_eq s (aperm (i1, i2)).
+Lemma perm_eq_aperm : perm_eq s (aperm (i1, i2)).
 Proof.
 apply/(perm_iotaP 0).
 exists (map (transpose (i1, i2)) (iota 0 (size s))).
 - by rewrite size_aperm perm_eq_transposed_iota.
-- apply: (@eq_from_nth _ 0) => [|i ltis]; first by rewrite !size_map size_iota.
+- apply: (@eq_from_nth _ 0) => [|i' lti's]; first by rewrite !size_map size_iota.
   rewrite !(nth_map 0) ?size_iota // ?nth_iota // ?add0n ?transposeK // ?ltn_transpose //.
   by rewrite size_map size_iota.
 Qed.
@@ -265,7 +264,7 @@ Definition aperm : seq nat -> transposition -> seq nat := P.aperm.
 Definition aperm_id : forall s i, aperm s (i, i) = s := P.aperm_id.
 Definition size_aperm : forall s t, size (aperm s t) = size s := P.size_aperm.
 Definition nth_aperm : 
-  forall s i m, i < size s -> m \in s -> nth 0 (aperm s (index m s, i)) i = m := P.nth_aperm.
+  forall s i, i < size s -> forall m, m \in s -> nth 0 (aperm s (index m s, i)) i = m := P.nth_aperm.
 Definition nth_aperm_id : 
   forall s i1 i2 i, i < size s -> i != i1 -> i != i2 -> 
                nth 0 (aperm s (i1, i2)) i = nth 0 s i := P.nth_aperm_id.

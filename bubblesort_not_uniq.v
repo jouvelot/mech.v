@@ -288,7 +288,7 @@ Notation perm_eq_aperm := T.perm_eq_aperm.
 Notation perm_eq_take_aperm := T.perm_eq_take_aperm.
 Notation max_aperm := T.max_aperm.
 
-(** Bubble Sort builds upon transpositions (to be shown later as being out-of-order `bubbles`),
+(** Bubble Sort builds upon transpositions (to be shown later as being out-of-order "bubbles"),
     here on a prefix of `s`, from indices `0` to `n` (included) in `s`. *)
 
 Section Algorithm. 
@@ -303,7 +303,7 @@ Fixpoint transpositions s n : seq transposition :=
   end.
 
 (* `swap` applies the list of transpositions `ts` to `s`, returning the swapped list 
-    together with a boolean checking whether all these transpositions are bubbles.  *)
+    together with a boolean stating whether all these transpositions are bubbles.  *)
 
 Definition is_bubble s t : bool :=
   let: (i1, i2) := t in 

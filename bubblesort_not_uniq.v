@@ -150,7 +150,7 @@ Variable (n : nat).
 
 Variable (i1 i2 : nat) (lt1n : i1 < n) (lt2n : i2 < n).
 
-Definition transposed_iota := [seq transpose (i1, i2) i | i <- iota 0 n].
+Definition transposed_iota := map (transpose (i1, i2)) (iota 0 n).
 
 Lemma size_transposed : size transposed_iota = n.
 Proof. by rewrite size_map size_iota. Qed.
@@ -433,16 +433,15 @@ by rewrite -(@prednK i) // -nth_behead swap_sorted // ltn_predL.
 Qed.
 
 Theorem bubble_sort_spec :
-  exists ts : seq transposition,
+  {ts : seq transposition |
     let: (all_bubbles, s') := swap s ts in 
-    all_bubbles /\ sorted leq s'.
+    all_bubbles && sorted leq s'}.
 Proof.
 have [] := boolP (s == [::]) => [/eqP -> |]; first by exists [::].
 rewrite -size_eq0 -lt0n => lt0s.
 exists (transpositions s (size s).-1) => //=.  
 set bs' := (swap _ _). 
-rewrite (surjective_pairing bs') bubbles_in_swap ?ltn_predL //.
-by split=> //; last by exact: bubble_sorted. 
+by rewrite (surjective_pairing bs') bubbles_in_swap ?ltn_predL ?bubble_sorted. 
 Qed.
 
 End Specification.

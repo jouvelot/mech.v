@@ -16,7 +16,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-From vcg Require Import bubblesort_not_uniq.
+From vcg Require Import bubblesort.
 
 (** Misc. *)
 
@@ -893,7 +893,7 @@ Lemma tuple_bubble_sort_spec (t : k.+1.-tuple 'I_m.+1) :
     xo.1 /\ tuple_up_sorted_tuple xo.2. 
 Proof.
 pose s := map val t.
-move: (bubblesort_not_uniq.bubble_sort_spec s) => [ts /=].
+move: (bubblesort.bubble_sort_spec s) => [ts /=].
 have szs : size s = k.+1 by rewrite size_map size_tuple.
 set bs' := (swap _ _ _).
 rewrite (surjective_pairing bs') => /andP [allb sorted'].
@@ -914,7 +914,7 @@ split.
     rewrite size_map size_tuple in ltjs.
     by rewrite (nth_map ord0) ?ltn_ord ?size_tuple. 
   elim=> [//=|a l IH /= [/andP []]].
-  rewrite /bubblesort_not_uniq.is_bubble (surjective_pairing a) /= szs =>  
+  rewrite /bubblesort.is_bubble (surjective_pairing a) /= szs =>  
             /andP [/andP [le1m le2m] isba] swapl _.
   rewrite -(inj_eq val_inj) !(@tnth_nth _ _ (inord 0)) /= !inordK //=. 
   have -> : val (nth (inord 0) t a.2) <= val (nth (inord 0) t a.1) = 

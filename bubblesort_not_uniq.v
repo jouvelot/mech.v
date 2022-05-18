@@ -48,8 +48,8 @@ Proof.
 elim: n ltmn1 => [|n IH ltmn2]; first by rewrite ltnS leqn0 => /eqP ->; exists 0; rewrite big_nat1.
 rewrite // (bigD1_seq n.+1) ?iota_uniq ?mem_iota //=; 
   last by rewrite -ltnS ltmn2 subnKC ?(ltnW ltmn2) ?ltnSn.
-have [] := boolP (m < n.+1) => [ltmn1|]. 
-- move: (IH ltmn1) => [ix [mx ltx]].  
+have [ltmn1|] := boolP (m < n.+1).
+- have [ix [mx ltx]] := IH ltmn1.
   case: leqP => leF1; last by exists n.+1; rewrite ltnSn.
   by exists ix; rewrite bigmaxD1r mx; split=> //; last by rewrite (leq_trans ltx).
 - rewrite -ltnNge ltnS => ltnm. 
@@ -66,7 +66,7 @@ Proof.
 apply/(nthP 0).
 move: (@ex_bigmax_index 0 n (nth 0 s) (ltn0Sn n)) => [ix [mx lx]]. 
 rewrite -ltnS in lx.
-have [] := boolP (ix < size s) => [ltxs|].
+have [ltxs|] := boolP (ix < size s).
 - exists ix; first by rewrite size_take; case: ifP.
   by rewrite nth_take ?mx.
 - rewrite -leqNgt => lesx.
@@ -89,7 +89,7 @@ Lemma bigmax_nth_take m n s (ltmn1 : m < n.+1) (ltns : n < size s) :
 Proof.
 have sztk: size (take n.+1 s) = n.+1. 
   rewrite size_take.
-  have [] := boolP (n.+1 < size s) => [//|nen1s].
+  have [//|nen1s] := boolP (n.+1 < size s).
   by have/eqP eqzn1 : size s == n.+1 by rewrite eqn_leq ltns leqNgt nen1s.
 rewrite -[in LHS](cat_take_drop n.+1 s) [LHS](@big_cat_nat _ _ _ n.+1) 1?(@leq_trans n m) //=. 
 rewrite (@big_geq _ _ _ n.+1) // maxn0 !big_nat -{1 2}sztk.
@@ -172,14 +172,14 @@ Proof.
 rewrite uniq_perm ?iota_uniq // ?uniq_transposed_iota // => x. 
 apply/(nthP 0)/(nthP 0); rewrite ?size_iota ?size_transposed.
 - move=> [i ltit <-].
-  have [] := boolP (~~ (i == i1) && ~~ (i == i2)) => [/andP [ne1 ne2]|/nandP].
+  have [/andP [ne1 ne2]|/nandP] := boolP (~~ (i == i1) && ~~ (i == i2)).
   - by exists i => //;  rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeD.
   - rewrite !negbK; move=> [/eqP ->|/eqP ->]. 
     - by exists i2 => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeL.
     - by exists i1 => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeR.
 - move=> [i ltit].
   rewrite nth_iota ?add0n // => <-.
-  have [] := boolP (~~ (i == i1) && ~~ (i == i2)) => [/andP [ne1 ne2]|/nandP].
+  have [/andP [ne1 ne2]|/nandP] := boolP (~~ (i == i1) && ~~ (i == i2)).
   - by exists i => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeD. 
   - rewrite !negbK; move=> [/eqP ->|/eqP ->]. 
     - by exists i2 => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeR.
@@ -289,7 +289,8 @@ Notation perm_eq_take_aperm := T.perm_eq_take_aperm.
 Notation max_aperm := T.max_aperm.
 
 (** Bubble Sort builds upon transpositions (to be shown later as being out-of-order "bubbles"),
-    here on a prefix of `s`, from indices `0` to `n` (included) in `s`. *)
+    here on a prefix of `s`, from indices `0` to `n` (included) in `s`. This version keeps
+    identity transpositions; a strict version is provided later on. *)
 
 Section Algorithm. 
 
@@ -310,14 +311,14 @@ Definition is_bubble s t : bool :=
   (i1 < size s) && (i2 < size s) &&
     ((i1 == i2) || (i1 < i2) && (nth 0 s i2 <= nth 0 s i1)).
 
-Fixpoint swap s (ts : seq transposition) : bool * seq nat :=
+Fixpoint swap isb s (ts : seq transposition) : bool * seq nat :=
   match ts with
   | [::] => (true, s)
-  | t :: ts' => let bs' := swap (aperm s t) ts' in
-             (is_bubble s t && bs'.1, bs'.2)
+  | t :: ts' => let bs' := swap isb (aperm s t) ts' in
+             (isb s t && bs'.1, bs'.2)
   end.
 
-Definition bubble_sort s : seq nat := (swap s (transpositions s (size s).-1)).2.
+Definition bubble_sort s : seq nat := (swap is_bubble s (transpositions s (size s).-1)).2.
 
 End Algorithm.
 
@@ -325,13 +326,15 @@ End Algorithm.
 
 Section Bubbles.
 
+Notation swap := (swap is_bubble).
+
 Lemma bubbles_in_swap : forall n s (ltns : n < size s), (swap s (transpositions s n)).1.
 Proof.
 elim=> [//=|n IH s ltn1s /=]. 
 apply/andP; split; last by rewrite IH // ?size_aperm // -?lt0n ltnW.
 set mx := (\max_(_ <= i < _) _).
 have lt0s : 0 < size s by rewrite (leq_ltn_trans (leq0n n.+1)).
-have [] := boolP (index mx s == n.+1) => [/eqP eqin1 //=|nein1].
+have [/eqP eqin1 //=|nein1] := boolP (index mx s == n.+1).
 - move: (@bigmax_nth_index_leq n.+1 s lt0s ltn1s).
   rewrite leq_eqVlt => /orP [eqixn1|ltxn1]; first by rewrite eqin1 !ltn1s. 
   by rewrite ltn1s !andbT (@ltn_trans n.+1). 
@@ -345,6 +348,8 @@ End Bubbles.
 (** Proof that the `n`-prefix of a sequence `s` swapped with `transpositions s n` is sorted. *)
 
 Section Sorted.
+
+Notation swap := (swap is_bubble).
 
 Lemma size_swap ts s : size (swap s ts).2 = size s. 
 Proof. by elim: ts s => [//=|t ts IH s /=]; rewrite IH size_aperm. Qed.
@@ -396,7 +401,7 @@ have lt0s : 0 < size s by rewrite (@ltn_trans n.+1).
 have [] := boolP (j <= n) => lejn; first by rewrite IH // // ?size_aperm (@ltn_trans n.+1).
 have/eqP -> : j == n.+1 by rewrite eqn_leq lejn1 (ltnNge n j) lejn. 
 set ix := (index _ _). 
-have [] := boolP (ix == n.+1) => [/eqP eqixn1|neixn1].
+have [/eqP eqixn1|neixn1] := boolP (ix == n.+1).
 - by rewrite eqixn1 aperm_id swap_id // -{1}eqixn1 nth_index // ?bigmax_nth_in // max_swap. 
 - rewrite swap_id ?nth_aperm ?bigmax_nth_in -?max_swap ?size_aperm // (@max_aperm _ ix) //. 
   move: (bigmax_nth_index_leq lt0s ltn1s).
@@ -407,7 +412,7 @@ Lemma swap_sorted n s (ltns : n < size s) :
   let s' := (swap s (transpositions s n)).2 in
   forall j, j < n -> nth 0 s' j <= nth 0 s' j.+1.
 Proof.  
-move=> /= j ltjn.
+move=> /= j ltjn. 
 by rewrite !max_swaps ?(@ltnW j n) ?[X in _ <= X](@big_cat_nat _ _ _ j.+1) //= ?maxnE ?leq_addr.
 Qed.
 
@@ -417,36 +422,128 @@ End Sorted.
 
 Section Specification.
 
+Notation swap := (swap is_bubble).
+
 Variable (s : seq nat).
 
 Lemma bubble_sorted : sorted leq (bubble_sort s).
 Proof.
-have [] := boolP (s == [::]) => [/eqP -> //=|].
+have [/eqP -> //=|] := boolP (s == [::]).
 rewrite -size_eq0 -lt0n => lt0s.
 apply: (@path_sorted _ leq 0).
 apply/(pathP 0) => i ltiz.
-have [] := boolP (i == 0) => [/eqP -> //=|nei0]. 
+have [/eqP -> //=|nei0] := boolP (i == 0). 
 rewrite -lt0n in nei0.  
 rewrite size_swap in ltiz.
 have lti1s1 : i.-1 < (size s).-1 by rewrite (@leq_trans i) ?ltn_predL // -ltnS prednK. 
 by rewrite -(@prednK i) // -nth_behead swap_sorted // ltn_predL.
 Qed.
 
-Theorem bubble_sort_spec :
-  {ts : seq transposition |
-    let: (all_bubbles, s') := swap s ts in 
-    all_bubbles && sorted leq s'}.
+Lemma bubble_sort_spec :
+  {ts : seq transposition | let: (bs, s') := swap s ts in bs && sorted leq s'}.
 Proof.
-have [] := boolP (s == [::]) => [/eqP -> |]; first by exists [::].
+have [/eqP -> |] := boolP (s == [::]); first by exists [::].
 rewrite -size_eq0 -lt0n => lt0s.
 exists (transpositions s (size s).-1) => //=.  
-set bs' := (swap _ _). 
-by rewrite (surjective_pairing bs') bubbles_in_swap ?ltn_predL ?bubble_sorted. 
+by rewrite [swap _ _]surjective_pairing bubbles_in_swap ?ltn_predL ?bubble_sorted. 
 Qed.
 
 End Specification.
 
+(** Strict version of the specification, without identity transpositions. *)
+
+Section StrictSpecification.
+
+Definition is_strict_bubble s t : bool :=
+  let: (i1, i2) := t in 
+  (i1 < size s) && (i2 < size s) &&
+    (i1 < i2) && (nth 0 s i2 <= nth 0 s i1).
+
+Fixpoint strict_transpositions s n : seq transposition :=
+  match n with
+  | 0 => [::]
+  | n'.+1 => let max := \max_(O <= i < n.+1) nth 0 s i in 
+            let t := (index max s, n) in 
+            let ts := strict_transpositions (aperm s t) n'  in
+            if index max s == n then ts else t :: ts
+  end.
+
+Lemma eq_swap n s : 
+  n < size s -> 
+  swap is_bubble s (transpositions s n) = swap is_strict_bubble s (strict_transpositions s n).
+Proof. 
+elim: n s => [s lt0s //=|n IH s ltn1s /=].
+case: ifP => [/eqP ->|neix].
+- rewrite !T.aperm_id orTb IH; last by exact: (@ltn_trans n.+1). 
+  by rewrite ltn1s !andbT -surjective_pairing.
+- rewrite !orFb !ltn1s !andbT !IH /= ?T.size_aperm.
+  have -> // : index (\max_(0 <= i < n.+2) nth 0 s i) s < n.+1.
+    move: (@bigmax_nth_index_leq n.+1 s (ltn_trans (ltn0Sn n) ltn1s) ltn1s).
+    by rewrite leq_eqVlt neix orFb.
+  rewrite ltn1s !andbT !andTb //.
+  by rewrite (@ltn_trans n.+1).
+Qed.
+
+Lemma strict_bubble_sort_spec s :
+  {ts : seq transposition | let: (bs, s') := swap is_strict_bubble s ts in bs && sorted leq s'}.
+Proof.
+have [/eqP -> |] := boolP (s == [::]); first by exists [::].
+rewrite -size_eq0 -lt0n => lt0s.
+exists (strict_transpositions s (size s).-1) => //=.  
+rewrite -eq_swap ?ltn_predL //. 
+by rewrite [swap _ _ _]surjective_pairing bubbles_in_swap ?bubble_sorted // ltn_predL.
+Qed.
+
+End StrictSpecification.
+
 End BubbleSort.
 
-Check bubble_sort_spec.
-Print Assumptions bubble_sort_spec.
+(** Utility lemmas. *)
+
+Lemma bubble_equiv s t :
+  is_bubble s t <-> let: (i1, i2) := t in 
+                  (i1 < size s) && (i2 < size s) && ((i1 <= i2) && (nth 0 s i2 <= nth 0 s i1)).
+Proof.
+rewrite /is_bubble (surjective_pairing t).
+split=> [/andP [/andP [-> ->]] /orP [/eqP -> //|/andP [lt12 ->]]|
+        /andP [/andP [-> ->]] /andP [le12 ->]].
+- - by rewrite !leqnn.
+  - by rewrite ltnW.
+- rewrite leq_eqVlt in le12.
+  by rewrite !andbT le12.
+Qed.
+
+Lemma nth_swap_ltn n i : forall ts s (ltnth : forall i, i < size s -> nth 0 s i < n.+1),
+  nth 0 (swap is_bubble s ts).2 i < n.+1.
+Proof.
+elim=> [s ltnth //=|t ts IH s ltnth]. 
+- have [] := boolP (i < size s) => ltis; first by rewrite ltnth.
+  by rewrite nth_default // leqNgt.
+- have altnth : forall i : nat, i < size (T.aperm s t) -> nth 0 (T.aperm s t) i < n.+1.
+    move=> j ltjs.
+    rewrite size_tuple in ltjs.
+    rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n //.
+    have [] := boolP ((T.transpose t j) < size s) => lttjs; first by rewrite ltnth.
+    by rewrite nth_default // leqNgt.
+  have [/eqP eqi0 //=|] := boolP (i == 0); first by rewrite IH.
+  rewrite -lt0n => /prednK eqi11.
+  by rewrite -eqi11 /= eqi11 IH.
+Qed.
+
+Lemma bubbles_ltn : forall ts (s : seq nat) (allbb : (swap is_bubble s ts).1),
+    forall i, i < size ts -> (nth (0, 0) ts i).1 < size s /\ (nth (0, 0) ts i).2 < size s.
+Proof.
+elim=> [//|t ts IH s /= /andP [bb allbb] i ltis1].
+rewrite (surjective_pairing t) in bb.
+move: (bb) => /andP [/andP [lt1s lt2s]] _.
+have [/eqP -> /=|] := boolP (i == 0); first by rewrite lt1s lt2s.
+rewrite -lt0n => lt0i. 
+move: (lt0i) => /prednK <- /=.
+move: (IH (T.aperm s t) allbb i.-1).
+rewrite size_tuple.
+apply.
+by rewrite (@leq_trans i) // ltn_predL.
+Qed.
+
+Check strict_bubble_sort_spec.
+Print Assumptions strict_bubble_sort_spec.

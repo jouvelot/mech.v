@@ -15,7 +15,6 @@
 From Coq Require Import Unicode.Utf8.
 From mathcomp Require Import all_ssreflect.
 From mathcomp.fingroup Require Import perm.
-From Coq Require Import ssrsearch.
 
 From vcg Require Import lib labelling mech.
 

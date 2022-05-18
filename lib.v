@@ -16,6 +16,8 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+From vcg Require Import bubblesort_not_uniq.
+
 (** Misc. *)
 
 Section Misc.
@@ -784,40 +786,270 @@ Lemma it_aperm_uniq  :
   uniq t -> uniq (aperm t itperm).
 Proof. by move=> ut; rewrite apermE permE tuple_tperm_uniq. Qed.
 
+Lemma tuple_tperm_id (eqi1i2 : i1 = i2) :t = tuple_tperm  t.
+Proof.
+apply: eq_from_tnth => i.
+by rewrite tnth_map eqi1i2 tperm1 perm1 tnth_ord_tuple. 
+Qed.
+
 End Transposition.
 
-Section BubbleSort.
+Section TupleBubbleSort.
 
-Import Order.Theory.
+Variable (k m : nat) .
 
-Local Open Scope order_scope.
+Definition tuple_up_sorted_tuple (t : k.+1.-tuple 'I_m.+1) :=
+  forall (s1 s2 : 'I_k.+1), s1 <= s2 -> tnth t s1 <= tnth t s2.
 
-Variable (k : nat) (T : finPOrderType tt).
+Definition tuple_is_bubble (t : k.+1.-tuple 'I_m.+1) (i1i2 : 'I_k.+1 * 'I_k.+1) :=
+  let: (i1, i2) := i1i2 in 
+  ((i1 == i2) || (i1 < i2) && (tnth t i2 <= tnth t i1)).
 
-Definition up_sorted_tuple (t : k.+1.-tuple T) :=
-  forall (s1 s2 : 'I_k.+1), (s1 < s2)%N ->  (tnth t s1 < tnth t s2)%O.
+Fixpoint tswap (t : k.+1.-tuple 'I_m.+1) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) :=
+  match i1i2s with
+  | [::] => (true, t)
+  | i1i2 :: i1i2s' => let bt' := 
+                      tswap (aperm t (itperm [finType of 'I_m.+1] i1i2.1 i1i2.2)) i1i2s' in
+             (tuple_is_bubble t i1i2 && bt'.1, bt'.2)
+  end.
 
-Definition is_bubble (t : k.+1.-tuple T) (i1i2 : 'I_k.+1 * 'I_k.+1) :=
-    (i1i2.1 < i1i2.2)%N && (tnth t i1i2.2 < tnth t i1i2.1)%O.
+Lemma tuple_eq_aperms (t : k.+1.-tuple 'I_m.+1) i1 i2 :
+  map val (aperm t (@itperm _ _ i1 i2)) = T.aperm (map val t) (val i1, val i2).
+Proof.
+apply: (@eq_from_nth _ 0) => [|i ltik1]; first by rewrite !size_map size_iota !size_tuple. 
+set t' := (aperm _ _).
+have eqszt' : size t' = k.+1 by rewrite /t' apermE permE !size_tuple. 
+rewrite size_map eqszt' in ltik1. 
+rewrite /t' apermE permE !(nth_map ord0) ?eqszsz' ?size_tuple -?enumT ?size_enum_ord //.
+rewrite (tnth_nth ord0) /=. 
+have [] := boolP ((i != i1) && (i != i2)) => [/andP [ne1 ne2]|ne12].
+- rewrite T.nth_aperm_id // ?size_map ?size_tuple //=. 
+  rewrite tpermD // -?(inj_eq val_inj) // 1?eq_sym // ?(tnth_nth ord0) //= nth_enum_ord //=.
+  by rewrite (nth_map ord0) ?size_tuple.
+- rewrite /T.aperm (nth_map 0) ?size_map ?size_iota size_tuple // nth_iota // add0n /=.
+  move: ne12 => /nandP [].
+  - rewrite negbK => /eqP ->.
+    by rewrite T.transposeL nth_ord_enum tpermL (nth_map ord0) ?size_tuple ?ltn_ord.
+  - rewrite negbK => /eqP ->.
+    by rewrite T.transposeR nth_ord_enum tpermR (nth_map ord0) ?size_tuple ?ltn_ord.
+Qed.
 
-(* bubble_swap t i1i2s = (all pairs in i1i2s satisfy bubble_swap, bubble-swapped t) *)
+Definition val_transpositions (ts : seq ('I_k.+1 * 'I_k.+1)) :=
+  [seq (val t.1, val t.2) | t <- ts].
+Definition inord_transpositions (ts : seq (nat * nat)) :=
+  [seq (@inord k t.1, @inord k t.2) | t <- ts].
 
-Definition bubbles_swap (t : k.+1.-tuple T) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) :=
+Lemma inord_transpositionsK s ts (allb : (swap is_bubble s ts).1) (eqsz : size s = k.+1) : 
+  val_transpositions (inord_transpositions ts) = ts.
+Proof.
+apply: (@eq_from_nth _ (0, 0)) => [|b ltbs]; first by rewrite !size_map.
+rewrite !size_map in ltbs.
+rewrite /val_transpositions -map_comp (nth_map (0, 0)) //=. 
+rewrite [RHS]surjective_pairing !inordK //.
+move: (bubbles_ltn allb ltbs) => []; rewrite eqsz //.
+by move: (bubbles_ltn allb ltbs) => []; rewrite eqsz.
+Qed.
+
+Lemma tuple_eq_all_bubbles (t : k.+1.-tuple 'I_m.+1) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) : 
+  let bt' := tswap t i1i2s in
+  let bs' := swap is_bubble (map val t) (val_transpositions i1i2s) in
+  bt'.1 = bs'.1.
+Proof.  
+elim: i1i2s t=> [t //=|i1i2 i1i2s /= IH t /=]. 
+set t' := (aperm _ _).
+have eqszt' : size t' = k.+1 by rewrite /t' apermE permE !size_tuple. 
+rewrite IH size_map size_tuple /tuple_is_bubble (surjective_pairing i1i2) /=.
+rewrite !(tnth_nth ord0) !(nth_map ord0) ?size_tuple ?lt1m1 ?lt2m1 // !ltn_ord !andTb.
+by rewrite tuple_eq_aperms.
+Qed.
+
+Lemma tuple_eq_swap_sorted (t : k.+1.-tuple 'I_m.+1) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) : 
+  let bt' := tswap t i1i2s in
+  let bs' := swap is_bubble (map val t) (val_transpositions i1i2s) in
+  bt'.2 = [tuple (inord (nth 0 bs'.2 i)) | i < k.+1].
+Proof.  
+elim: i1i2s t => [t //=|i1i2 i1i2s /= IH t /=]. 
+- apply/val_inj => /=.
+  apply: (@eq_from_nth _ ord0) => [|i ltit /=]; first by rewrite size_map size_enum_ord size_tuple.
+  rewrite size_tuple in ltit.
+  rewrite (nth_map ord0) ?size_enum_ord //.
+  apply: val_inj => /=.
+  by rewrite inordK (nth_map ord0) ?nth_enum_ord ?size_tuple.
+- set t' := (aperm _ _).
+  have eqszt' : size t' = k.+1 by rewrite /t' apermE permE !size_tuple.  
+  apply: eq_from_tnth => j.
+  rewrite IH !tnth_map.
+  apply: val_inj => /=.    
+  have swpltn: nth 0 (swap is_bubble (map val t') (val_transpositions i1i2s)).2 j < m.+1.
+    apply: nth_swap_ltn => i.
+    rewrite size_map eqszt' => ltin1. 
+    by rewrite (nth_map ord0) ?size_tuple // ?ltn_ord.
+  by rewrite !inordK !tnth_ord_tuple -?tuple_eq_aperms.
+Qed.    
+
+Lemma tuple_bubble_sort_spec (t : k.+1.-tuple 'I_m.+1) :
+  exists (i1i2s : seq ('I_k.+1 * 'I_k.+1)),
+    let xo := tswap t i1i2s in
+    xo.1 /\ tuple_up_sorted_tuple xo.2. 
+Proof.
+pose s := map val t.
+move: (bubblesort_not_uniq.bubble_sort_spec s) => [ts /=].
+have szs : size s = k.+1 by rewrite size_map size_tuple.
+set bs' := (swap _ _ _).
+rewrite (surjective_pairing bs') => /andP [allb sorted'].
+exists (map (fun t => (inord t.1, inord t.2)) ts).
+set ots := (inord_transpositions ts). 
+split.
+-  suff: forall ts, (swap is_bubble s ts).1 /\ (swap is_bubble s ts).2 = map val (tswap t ots).2 -> 
+               (tswap t (inord_transpositions ts)).1.
+    apply.
+    rewrite allb; split=> //.  
+    apply: (@eq_from_nth _ 0) => [|i ltim1]; first by rewrite size_swap !size_map !size_tuple.
+    rewrite size_swap size_map size_tuple in ltim1.
+    rewrite tuple_eq_swap_sorted !(nth_map ord0) /= ?inordK 
+            ?size_map -?enumT ?size_enum_ord ?nth_swap_ltn //.
+    congr (nth _ (swap _ _ _).2 _); first by rewrite (inord_transpositionsK allb).
+    rewrite nth_enum_ord // nth_swap_ltn //. 
+    move=> j ltjs.
+    rewrite size_map size_tuple in ltjs.
+    by rewrite (nth_map ord0) ?ltn_ord ?size_tuple. 
+  elim=> [//=|a l IH /= [/andP []]].
+  rewrite /bubblesort_not_uniq.is_bubble (surjective_pairing a) /= szs =>  
+            /andP [/andP [le1m le2m] isba] swapl _.
+  rewrite -(inj_eq val_inj) !(@tnth_nth _ _ (inord 0)) /= !inordK //=. 
+  have -> : val (nth (inord 0) t a.2) <= val (nth (inord 0) t a.1) = 
+             ((nth 0 s a.2) <= (nth 0 s a.1)). 
+    rewrite !(nth_map ord0) /= ?size_tuple //. 
+    by have -> : @inord m 0 = ord0 by apply: val_inj => /=; rewrite inordK.
+  rewrite isba andTb tuple_eq_all_bubbles.
+  by rewrite tuple_eq_aperms /= !inordK // (inord_transpositionsK swapl) // size_tuple szs.
+- rewrite /tuple_up_sorted_tuple => s1 s2 lt12.
+  rewrite !(tnth_nth ord0) tuple_eq_swap_sorted !(nth_map ord0) 
+          -?enumT ?size_enum_ord ?ltn_ord //.
+  have ltns j : nth 0 (swap is_bubble s ts).2 j < m.+1.
+    rewrite nth_swap_ltn // => i ltis.
+    rewrite size_map size_tuple in ltis.
+    by rewrite (nth_map ord0) ?size_tuple ?ltn_ord.
+  rewrite !inordK ?nth_enum_ord -/s // (inord_transpositionsK allb) ?szs //.
+  rewrite sorted_leq_nth ?inE ?size_swap ?szs //.
+  by move=> n1 n2 n3; apply: (@leq_trans n1). 
+Qed.
+
+End TupleBubbleSort.
+
+Lemma tuple_uniqP k (T : eqType) (x0 : T) (t : k.-tuple T) : 
+  reflect (injective (tnth t)) (uniq t).
+Proof.
+apply: introP => [/uniqP u x y txty|].  
+- apply: val_inj => /=.
+  by move: (u x0 x y) txty; rewrite !(tnth_nth x0) !inE !size_tuple !ltn_ord => /(_ erefl erefl).
+- apply: contraNnot => tinj.
+  apply/(@uniqP _ x0) => x y. 
+  rewrite !inE !size_tuple => ltxk1 ltyk1 nxny.
+  have/eqP: Ordinal ltxk1 = Ordinal ltyk1 by apply: tinj; rewrite !(tnth_nth x0).
+  by rewrite -(inj_eq val_inj) /= => /eqP.
+Qed.
+
+Section UniqBubbleSort.
+
+Variable (k m : nat).
+
+Notation T := [finType of 'I_m.+1].
+
+Definition uniq_up_sorted_tuple (t : k.+1.-tuple T) :=
+  forall (s1 s2 : 'I_k.+1), s1 < s2 -> tnth t s1 < tnth t s2.
+
+Definition uniq_is_bubble (t : k.+1.-tuple T) (i1i2 : 'I_k.+1 * 'I_k.+1) :=
+  let: (i1, i2) := i1i2 in 
+  ((i1 == i2) || (i1 < i2) && (tnth t i2 < tnth t i1)).
+
+Local Fixpoint uswapb b (t : k.+1.-tuple 'I_m.+1) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) :=
+  match i1i2s with
+  | [::] => (b, t)
+  | i1i2 :: i1i2s' => let bt' := 
+                      uswapb b (aperm t (itperm T i1i2.1 i1i2.2)) i1i2s' in
+             (uniq_is_bubble t i1i2 && bt'.1, bt'.2)
+  end.
+
+Notation uswap' := (uswapb true).
+
+Lemma uniq_eq_is_bubbles (t : k.+1.-tuple T)  (i1i2 : 'I_k.+1 * 'I_k.+1) :
+  uniq t -> uniq_is_bubble t i1i2 = tuple_is_bubble t i1i2.
+Proof.
+move=> u.
+rewrite /uniq_is_bubble /tuple_is_bubble /= (surjective_pairing i1i2).
+set i1 := i1i2.1; set i2 := i1i2.2.
+have [] := boolP (i1 == i2) => [eq12|ne12]; first by rewrite orTb.
+rewrite !orFb (leq_eqVlt (tnth t i2)).
+have -> : (val (tnth t i2) == val (tnth t i1)) = false.
+  move: ne12.
+  apply: contra_neqF => /= /eqP eq12.
+  move/(tuple_uniqP ord0)/(_ i1 i2): u.
+  have/eqP -> : tnth t i1 == tnth t i2 by rewrite -(inj_eq val_inj) /= eq12.
+  by move=> /(_ erefl).
+by rewrite orFb.
+Qed.
+
+Lemma uniq_eq_all_bubbles i1i2s (t : k.+1.-tuple 'I_m.+1) : 
+  uniq t -> (uswap' t i1i2s).1 = (tswap t i1i2s).1.
+Proof. 
+elim: i1i2s t => [//=|i1i2 i1i2s IH t u /=].
+by rewrite IH ?it_aperm_uniq // uniq_eq_is_bubbles.
+Qed.
+
+Lemma uniq_swap_sorted i1i2s (t : k.+1.-tuple 'I_m.+1) (u : uniq t) :
+  (tswap t i1i2s).1 -> tuple_up_sorted_tuple (tswap t i1i2s).2 -> 
+  uniq_up_sorted_tuple (uswap' t i1i2s).2.
+Proof.
+move=> tswap1 tswap2 => s1 s2 lt12.
+elim: i1i2s t u tswap1 tswap2 => [//= t u _|i1i2 i1i2s IH /= t u /andP [_ ?] tswap2]. 
+- rewrite /tuple_up_sorted_tuple => /(_ s1 s2 (ltnW lt12)).
+  rewrite leq_eqVlt => /orP [/eqP eq12|//].
+  move: u => /(tuple_uniqP ord0)/(_ s1 s2). 
+  have/eqP -> : tnth t s1 == tnth t s2 by rewrite -(inj_eq val_inj) /= eq12.
+  by move=> /(_ erefl)/eqP;  rewrite -(inj_eq val_inj) /= ltn_eqF.
+- by rewrite IH ?it_aperm_uniq.
+Qed.
+
+Definition uswap (t : k.+1.-tuple 'I_m.+1) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) :=
   foldr (fun i1i2 xo =>
            let bubble_swapped := xo.1 in
            let sorted_tuple := xo.2 in
-           (is_bubble sorted_tuple i1i2 && bubble_swapped,
-            aperm sorted_tuple (itperm T i1i2.1 i1i2.2)))
+           (uniq_is_bubble sorted_tuple i1i2 && bubble_swapped,
+             aperm sorted_tuple (itperm _ i1i2.1 i1i2.2)))
         (true, t)
         i1i2s.
 
-Lemma bubble_uniq (t : k.+1.-tuple T) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) :
-  uniq t -> uniq (bubbles_swap t i1i2s).2.
-Proof. by move=> ut; elim: i1i2s => [//|? ?]; exact: it_aperm_uniq. Qed.
+Lemma bubbles_reswap (t : k.+1.-tuple T) (xs : seq ('I_k.+1 * 'I_k.+1)) :
+  uswap' t xs = uswap t (rev xs).
+Proof.
+rewrite /uswap -foldl_rev revK.
+set f := (X in foldl X).
+suff/(_ true): forall b, uswapb b t xs = foldl f (b, t) xs.
+  by apply.
+elim: xs t => [//=|x xs IH t b /=].
+rewrite IH [RHS]surjective_pairing.
+congr (_, _).
+- case u: (uniq_is_bubble t x). 
+  - by rewrite andTb; congr (foldl _ _ _).1; rewrite /f u andTb.
+  - rewrite /f u !andFb -/f /= => {IH}.
+    have -> // : forall t', (foldl f (false, t') xs).1 = false.
+      by elim: xs => [//=|x' xs' IH /= t']; by rewrite /f /= andbF -/f IH.
+- case u: (uniq_is_bubble t x); first by congr (foldl _ _ _).2; rewrite /f u andTb.
+  rewrite /f u !andFb -/f /= => {IH}.
+  have -> //= : forall t' b', (foldl f (b', t') xs).2 = (foldl f (false, t') xs).2.
+    by elim: xs => [t' b' //=|x' xs' IH /= t' b']; last by rewrite /f /= !IH.
+Qed.
 
-Lemma notin_bubble (t : k.+1.-tuple T) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) 
+Lemma ububble_uniq (t : k.+1.-tuple 'I_m.+1) (ut : uniq t) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) : uniq (uswap t i1i2s).2.
+Proof. 
+elim: i1i2s t ut => [//|i1i2 i1i2s IH t ut /=]. 
+by rewrite it_aperm_uniq // IH.
+Qed.
+
+Lemma notin_ububble (t : k.+1.-tuple T) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) 
       (j : T) (nojin : j \notin t) :
-  j \notin (bubbles_swap t i1i2s).2.
+  j \notin (uswap t i1i2s).2.
 Proof.
 elim: i1i2s => [//=|i1i2 i1i2s /=]. 
 apply: contraNN.
@@ -826,112 +1058,17 @@ rewrite tnth_mktuple => ->.
 by apply/tnthP; exists (tperm i1i2.1 i1i2.2 s').
 Qed.
 
-Close Scope order_scope.
-
-End BubbleSort.
-
-Section Insert.
-
-Open Scope order_scope.
-
-Variable (T : finPOrderType tt).
-
-(* b is a list of bubbles (m, m.+1), each encoded as m. *)
-
-Fixpoint insert_up' x (t : seq T) (n : nat) b := 
-  match t with
-    | [::] => ([:: x], b)
-    | hd :: tl => if (x < hd)%O then
-                  (x :: hd :: tl, b)
-                else
-                  let t'b' := insert_up' x tl n.+1 (rcons b n) in
-                  (hd :: t'b'.1, t'b'.2)
-  end.
-
-Definition insert_up x (t : seq T) := @insert_up' x t 0 [::].
-
-Lemma size_insert m x (t : m.-tuple T) : size (insert_up x t).1 = m.+1.
+Lemma uniq_bubble_sort_spec (t : k.+1.-tuple T) (u : uniq t) :
+  exists (i1i2s : seq ('I_k.+1 * 'I_k.+1)),
+    let xo := uswap t i1i2s in
+    xo.1 /\ uniq_up_sorted_tuple xo.2. 
 Proof.
-suff: forall n b, size (insert_up' x t n b).1 = m.+1; first by apply. 
-move=> n b.
-case: t.  
-elim: m n b => [n b l /eqP sz /=|m IH n b]; first by rewrite (size0nil sz).
-case=> //= hd tl sztl.
-apply/eqP.
-case : (x < hd) => /=; first by rewrite eqSS. 
-by rewrite eqSS IH.
-Qed.
+move: (tuple_bubble_sort_spec t) => [i1i2s /= [tswap1 tswap2]]. 
+exists (rev i1i2s); split; first by rewrite -bubbles_reswap uniq_eq_all_bubbles. 
+rewrite -bubbles_reswap; exact: uniq_swap_sorted.
+Qed. 
 
-Lemma bound_bubbles m x (t : m.-tuple T) (i1 : nat) :
-    i1 \in (insert_up x t).2 -> i1 < m.
-Proof.
-case: t => t sz /= i1in.
-move: sz i1in => /eqP <-.
-suff: forall (t : seq T) n (b : seq nat),
-    (forall (i1 : nat), i1 \in b -> i1 < size t + n) -> i1 \in (insert_up' x t n b).2 -> i1 < size t + n;
-      first by move/(_ t 0 [::]); rewrite addn0; apply => i1'; rewrite in_nil. 
-elim=> [n b p /= /p //|a l IH n b p /=].
-case: (x < a)%O => [/= /p //=|].
-move: (@IH n.+1 (rcons b n)).
-have -> : size l + n.+1 = (size l).+1 + n.
-  by rewrite -addn1 -(addn1 (size l)) -[RHS]addnA (addnC 1%nat n).
-apply => i1'.
-rewrite mem_rcons in_cons => /orP [/eqP -> |].
-rewrite -{1}(add0n n) ltEnat/= ltn_add2r //.
-by move/p. 
-Qed.
-
-Fixpoint bubbles_swap' m (t : m.+1.-tuple T) (i1s : seq nat) :=
-  match i1s with
-  | [::] => t
-  | hd :: tl => let t' := bubbles_swap' t tl in
-              aperm t' (itperm T (inord hd) (inord hd.+1))
-end.
-
-Lemma bubble_insert_spec m (x : T) (t : m.+1.-tuple T) :
-  up_sorted_tuple t ->
-  exists i1i2s, up_sorted_tuple (bubbles_swap' [tuple of x :: t] i1i2s).
-Proof.
-move=> ut.
-exists (insert_up x t).2.
-Admitted.
-
-Fixpoint bb_insert_sort' (t : seq T) n b :=
-  match t with
-  | [::] => ([::], b)
-  | hd :: tl => let tl'b' := bb_insert_sort' tl n.+1 b in
-              insert_up' hd tl'b'.1 n tl'b'.2
-  end.
-
-Definition bb_insert_sort (t : seq T) := bb_insert_sort' t 0 [::].
-
-Close Scope order_scope.
-
-End Insert.
-
-Let lt1 m j (ltjm : j < m) : j.+1 < m.+1.
-Proof. by []. Qed.
-Definition bump1 m (x : 'I_m) := Ordinal (lt1 (ltn_ord x)).
-
-Lemma bubble_sort_spec m (T : finPOrderType tt) (t : m.+1.-tuple T) (u : uniq t) :
-  exists (i1i2s : seq ('I_m.+1 * 'I_m.+1)),
-    let xo := bubbles_swap t i1i2s in
-    xo.1 /\ up_sorted_tuple xo.2. 
-Proof.
-case: t u => s. 
-elim: m s => [s sz1 u1|n IH]. 
-- exists [::] => /=.
-  split=> //.
-  rewrite /up_sorted_tuple => s1 s2.
-  have/fintype1P [s0]: #|'I_1| == 1 by move/eqP: (card_ord 1).
-  move=> eqs0.
-  by rewrite (eqs0 s1) (eqs0 s2) ltnn.
-- case=> [//=|hd tl sz u].
-  have sztl: size tl == n.+1 by [].
-  have utl: uniq tl by move: u => /= /andP [].
-  move: (IH tl sztl utl) => [i1i2tl [swaptl sorttl]].
-  exists (map (fun i1 => (inord i1, inord i1.+1)) (bb_insert_sort (hd :: tl)).2) => /=.
-Admitted.
+End UniqBubbleSort.
 
 Section Equiv.
 
@@ -977,66 +1114,3 @@ Qed.
 End Equiv.
 
 End Sort.
-
-(** Should use order.v version (> 8.13). *)
-
-Module OrdinalOrder.
-
-Section OrdinalOrder.
-
-Variable (n : nat).
-
-Definition le (i1 i2 : 'I_n.+1) := i1 <= i2.
-Definition lt (i1 i2 : 'I_n.+1) := i1 < i2.
-
-Lemma le_refl : reflexive le.
-Proof. by rewrite /le. Qed.
-
-Lemma le_anti : antisymmetric le.
-Proof. move=> x y /= lexyx. apply: val_inj => /=. exact: anti_leq. Qed.
-
-Lemma le_trans : transitive le. 
-Proof. move=> x y z. rewrite /le /=. exact: leq_trans. Qed.
-
-Lemma ltNeq x y : lt x y = (y != x) && le x y.
-Proof. by rewrite /lt /le ltn_neqAle -(inj_eq val_inj) eq_sym. Qed.
-
-Lemma le_total x y : le x y || le y x. 
-Proof. exact: leq_total. Qed.
-
-Definition orderMixin := LeOrderMixin ltNeq (fun _ _ => erefl) (fun _ _ => erefl)
-                                      le_anti le_trans le_total.
-
-Notation A := 'I_n.+1.
-
-Lemma ord0bot (x : A) : le ord0 x.
-Proof. by []. Qed.
-
-Canonical porderType := POrderType tt A orderMixin.
-Canonical latticeType := LatticeType A orderMixin.
-Canonical bLatticeType := BLatticeType A (BottomMixin ord0bot).
-Canonical distrLatticeType := DistrLatticeType A orderMixin.
-Canonical bDistrLatticeType := [bDistrLatticeType of A].
-Canonical orderType := OrderType A orderMixin.
-Canonical finPOrderType := [finPOrderType of A].
-
-Lemma ltEnat (i1 i2 : A) : lt i1 i2 = (i1 < i2)%nat.
-Proof. by []. Qed.
-
-Lemma leEnat (i1 i2 : A) : le i1 i2 = (i1 <= i2)%nat.
-Proof. by []. Qed.
-
-(*
-
-Lemma minEnat : min = minn. 
-
-Lemma maxEnat : max = maxn. 
-
-*)
-
-Lemma botEnat : 0%O = 0%N :> nat. 
-Proof. by []. Qed.
-
-End OrdinalOrder.
-
-End OrdinalOrder.

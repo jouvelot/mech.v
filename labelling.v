@@ -106,6 +106,10 @@ apply: labelling_inj.
 exact: tlabelP.
 Qed.
 
+Lemma cancel_inv_map_idxa m (t : m.-tuple 'I_n)  :
+  map_tuple idxa (map_tuple (tnth tlabel) t) = t.
+Proof. apply: eq_from_tnth => j; by rewrite !tnth_map cancel_inv_idxa. Qed.
+
 Lemma labelling_spec_idxa j : tnth s' (idxa j) = tnth s j.
 Proof.
 move: labellingP.
@@ -130,19 +134,19 @@ Lemma labelling_in k (t : k.-tuple 'I_n) j :
   (idxa j \in t) = (j \in map_tuple (tnth tlabel) t). 
 Proof. by rewrite -(mem_map (labelling_inj tlabelP)) cancel_idxa. Qed.
 
-Lemma uniq_from_idxa k (o : k.-tuple 'I_n) (x0 : 'I_n) : 
-  uniq o -> uniq (map_tuple (tnth tlabel) o).
+Lemma uniq_from_idxa k (o : k.-tuple 'I_n) (ut : uniq o) :
+  uniq (map_tuple (tnth tlabel) o).
 Proof.
-move=> ouniq.
 rewrite -(map_inj_uniq idxa_inj) -map_comp.
-rewrite /comp /=.
-have -> : [seq idxa (tnth tlabel x) | x <- o] = o.
-  apply: (@eq_from_nth _ x0) => [|l ltln]; first by rewrite size_map.
-  rewrite size_map size_tuple in ltln.
-  rewrite (@nth_map _ x0); last by rewrite size_tuple.
-  by rewrite cancel_inv_idxa.
-exact: ouniq.
+have/eqP: map_tuple (idxa \o tnth tlabel) o = o.
+  apply: (@eq_from_tnth) => j.
+  by rewrite tnth_map /= cancel_inv_idxa.
+by rewrite -(inj_eq val_inj) => /= /eqP ->.
 Qed.
+
+Lemma uniq_to_idxa k (o : k.-tuple 'I_n) : 
+  uniq o -> uniq (map_tuple idxa o).
+Proof. by move=> ouniq; rewrite map_inj_uniq //= => i1 i2 /idxa_inj. Qed.
 
 Definition labelling_id : labelling := ord_tuple n.
 

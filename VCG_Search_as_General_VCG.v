@@ -332,7 +332,7 @@ Lemma le_ioStar_io (o : O) (sorted_o : sorted_o o) :
 Proof.
 case.
 elim=> [lt0k //=|s IH lts1k];
-        first by rewrite /idxa cancel_inv_idxa /slot_as_agent.
+  first by rewrite /idxa cancel_inv_idxa /slot_as_agent.
 have lt_s_k: s < k by rewrite (@ltn_trans (S s)). 
 set s' := Ordinal lt_s_k; set s'1 := Ordinal lts1k.
 have: idxa bs (tnth o s') < idxa bs (tnth o s'1). 
@@ -350,14 +350,14 @@ Lemma leq_bid (i1 i2 : A) :
 Proof.
 move=> lti1I2.
 rewrite -(labelling_spec_idxa geq_bid) -[X in _ <= val X](labelling_spec_idxa geq_bid).
-rewrite (tnth_nth (inord 0)) [X in _ <= val X](tnth_nth (inord 0)).
+rewrite (tnth_nth ord0) [X in _ <= val X](tnth_nth ord0).
 apply: (sorted_leq_nth (@transitive_geq_bid p.-1)) => //.
 exact: reflexive_geq_bid.
 apply/(@sorted_bids_sorted p' _).
 rewrite /tsort.
 apply/sorted_bids_sorted.
 apply: sort_sorted.
-exact: total_geq_bid.
+exact: total_geq_bid. 
 rewrite inE size_sort size_tuple ltn_ord //.
 by rewrite inE size_sort size_tuple ltn_ord.
 Qed.
@@ -376,70 +376,90 @@ rewrite /oStar /= /t_oStar tnth_map tnth_ord_tuple.
 by rewrite leq_bid // le_ioStar_io.
 Qed.
 
-Definition idxOrder := IdxOrder.finPOrderType geq_bid bs.
+Definition idxas o := Outcome (uniq_to_idxa geq_bid bs (ouniq o)).
 
-Lemma le_transposed_welfare (i1i2 : 'I_k * 'I_k) (o : O) 
-      (bbswap : @is_bubble _ idxOrder o i1i2) :
-  let ts_o := Outcome (it_aperm_uniq i1i2.1 i1i2.2 (ouniq o)) in
-  welfare o <= welfare ts_o.
+Lemma itperm_id o s : o = Outcome (it_aperm_uniq s s (ouniq o)).
+Proof. apply: val_inj => /=; rewrite apermE permE; exact: tuple_tperm_id. Qed.
+
+Lemma le_transposed_welfare (x : 'I_k * 'I_k) (o : O) :
+  uniq_is_bubble (idxas o) x ->
+  welfare o <= welfare (Outcome (it_aperm_uniq x.1 x.2 (ouniq o))).
 Proof.
-move: bbswap => /= /andP [lti1i2 ltt2t1].
-set s1 := i1i2.1; set s2 := i1i2.2.
-rewrite /welfare (bigD1 s2) 1?(bigD1 s1) //=; last by move/ltn_eqF/negbT: lti1i2.
-rewrite [X in _ <= X](bigD1 s2) ?[X in _ <= _ + X](bigD1 s1) //=;
-  last by move/ltn_eqF/negbT: lti1i2. 
-rewrite addnA [X in _ <= X]addnA.  
-rewrite leq_add //; last first.
-- apply: eq_leq.
+rewrite (surjective_pairing x) /= => /orP [/eqP -> /=|/andP [ltx1x2 ltt2t1]];
+  first by rewrite eq_leq // [in LHS](@itperm_id o x.2).
+rewrite /welfare (bigD1 x.2) 1?(bigD1 x.1) //=; last by move/ltn_eqF/negbT: ltx1x2.
+rewrite [X in _ <= X](bigD1 x.2) ?[X in _ <= _ + X](bigD1 x.1) //=;
+  last by move/ltn_eqF/negbT: ltx1x2. 
+rewrite addnA [X in _ <= X]addnA leq_add //; last first.
+- apply: eq_leq. 
   set F2 := (X in _ = \sum_(i < k | _) X i).
   rewrite (eq_bigr F2) // => i /andP [neis2 neis1].
   rewrite eq_sym in neis1; rewrite eq_sym in neis2.
   rewrite /F2 /bidding !ffunE /t_bidding/= apermE permE tnth_mktuple tpermD //.
   rewrite !mem_tnth /tuple_tperm memtE /=.
-  have ipi1i2: i = tperm s1 s2 i by rewrite tpermD.
-  rewrite ipi1i2 (@mem_map  _ _ (fun j => tnth o (tperm s1 s2 j))) ?mem_enum;
+  have ipx1x2: i = tperm x.1 x.2 i by rewrite tpermD.
+  rewrite ipx1x2 (@mem_map  _ _ (fun j => tnth o (tperm x.1 x.2 j))) ?mem_enum;
     last by move=> j s; move/o_injective/perm_inj.
   rewrite !tpermD // cancel_slot [in RHS]/slot_of.
   case: tnthP => p.
   - case: sig_eqW => s /=.
-    rewrite tnth_mktuple ipi1i2 => /o_injective /perm_inj <-.
+    rewrite tnth_mktuple ipx1x2 => /o_injective /perm_inj <-.
     by rewrite tpermD.
-  - have //=: ∃ s, tnth o i = tnth [tuple tnth o (tperm s1 s2 i) | i < k] s
+  - have //=: ∃ s, tnth o i = tnth [tuple tnth o (tperm x.1 x.2 i) | i < k] s
       by exists i; rewrite tnth_mktuple tpermD.
 - rewrite /bidding !ffunE /= /t_bidding.
   rewrite !mem_tnth !apermE permE !tnth_mktuple tpermR tpermL.
-  rewrite (@tperm_slot _ s1 s2 s1) (@tperm_slot _ s1 s2 s2).
+  rewrite (@tperm_slot _ x.1 x.2 x.1) (@tperm_slot _ x.1 x.2 x.2).
   rewrite tpermL tpermR /bid_in !cancel_slot.
-  set i1 := tnth o s1; set i2 := tnth o s2. 
+  set i1 := tnth o x.1; set i2 := tnth o x.2. 
+  rewrite !tnth_map in ltt2t1.
   have leb1b2: 'bid_i1 <= 'bid_i2 by rewrite leq_bid // ltnW.
-  have lec2c1: 'ctr_s2 <= 'ctr_s1 by move/ltnW/sorted_ctrs: lti1i2.
+  have lec2c1: 'ctr_x.2 <= 'ctr_x.1 by move/ltnW/sorted_ctrs: ltx1x2.
   rewrite [X in _ <= X]addnC.
   exact: leq_transpose.
 Qed.
 
+Notation uniq_from_idxa := (uniq_from_idxa geq_bid bs).
+
 Lemma le_welfare_o_oStar (o : O) : welfare o <= max_welfare.
 Proof.
-move: (@bubble_sort_spec _ idxOrder _ (ouniq o)) => [i1i2s] /= [x] sortedbo.
-have lt_w_tw: forall i1i2s o,
-    let xo := @bubbles_swap _ idxOrder (obidders o) i1i2s in
-    let obu := @bubble_uniq _ idxOrder _ i1i2s (ouniq o) in
-    xo.1 -> welfare o <= welfare (Outcome obu).
-  rewrite /welfare /=.
-  elim=> [o' _|i1i2 i1i2s' IH o' /= /andP [x12 x12s']].
-  - by apply: leq_sum => s _; rewrite !ffunE.
-  - set bo' := (@bubbles_swap _ idxOrder o' i1i2s').2.
-    set bo'_o := (Outcome (@bubble_uniq _ idxOrder _ i1i2s' (ouniq o'))).
-    move: (@le_transposed_welfare i1i2 bo'_o x12) => /=.
-    move: (IH o' x12s').
-    rewrite /welfare !alt_welfare /=.
-    exact: leq_trans.
-move: (lt_w_tw i1i2s o x).
-set bo := (X in _ <= welfare X) => ltwowbo.
-have/le_welfare_sorted_o_oStar : sorted_o bo.   
-  move=> s1 s2.
-  rewrite leq_eqVlt => /orP [/eqP/val_inj -> //| lt12]. 
-  exact: (ltnW (sortedbo s1 s2 lt12)).
-exact: leq_trans.
+suff {o}: forall xs o,
+    let xo := uswap (idxas o) xs in
+    let uxo := ububble_uniq (ouniq (idxas o)) xs in
+    xo.1 -> welfare o <= welfare (Outcome (uniq_from_idxa uxo)).
+  move: (uniq_bubble_sort_spec (ouniq (idxas o))) => [xs] [bx sortedxo] /(_ xs o bx).
+  set mo := (X in _ <= welfare X) => ltwo.
+  have/le_welfare_sorted_o_oStar : sorted_o mo.   
+    move=> s1 s2.
+    rewrite leq_eqVlt => /orP [/eqP/val_inj -> //| lt12]. 
+    move: (sortedxo s1 s2 lt12) => {sortedxo}.
+    by rewrite !tnth_map /idxa !cancel_inv_idxa => /ltnW.
+  exact: leq_trans. 
+elim=> [o _ //=|x xs IH o /= /andP [bi xoi]].
+- rewrite eq_leq //.
+  apply: eq_bigr => s _.
+  rewrite !ffunE !tnth_map /= !cancel_idxa. 
+  congr (t_bidding _ _ _).
+  apply: eq_from_tnth => s'.
+  by rewrite !tnth_map cancel_idxa.
+- pose uxoi := ububble_uniq (ouniq (idxas o)) xs.
+  pose ouxoi := Outcome (uniq_from_idxa uxoi).
+  move: (@le_transposed_welfare x ouxoi) => /=. 
+  rewrite !cancel_inv_map_idxa => /(_ bi) /=.
+  move: (IH o xoi) => le1 le2.
+  move: (leq_trans le1 le2) => {le1 le2}.  
+  set s1 := (X in _ <= X -> _); set s2 := (X in _ -> _ <= X).
+  have -> // : s1 = s2.
+    apply: eq_bigr => s _ /= {s1 s2}.
+    rewrite /bidding !ffunE /t_bidding /=.
+    congr (if _ then _ else _); first by rewrite !mem_tnth.
+    set t1 := (X in bid_in _ (tnth X _)); set t2 := (X in _ = bid_in _ (tnth X _) _).
+    have permC : t1 = t2.
+      rewrite /t1 /t2 !apermE !permE /=.
+      apply: eq_from_tnth => s'.
+      by rewrite !tnth_map tnth_ord_tuple.
+    congr (bid_in _ (tnth _ _)) => //.
+    by congr (slot_of (tnth _ _) _).
 Qed.
 
 End Welfare.
@@ -519,7 +539,7 @@ Definition welfare := OStar.welfare.
 
 Definition max_welfare := welfare bs oStar.
 
-Definition sorted_o := up_sorted_tuple.
+Definition sorted_o := uniq_up_sorted_tuple.
 
 Lemma eq_oStar_iota : OStar.oStar bs = oStar.
 Proof.
@@ -764,8 +784,6 @@ Definition ls : labelling := labelling_id.
 
 Notation "'lab_ j" := (tnth ls j) (at level 10).
 
-Definition ordOrder := OrdinalOrder.finPOrderType n'.
-
 (* Helper lemmas when i is not in an outcome. *)
 
 Section NotInOutcome.
@@ -862,7 +880,7 @@ Definition star_prefix (o oS : O) := forall s, tnth oS s <= tnth o s.
 
 Lemma le_welfare_sorted_o_oS (o oS : O)
       (noio : no_i_in o) (noioS : no_i_in oS)
-      (sortedo : @sorted_o _ ordOrder (obidders o))
+      (sortedo : sorted_o o)
       (pref : star_prefix o oS) :
   welfare_i o <= welfare_i oS.
 Proof.
@@ -873,44 +891,39 @@ rewrite !cancel_slot !ifT ?mem_tnth //.
 by rewrite leq_mul2r sorted_bs ?orbT.
 Qed.
 
-Lemma le_transposed_welfare_i (i1i2 : 'I_k * 'I_k) (o : O)
-      (noio : no_i_in o) 
-      (swapbs : @is_bubble _ ordOrder o i1i2) :
-  let ts_o := Outcome (it_aperm_uniq i1i2.1 i1i2.2 (ouniq o)) in
-  welfare_i o <= welfare_i ts_o.
+Lemma le_transposed_welfare_i (x : 'I_k * 'I_k) (o : O)
+      (noio : no_i_in o) :
+  uniq_is_bubble o x ->
+  welfare_i o <= welfare_i (Outcome (it_aperm_uniq x.1 x.2 (ouniq o))).
 Proof.
-move: swapbs => /= /andP [lti1i2 ltt2t1].
-set s1 := i1i2.1; set s2 := i1i2.2.
-rewrite /welfare_i (bigD1 s2) 1?(bigD1 s1) //=; last by move/ltn_eqF/negbT: lti1i2.
-rewrite [X in _ <= X](bigD1 s2) ?[X in _ <= _ + X](bigD1 s1) //=;
-  last by move/ltn_eqF/negbT: lti1i2.
+rewrite (surjective_pairing x) /= => /orP [/eqP -> /=|/andP [ltx1x2 ltt2t1]];
+  first by rewrite eq_leq //= [in LHS](@OStar.itperm_id o x.2).
+rewrite /welfare_i (bigD1 x.2) 1?(bigD1 x.1) //=; last by move/ltn_eqF/negbT: ltx1x2.
+rewrite [X in _ <= X](bigD1 x.2) ?[X in _ <= _ + X](bigD1 x.1) //=;
+  last by move/ltn_eqF/negbT: ltx1x2.
 rewrite addnA [X in _ <= X]addnA -sum_out_perm_i //.
 rewrite leq_add2r /bidding !ffunE /= /t_bidding_i /t_bidding.
 rewrite !mem_tnth !apermE permE !tnth_mktuple tpermR tpermL.
-rewrite (@tperm_slot _ s1 s2 s1) (@tperm_slot _ s1 s2 s2).
+rewrite (@tperm_slot _ x.1 x.2 x.1) (@tperm_slot _ x.1 x.2 x.2).
 rewrite tpermL tpermR /bid_in !cancel_slot.
-set i1 := tnth o s1; set i2 := tnth o s2.
+set i1 := tnth o x.1; set i2 := tnth o x.2.
 have leb1b2: 'bid_i1 <= 'bid_i2 by rewrite sorted_bs // ltnW.
-have lec2c1: 'ctr_s2 <= 'ctr_s1 by move/ltnW/sorted_ctrs: lti1i2.
-rewrite [X in _ <= X]addnC.
-by rewrite eq_sym no_i_tnth //= eq_sym no_i_tnth //= leq_transpose.
+have lec2c1: 'ctr_x.2 <= 'ctr_x.1 by move/ltnW/sorted_ctrs: ltx1x2.
+by rewrite [X in _ <= X]addnC eq_sym no_i_tnth //= eq_sym no_i_tnth //= leq_transpose.
 Qed.
 
-Lemma le_bubble_sort_welfare : forall i1i2s (o : O) (noio : no_i_in o),
-    let xo := @bubbles_swap _ ordOrder o i1i2s in
-    let obu := @bubble_uniq _ ordOrder _ i1i2s (ouniq o) in
-    xo.1 -> welfare_i o <= welfare_i (Outcome obu).
-Proof.
-rewrite /welfare_i /=.
-elim=> [o' _ _|i1i2 i1i2s' IH o' noio' /= /andP [x12 x12s']].
-- by apply: leq_sum => s _; rewrite !ffunE.
-- set bo' := (@bubbles_swap _ ordOrder o' i1i2s').2.
-  set bo'_o := Outcome (@bubble_uniq _ ordOrder (obidders o') i1i2s' (ouniq o')).
-  have noibo': no_i_in bo'_o by exact: (@notin_bubble _ ordOrder o' i1i2s' i). 
-  move: (@le_transposed_welfare_i i1i2 bo'_o noibo' x12) => /=.
-  move: (IH o' noio' x12s').
-  rewrite /welfare_i /= !alt_welfare_i /=.
-  exact: leq_trans.
+Lemma le_bubble_sort_welfare : forall xs (o : O) (noio : no_i_in o),
+    let xo := uswap o xs in
+    xo.1 -> welfare_i o <= welfare_i (Outcome (ububble_uniq (ouniq o) xs)).
+Proof. 
+rewrite /=. 
+elim=> [o _ _|x xs IH o noio /= /andP [isb x12s']];
+      first by apply: leq_sum => s _; rewrite !ffunE.
+pose xo := Outcome (ububble_uniq (ouniq o) xs).
+have noixo: no_i_in xo by exact: (@notin_ububble _ _ o xs i). 
+move: (IH o noio x12s') (le_transposed_welfare_i noixo isb).
+rewrite /welfare_i /= !alt_welfare_i /=.
+exact: leq_trans.
 Qed.
 
 End NotInOutcome.
@@ -1007,7 +1020,7 @@ Let oStar_id_i (s : slot) : tnth oStar_i s = slot_as_agent s.
 Proof. by rewrite tnth_mktuple widen_slot_as_agent. Qed.
 
 Let le_ioStar_io_i (o : O)
-    (sortedo : @sorted_o _ ordOrder (obidders o))
+    (sortedo : sorted_o o)
     (noio : no_i_in o) :
   star_prefix o oStar_i.
 Proof.
@@ -1031,7 +1044,7 @@ by rewrite (@leq_ltn_trans k') // ?leq_ord // not_in_oStar_inv.
 Qed.
 
 Let le_welfare_sorted_o_oStar_i (o : O)
-    (sortedo : @sorted_o _ ordOrder (obidders o)) 
+    (sortedo : sorted_o o) 
     (noio : no_i_in o) := 
   le_welfare_sorted_o_oS noio no_i_in_oStar_i sortedo (le_ioStar_io_i sortedo noio).
 
@@ -1039,11 +1052,11 @@ Let le_welfare_noio_o_oStar_i (o : O)
       (noio : no_i_in o) :
   welfare_i o <= welfare_i oStar_i.
 Proof.
-move: (@bubble_sort_spec _ ordOrder _ (ouniq o)) => [i1i2s] /= [x] sorted_bo.
-move: (@le_bubble_sort_welfare i1i2s o noio x). 
+move: (uniq_bubble_sort_spec (ouniq o)) => [xs] /= [x] sorted_bo.
+move: (@le_bubble_sort_welfare xs o noio x). 
 set bo := (X in _ <= welfare_i X) => ltwowbo.
-have noibo: no_i_in bo by exact: (@notin_bubble _ ordOrder o i1i2s i). 
-have: @up_sorted_tuple _ ordOrder bo by [].
+have noibo: no_i_in bo by exact: (@notin_ububble _ _ o xs i). 
+have: uniq_up_sorted_tuple bo by [].
 move/le_welfare_sorted_o_oStar_i => /(_ noibo).
 exact: leq_trans.
 Qed.
@@ -1260,7 +1273,7 @@ exact: lt_slot_n' s.
 Qed.
 
 Let le_ioStar_io_i (o : O)
-      (sortedo : @sorted_o _ ordOrder o)
+      (sortedo : sorted_o o)
       (noio : no_i_in o) :
   forall (s : slot), tnth oStar_i s <= tnth o s.
 Proof.
@@ -1322,7 +1335,7 @@ apply/negPf.
 Qed.
 
 Let le_welfare_sorted_o_oStar_i (o : O)
-      (sortedo : @sorted_o _ ordOrder o)
+      (sortedo : sorted_o o)
       (noio : no_i_in o) := 
   le_welfare_sorted_o_oS noio no_i_in_oStar_i sortedo (le_ioStar_io_i sortedo noio).
 
@@ -1330,11 +1343,11 @@ Let le_welfare_noio_o_oStar_i (o : O)
       (noio : no_i_in o) :
   welfare_i o <= welfare_i oStar_i.
 Proof.
-move: (@bubble_sort_spec _ ordOrder _ (ouniq o)) => [i1i2s] /= [x] sortedbo.
-move: (@le_bubble_sort_welfare i1i2s o noio x). 
+move: (uniq_bubble_sort_spec (ouniq o)) => [xs] /= [x] sortedbo.
+move: (@le_bubble_sort_welfare xs o noio x). 
 set bo := (X in _ <= welfare_i X) => ltwowbo.
-have noibo: no_i_in bo by exact: (@notin_bubble _ ordOrder o i1i2s i). 
-have: @up_sorted_tuple _ ordOrder bo by [].
+have noibo: no_i_in bo by exact: (@notin_ububble _ _ o xs i). 
+have: uniq_up_sorted_tuple bo by [].
 move/le_welfare_sorted_o_oStar_i => /(_ noibo).
 exact: leq_trans.
 Qed.
@@ -1717,7 +1730,7 @@ have: forall o, G.bidSum (biddings bs) o <= G.bidSum (biddings bs) (OStar.oStar 
   exact: (p o' erefl).
 rewrite /instance_bidSum /instance_biddings /instance_bidding. 
 rewrite /biddings /bidding /t_bidding /bid_in.
-pose uo := Outcome (@uniq_from_idxa _ _ geq_bid bs _ o last_agent (ouniq o)).
+pose uo := Outcome (@uniq_from_idxa _ _ geq_bid bs _ o (ouniq o)).
 rewrite /OStar.oStar /OStar.t_oStar /G.bidSum => /(_ uo).
 under eq_bigr=> j. 
   rewrite tnth_map ffunE /= tnth_ord_tuple. 

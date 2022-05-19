@@ -586,26 +586,6 @@ have ssub : shrink addn_monoid (fun p q => f p - f q) n m.
 by rewrite (@tadd _ _ _ _ ssub) ?ifT //= /empty subnn.
 Qed.
 
-(* See 8.15. *)
-
-Lemma big_nat_widenl (m1 m2 n : nat) (P : pred nat) : forall F, 
-  m2 <= m1 ->
-  \sum_(m1 <= i < n | P i) F i =
-  \sum_(m2 <= i < n | P i && (m1 <= i)) F i.
-Proof.
-move=> F le21.
-have [] := boolP (m1 <= n) => [lem1n|].
-- rewrite big_nat_cond.
-  rewrite [RHS](@big_cat_nat _ _ _ m1) //=. 
-  have -> : \sum_(m2 <= i < m1 | P i && (m1 <= i)) F i = 0.
-    rewrite big_nat_cond.
-    by admit.
-  rewrite big_nat_cond [RHS]big_nat_cond. 
-  by admit.
-- rewrite -ltnNge.
-  by admit.
-Admitted.
-
 Definition antimonotone n (F : 'I_n -> nat) := {homo F : x y /~ x <= y}.
 
 Variable (k :nat) (F : 'I_k.+1 -> nat ) (aF : antimonotone F).
@@ -622,7 +602,7 @@ under (eq_bigr (fun (s : 'I_k.+1) => g s)) => i /andP [ltli leih].
   by rewrite inordK // (@ltn_trans i) // ltn_predL (@leq_ltn_trans l).
 rewrite -(@big_mkord _ _ _ _ (fun s => l < s <= h) g).
 have -> : \sum_(0 <= i < k.+1 | l < i <= h) g i = \sum_(l.+1 <= i < h.+1) g i. 
-  by rewrite (@big_nat_widenl l.+1 0) // (@big_nat_widen _ _ _ _ h.+1 k.+1) ?ltn_ord.
+  by rewrite (@big_nat_widenl _ _ _ l.+1 0) // (@big_nat_widen _ _ _ _ h.+1 k.+1) ?ltn_ord.
 rewrite telescope_addn ?(ltn_trans ltlh) // => [|x y xin yin leyx].
 - congr (F _ - F _); first by apply: val_inj => /=; rewrite inordK.
   by apply: val_inj => /=; rewrite inordK. 
@@ -640,10 +620,6 @@ End BigOp.
 (** Sorting lemmas *)
 
 Section Sort.
-
-Lemma sort_tupleP T n r (t : n.-tuple T): size (sort r t) == n.
-Proof. by rewrite size_sort size_tuple. Qed.
-Canonical sort_tuple T n r t := Tuple (@sort_tupleP T n r t).
 
 (* convenient *)
 Definition tsort T n r (t : n.-tuple T) := [tuple of sort r t].

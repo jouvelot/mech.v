@@ -222,6 +222,8 @@ Qed.
 
 End DifferOn.
 
+(* Not used anymore. Keeping it for reference.
+
 Import Order.Theory.
 
 Module IdxOrder.
@@ -299,5 +301,5 @@ End IdxOrder.
 
 End IdxOrder.
 
-
+*)
 

@@ -6,6 +6,8 @@ This is Work In Progress and should do not used for "final consumption".
 
 See file headers for proper description.
 
+This has been tested under Coq 8.15 and mathcomp 1.13.
+
 # Bibliography
 
 Find below some links to bibliography and related projects:

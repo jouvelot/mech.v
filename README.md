@@ -25,7 +25,7 @@ Find below some links to bibliography and related projects:
 
 - https://oaklandsok.github.io/
 
-- Contributors' paper submission to ACM EC 2022 (on request)
+- Contributors' technical report (https://www.cri.mines-paristech.fr/classement/doc/E-458.pdf) or poster presented at ACM EC'22 (see .pptx file above)
 
 # Main contributors
 

@@ -4,8 +4,6 @@ A Coq- and Mathematical Components-based formalization project for mechanism des
 
 This is Work In Progress and should do not used for "final consumption".
 
-See file headers for proper description.
-
 This has been tested under Coq 8.15 and mathcomp 1.13.
 
 # Bibliography
@@ -25,7 +23,13 @@ Find below some links to bibliography and related projects:
 
 - https://oaklandsok.github.io/
 
-- Contributors' technical report (https://www.cri.mines-paristech.fr/classement/doc/E-458.pdf) or poster presented at ACM EC'22 (see .pdf file above)
+# Documentation
+
+- See file headers for proper description.
+
+- Contributors' Mines Paris technical report (https://www.cri.mines-paristech.fr/classement/doc/E-458.pdf)
+
+- Poster presented at ACM 2022 Economy and Computation conference (see .pdf file above)
 
 # Main contributors
 

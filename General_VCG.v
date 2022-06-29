@@ -114,7 +114,7 @@ Section Truthfulness.
 Variable (O : finType) (o0 : O).
 
 Definition m : mech.type n := 
-  mech.new (fun bs => (map_tuple (fun a => price o0 a bs) (agent.agents n), 
+  mech.new (fun bs => (map_tuple (price o0 ^~ bs) (agent.agents n), 
                     oStar o0 bs)).
 
 Variable v : A -> bidding O.

@@ -59,6 +59,46 @@ End Algorithm.
 
 End FP.
 
+(** FP has zero utility for the winner if s/he bids truthfully. *)
+
+Section ZeroUtility.
+
+Variable (a_n' : nat).
+
+Notation A := (A a_n').
+Notation n := (n a_n').
+
+Variable (a_p' : nat).
+
+Notation bid := 'I_(p a_p').
+Notation bids := (bids a_n' a_p').
+
+Notation is_winner := (@is_winner a_n' a_p').
+
+Let m := mech.new (fun (bs : bids) => map_tuple (fun i => (is_winner bs i, bs)) (agent.agents n)).
+
+Let a := 
+  @auction.new _ _ m (fun o i => 
+                        let: (w, bs) := tnth o i in
+                        if w then Some (price bs i) else None).
+
+Variable (vs : n.-tuple bid).
+
+Definition ps := auction.prefs a (tnth vs).
+
+Definition U := prefs.U ps.
+
+Lemma zero_utility (bs : bids) (i : A) (i_wins : is_winner bs i) :
+  tnth bs i = tnth vs i -> U i (m bs) = 0.
+Proof.
+move=> tv.
+rewrite /U /prefs.U /= /auction.U /auction.p /= tnth_map ifT -?tv; 
+  first by rewrite /price labelling_spec_idxa subnn.
+by move: i_wins => /=; rewrite /is_winner tnth_ord_tuple.
+Qed.
+
+End ZeroUtility.
+
 (** Non truthfulness. *)
 
 Section NotTruthfulness.
@@ -108,10 +148,9 @@ Qed.
 Notation n := (n a_n').
 Notation is_winner := (@is_winner a_n' a_p').
 
-Definition m := 
-  mech.new (fun (bs : bids) => map_tuple (fun i => (is_winner bs i, bs)) (agent.agents n)).
+Let m := mech.new (fun (bs : bids) => map_tuple (fun i => (is_winner bs i, bs)) (agent.agents n)).
 
-Definition a := 
+Let a := 
   @auction.new _ _ m (fun o i => 
                         let: (w, bs) := tnth o i in
                         if w then Some (price bs i) else None).

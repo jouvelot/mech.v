@@ -27,7 +27,7 @@ Find below some links to bibliography and related projects:
 
 - See file headers for proper description.
 
-- Contributors' Mines Paris technical report (https://www.cri.mines-paristech.fr/classement/doc/E-458.pdf)
+- Contributors' Mines Paris technical report, "A Foundational Framework for the Specification and Verification of Mechanism Design" (https://www.cri.mines-paristech.fr/classement/doc/E-458.pdf)
 
 - Poster presented at ACM 2022 Economy and Computation conference (see .pdf file above)
 

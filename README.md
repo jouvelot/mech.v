@@ -1,6 +1,6 @@
 # mech.v
 
-A Coq/SSReflect formalization project for mechanism design, `mech.v`, with applications to many existing mechanisms, including General VCG,  VCG for Search, Combinatorial VCG, Fixed/First/Second Price, ... and their properties.
+A Coq- and Mathematical Components-based formalization project for mechanism design, `mech.v`, with applications to many existing mechanisms, including General VCG,  VCG for Search, Combinatorial VCG, Fixed/First/Second Price, ... and their properties.
 
 This is Work In Progress and should do not used for "final consumption".
 
@@ -25,7 +25,7 @@ Find below some links to bibliography and related projects:
 
 - https://oaklandsok.github.io/
 
-- Contributors' paper submission to ACM EC 2022 (on request)
+- Contributors' technical report (https://www.cri.mines-paristech.fr/classement/doc/E-458.pdf) or poster presented at ACM EC'22 (see .pptx file above)
 
 # Main contributors
 

@@ -1,13 +1,12 @@
 (** 
 
-  bubblesort_not_uniq.v
+  bubblesort.v
 
   A specification and (inefficient, using `bigop`) implementation for a variant of 
   Bubble Sort.
 
   The specification states the existence of a list of sorted transpositions (bubbles) that 
-  can be applied to any sequence to provide a sorted one (see Theorem `bubble_sort_spec`
-  and the `bs_spec` instance).
+  can be applied to any sequence to provide a sorted one (see Theorem `bubble_sort_spec`).
 
   Pierre Jouvelot, Mines Paris, PSL University
 
@@ -101,7 +100,8 @@ End Bigmax.
 (** A dedicated Transposition module for Bubble Sort.
 
    These definitions provide an implementation for transposition-based permutations, 
-   based on indices `i`, inspired in part by `perm.v`, although this one is working on `nat`. *)
+   based on indices `i`, inspired in part by `perm.v`, although this one is working 
+   on `nat`. *)
 
 Module Transposition.
 
@@ -418,7 +418,8 @@ Qed.
 
 End Sorted.
 
-(** Bubble Sort specification, as applying a list of bubble swaps, yielding a sorted sequence. *)
+(** Bubble Sort specification, as applying a list of bubble swaps, yielding a sorted 
+    sequence. *)
 
 Section Specification.
 

@@ -42,18 +42,19 @@ apply: eq_bigl => i.
 by rewrite andbT -[RHS]andbA andbb -andbA ltnS ltn_neqAle [X in _ && X]andbC.
 Qed.
 
-Lemma ex_bigmax_index m n F (ltmn1 : m < n.+1) : exists ix, \max_(m <= i < n.+1) F i = F ix /\ ix <= n.
+Lemma ex_bigmax_index m n F (ltmn1 : m < n.+1) : 
+  exists ix, m <= ix < n.+1 /\ \max_(m <= i < n.+1) F i = F ix.
 Proof.
 elim: n ltmn1 => [|n IH ltmn2]; first by rewrite ltnS leqn0 => /eqP ->; exists 0; rewrite big_nat1.
 rewrite // (bigD1_seq n.+1) ?iota_uniq ?mem_iota //=; 
   last by rewrite -ltnS ltmn2 subnKC ?(ltnW ltmn2) ?ltnSn.
-have [ltmn1|] := boolP (m < n.+1).
-- have [ix [mx ltx]] := IH ltmn1.
-  case: leqP => leF1; last by exists n.+1; rewrite ltnSn.
-  by exists ix; rewrite bigmaxD1r mx; split=> //; last by rewrite (leq_trans ltx).
+have [ltmn1|] := boolP (m < n.+1). 
+- have [ix [/andP [ltmx ltxn] mx]] := IH ltmn1.
+  case: leqP => leF1; last by exists n.+1; rewrite ltnSn andbT ltnW.
+  by exists ix; rewrite bigmaxD1r; split => //; rewrite ltmx (@ltn_trans n.+1).
 - rewrite -ltnNge ltnS => ltnm. 
   have/eqP -> : m == n.+1 by rewrite eqn_leq -ltnS ltmn2 ltnm.
-  by exists n.+1; rewrite bigmaxD1r big_geq.
+  by exists n.+1; rewrite !ltnSn //bigmaxD1r big_geq //.
 Qed.
 
 Lemma leq_bigmax_nat n F i0 (lei0n : i0 <= n) : F i0 <= \max_(0 <= i < n.+1) F i.
@@ -63,7 +64,7 @@ Local Lemma bigmax_nth_in_take s n (lt0s : 0 < size s) (ltns : n < size s) :
   \max_(0 <= i < n.+1) nth 0 s i \in take n.+1 s. 
 Proof.
 apply/(nthP 0).
-move: (@ex_bigmax_index 0 n (nth 0 s) (ltn0Sn n)) => [ix [mx lx]]. 
+move: (@ex_bigmax_index 0 n (nth 0 s) (ltn0Sn n)) => [ix [/andP [_ lx] mx]]. 
 rewrite -ltnS in lx.
 have [ltxs|] := boolP (ix < size s).
 - exists ix; first by rewrite size_take; case: ifP.
@@ -304,19 +305,19 @@ Fixpoint transpositions s n : seq transposition :=
   end.
 
 (* `swap` applies the list of transpositions `ts` to `s`, returning the swapped list 
-    together with a boolean stating whether all these transpositions are bubbles.  *)
+    together with a boolean stating whether all these transpositions are bubbles, i.e.,
+    satisfy `isb`.  *)
+
+Fixpoint swap isb s (ts : seq transposition) : bool * seq nat :=
+  match ts with
+  | [::] => (true, s)
+  | t :: ts' => let bs' := swap isb (aperm s t) ts' in (isb s t && bs'.1, bs'.2)
+  end.
 
 Definition is_bubble s t : bool :=
   let: (i1, i2) := t in 
   (i1 < size s) && (i2 < size s) &&
     ((i1 == i2) || (i1 < i2) && (nth 0 s i2 <= nth 0 s i1)).
-
-Fixpoint swap isb s (ts : seq transposition) : bool * seq nat :=
-  match ts with
-  | [::] => (true, s)
-  | t :: ts' => let bs' := swap isb (aperm s t) ts' in
-             (isb s t && bs'.1, bs'.2)
-  end.
 
 Definition bubble_sort s : seq nat := (swap is_bubble s (transpositions s (size s).-1)).2.
 
@@ -455,6 +456,8 @@ End Specification.
 
 Section StrictSpecification.
 
+Notation is_id_transposition t := (t.1 == t.2).
+
 Definition is_strict_bubble s t : bool :=
   let: (i1, i2) := t in 
   (i1 < size s) && (i2 < size s) &&
@@ -466,7 +469,7 @@ Fixpoint strict_transpositions s n : seq transposition :=
   | n'.+1 => let max := \max_(O <= i < n.+1) nth 0 s i in 
             let t := (index max s, n) in 
             let ts := strict_transpositions (aperm s t) n'  in
-            if index max s == n then ts else t :: ts
+            if is_id_transposition t then ts else t :: ts
   end.
 
 Lemma eq_swap n s : 

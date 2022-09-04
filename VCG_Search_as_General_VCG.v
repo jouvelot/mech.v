@@ -500,7 +500,7 @@ have -> : slot_as_agent (inord (idxa bs j)) = idxa bs j.
 by rewrite cancel_idxa.
 Qed.
 
-Lemma lt_i_k j : j \in (oStar bs) → idxa bs j < k.
+Lemma mem_oStar_inv j : j \in (oStar bs) → idxa bs j < k.
 Proof.
 move/tnthP => [ij] ->.
 rewrite tnth_map tnth_ord_tuple.
@@ -508,6 +508,12 @@ have -> : slot_as_agent ij = inord ij.
   apply: val_inj => /=. 
   by rewrite inordK // (ltn_trans (ltn_ord ij) lt_k_n).
 by rewrite /idxa cancel_inv_idxa inordK ?ltn_ord // (ltn_trans (ltn_ord ij) lt_k_n).
+Qed.
+
+Lemma mem_oStar_equiv j : idxa bs j < k <-> j \in oStar bs.
+Proof.
+split; first by exact: mem_oStar.
+exact: mem_oStar_inv.
 Qed.
 
 End Properties.
@@ -557,19 +563,23 @@ Proof. by rewrite /max_welfare -eq_oStar_iota (OStar.le_welfare_o_oStar bs o). Q
 Lemma slot_in_oStar (j : A) : (j \in oStar) -> slot_of j oStar = inord j.
 Proof. rewrite -!eq_oStar_iota -{3}(idxaK sorted_bs j); exact: OStar.slot_in_oStar. Qed.
 
-Lemma lt_i_k (j : A) : j \in oStar -> j < k.
-Proof. move/tnthP => [s]. rewrite tnth_mktuple => -> /=. exact: ltn_ord. Qed.
+Lemma mem_oStar_inv (j : A) : j \in oStar -> j < k.
+Proof. 
+rewrite -eq_oStar_iota -{2}(idxaK sorted_bs j).
+exact: OStar.mem_oStar_inv.
+Qed.
 
 Lemma mem_oStar (j : A) (jisslot: j < k) : j \in oStar.
 Proof.
-have -> : j = tnth oStar (Ordinal jisslot) by rewrite tnth_mktuple; apply: val_inj.
-exact: mem_tnth.
+move: jisslot.
+rewrite -eq_oStar_iota -{1}(idxaK sorted_bs j).
+exact: OStar.mem_oStar.
 Qed.
 
 Lemma not_in_oStar' (j : A ) : k' < j <-> (j \in oStar) = false.
 Proof. 
 rewrite ltnNge.
-split; first by apply: contraNF; exact: lt_i_k. 
+split; first by apply: contraNF; exact: mem_oStar_inv. 
 by apply: contraFN; exact: mem_oStar.
 Qed.
 
@@ -581,10 +591,10 @@ Lemma eq_losing_last_slot j
       (jloses : j < k' = false) :
   slot_of j oStar = last_slot.
 Proof.
-move: (jino) => /lt_i_k.   
+move: (jino) => /mem_oStar_inv.   
 rewrite ltn_neqAle => /andP [_].
 rewrite leq_eqVlt ltnS leq_eqVlt jloses orbF.
-move=> /orP [|/eqP eqijk']; first by move/lt_i_k/ltn_eqF: (jino) => ->. 
+move=> /orP [|/eqP eqijk']; first by move/mem_oStar_inv/ltn_eqF: (jino) => ->. 
 rewrite slot_in_oStar; last by rewrite mem_oStar // eqijk'.
 apply: val_inj => /=.
 by rewrite inordK ?eqijk'.
@@ -768,6 +778,9 @@ Variable (i : A).
 Variable (bs0 : bids).
 
 Hypothesis sorted_bs0 : sorted_bids bs0.
+
+Notation not_in_oStar_inv := (not_in_oStar_inv sorted_bs0).
+Notation mem_oStar_inv := (mem_oStar_inv sorted_bs0).
 
 Definition bs := bs0.
 
@@ -1240,8 +1253,8 @@ apply/andP; split; last first.
   by have/(_ k'.+1): forall m, m \notin iota 0 m by move=> ?; rewrite mem_iota add0n ltnn andbF.
 Qed.
 
-Definition t_oStar_i := tuple_i oStar succ_last_slot_agent (lt_i_k i_in_oStar).
-Definition oStar_i : O :=  Outcome (tuple_i_uniq (lt_i_k i_in_oStar) oStar_i_uniq).
+Definition t_oStar_i := tuple_i oStar succ_last_slot_agent (mem_oStar_inv i_in_oStar).
+Definition oStar_i :=  Outcome (tuple_i_uniq (mem_oStar_inv i_in_oStar) oStar_i_uniq).
 
 Section OStarForSearch_i.
 
@@ -1331,7 +1344,7 @@ apply/negPf.
 - rewrite -below_last_ord negbK => /eqP ->.
   rewrite last_tuple_i /succ_last_slot_agent /=.
   rewrite -(inj_eq val_inj) /= inordK ; last by exact: lt_k_n.
-  by move/ltn_eqF: (lt_i_k i_in_oStar).
+  by move/ltn_eqF: (mem_oStar_inv i_in_oStar).
 Qed.
 
 Let le_welfare_sorted_o_oStar_i (o : O)
@@ -1396,9 +1409,9 @@ Qed.
 Lemma eq_in_oStars_out (j : A) (ltk'j : k' < j) :
   (j  \in oStar) = ('lab'_ j  \in oStar_i).
 Proof.
-move: (lt_i_k i_in_oStar); rewrite ltnS => leik'.
+move: (mem_oStar_inv i_in_oStar); rewrite ltnS => leik'.
 move/ltnW: (leq_ltn_trans leik' ltk'j) => leij.
-rewrite not_in_oStar //.
+rewrite (not_in_oStar sorted_bs0) //.
 apply: esym.
 apply: negbTE.
 - have [] := boolP (j < n') => [ltjn'|].
@@ -1438,7 +1451,7 @@ Proof.
   exists sj; rewrite id_tuple_i //.
   by move: psj ltji => ->; rewrite tnth_mktuple.
   inord_in_oStar j.
-  exact: (ltn_trans _ (lt_i_k i_in_oStar)).
+  exact: (ltn_trans _ (mem_oStar_inv i_in_oStar)).
 - have [] := boolP (j < k') => ltjk'.
   rewrite -leqNgt => leij.
   move: (ltn_trans ltjk' (ltnSn k')) => ltjk.
@@ -1479,7 +1492,7 @@ case: tnthP => [pj /=|//].
 case: sig_eqW => sj psj _ //=.
 have: 'lab'_j = tnth oStar_i (inord j); last by rewrite psj; move/(@o_injective oStar_i).
 - have [] := boolP (j < i) => [ltji|].
-  have ltjk'1 : j < k'.+1 by exact: ltn_trans ltji (lt_i_k i_in_oStar).
+  have ltjk'1 : j < k'.+1 by exact: ltn_trans ltji (mem_oStar_inv i_in_oStar).
   rewrite eq_lab'_id ?id_tuple_i ?tnth_mktuple // ?inordK //.
   by apply: val_inj => /=; rewrite inordK.
 - rewrite -leqNgt => leij.
@@ -1492,7 +1505,7 @@ have: 'lab'_j = tnth oStar_i (inord j); last by rewrite psj; move/(@o_injective 
   rewrite tnth_mktuple; apply: val_inj => /=.
   by rewrite !eq_proper_addS /= ?inordK.
 - rewrite -leqNgt leq_eqVlt.
-  have -> : (k' < j) = false by move: jino; apply: contraTF => /not_in_oStar/negbT.
+  have -> : (k' < j) = false by move: jino; apply: contraTF => /(not_in_oStar sorted_bs0)/negbT.
   rewrite orbF => /eqP eqk'j.
   have ltjn': j < n' by rewrite -eqk'j; apply: lt_k_n.
   rewrite eq_lab'_succ //.   
@@ -1528,7 +1541,7 @@ congr (_ + _).
   congr (_ + _).
   - rewrite (big_pred1 i) ?(big_pred1 last_agent) => [|j|j].
     rewrite !tnth_mktuple !ffunE eq_refl /= /t_bidding.
-    by have/not_in_oStar ->: k' < last_agent by exact: lt_k_n.
+    by have/(not_in_oStar sorted_bs0) ->: k' < last_agent by exact: lt_k_n.
     rewrite pred1E andb_idl; first by rewrite eq_sym.
     by move=> /eqP ->; rewrite -leqNgt leq_ord.
     rewrite pred1E andb_idl; first by rewrite eq_sym.
@@ -1537,7 +1550,7 @@ congr (_ + _).
       last by move=> j; rewrite -leqNgt ltn_neqAle eq_sym andbC.
     rewrite [RHS](@eq_bigl _ _ _ _ _ _ (fun j : A => i <= j < last_agent));
       last by move=> j; rewrite -leqNgt below_last_ord.
-    rewrite reindex_ge_i ?ltn0Sn //=; last exact: leq_ltn_trans (lt_i_k i_in_oStar) lt_k_n.
+    rewrite reindex_ge_i ?ltn0Sn //=; last exact: leq_ltn_trans (mem_oStar_inv i_in_oStar) lt_k_n.
     apply: eq_bigr => j /andP [leij ltjn'].
     rewrite !tnth_mktuple !ffunE ifT; 
       last by move/gtn_eqF/negbT: (leq_ltn_trans leij (lt_ord_succ ltjn')).
@@ -1591,7 +1604,7 @@ rewrite -/bs subnDl.
   rewrite !sum_out // subn0.
   have ->: ord0 = last_slot by exact: val_inj.
   by rewrite if_same last_ctr_eq0 /= ?muln0 // eq0k'. 
-- have iisslot := (lt_i_k i_in_oStar).
+- have iisslot := (mem_oStar_inv i_in_oStar).
   rewrite -lt0n iisslot => lt0k'. 
   under eq_bigr => j _. 
     rewrite mulnBr.
@@ -1629,8 +1642,9 @@ End Wins.
 Lemma eq_sorted_VCG_price :
   price bs i = @G.price [finType of O] o0 i (biddings bs).
 Proof.
-have [] := boolP (i < k) => iisslot; first by rewrite eq_sorted_VCG_price_wins // mem_oStar.
-by rewrite eq_sorted_VCG_price_loses // not_in_oStar // ltnNge.
+have [] := boolP (i < k) => iisslot; 
+                           first by rewrite eq_sorted_VCG_price_wins // (mem_oStar sorted_bs0).
+by rewrite eq_sorted_VCG_price_loses // (not_in_oStar sorted_bs0) // ltnNge.
 Qed.
 
 End SortedVCGforSearchPrice.

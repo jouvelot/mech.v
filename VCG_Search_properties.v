@@ -82,10 +82,10 @@ rewrite -/(VCG_oStar bs').
 have sortedbs': sorted_bids bs' by exact: sorted_bids_sorted.
 move: (oStar_extremum bs'); rewrite eq_oStar_iota // => ox.
 move: (@uniq_oStar bs' (VCG_oStar bs') oStar) => /(_  (VCG_oStar_extremum bs') ox) ->. 
-rewrite ifT; last by rewrite mem_oStar // ltnW. 
+rewrite ifT; last by rewrite (mem_oStar sortedbs') // ltnW. 
 rewrite -value_is_bid.
 congr bid_in => //.
-by rewrite (@slot_in_oStar bs') // ?wonE // mem_oStar // ltnW.
+by rewrite (@slot_in_oStar bs') // ?wonE // (mem_oStar sortedbs') // ltnW.
 Qed.
 
 Definition utility := value - price bs a.
@@ -589,7 +589,7 @@ case: ifP => jino.
   by apply: val_inj => /=; rewrite inordK.  
 - apply: S.slot_not_in.
   apply: (@contraFF _ _ _ jino).
-  exact: OStar.lt_i_k.
+  exact: OStar.mem_oStar_inv.
 Qed.
 
 Lemma idxa_wins_as_slot j :
@@ -640,6 +640,15 @@ have -> : slot_of j' (h o) = S.last_slot; last by rewrite S.last_ctr_eq0 /= muln
   by rewrite j'ino.
 Qed.
 
+Local Lemma mem_oStar j (ltj'k : idxa bs j < k) : idxa bs j \in oStar. 
+Proof.
+apply/tnthP.
+exists (inord (idxa bs j)).
+rewrite tnth_map tnth_ord_tuple.
+apply: val_inj => /=.
+by rewrite inordK.
+Qed.
+
 Lemma eq_welfares j (ltjk' : idxa bs j < k') :
   VCG.welfare_with_i o0 j (instance_biddings bs) = VCG.welfare_with_i o'01 j bs1.
 Proof.
@@ -657,7 +666,7 @@ case: ifP => j'ino.
   exact: val_inj.
 - have -> : slot_of j' (G.oStar o'01 bs1) = last_slot. 
     rewrite slot_as_idxa // ifF //.
-    apply: (@contraFF _ _ _ j'ino).
+    apply: (@contraFF _ _ _ j'ino) => ltj'k. 
     exact: mem_oStar.
   by rewrite S.last_ctr_eq0 /= muln0.
 Qed.

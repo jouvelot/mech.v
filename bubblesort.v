@@ -480,12 +480,11 @@ elim: n s => [s lt0s //=|n IH s ltn1s /=].
 case: ifP => [/eqP ->|neix].
 - rewrite !T.aperm_id orTb IH; last by exact: (@ltn_trans n.+1). 
   by rewrite ltn1s !andbT -surjective_pairing.
-- rewrite !orFb !ltn1s !andbT !IH /= ?T.size_aperm.
+- rewrite !orFb !ltn1s !andbT !IH /= ?T.size_aperm; last by rewrite (@ltn_trans n.+1).
   have -> // : index (\max_(0 <= i < n.+2) nth 0 s i) s < n.+1.
     move: (@bigmax_nth_index_leq n.+1 s (ltn_trans (ltn0Sn n) ltn1s) ltn1s).
     by rewrite leq_eqVlt neix orFb.
-  rewrite ltn1s !andbT !andTb //.
-  by rewrite (@ltn_trans n.+1).
+  by rewrite ltn1s !andbT !andTb.
 Qed.
 
 Lemma strict_bubble_sort_spec s :
@@ -511,8 +510,8 @@ Proof.
 rewrite /is_bubble (surjective_pairing t).
 split=> [/andP [/andP [-> ->]] /orP [/eqP -> //|/andP [lt12 ->]]|
         /andP [/andP [-> ->]] /andP [le12 ->]].
-- - by rewrite !leqnn.
-  - by rewrite ltnW.
+- by rewrite !leqnn.
+- by rewrite ltnW.
 - rewrite leq_eqVlt in le12.
   by rewrite !andbT le12.
 Qed.

@@ -34,7 +34,8 @@ From Coq Require Import Unicode.Utf8.
 From mathcomp Require Import all_ssreflect order.
 From mathcomp.fingroup Require Import perm.
 
-From vcg Require Import lib labelling General_VCG mech.
+From mech.lib Require Import lib labelling mech.
+From mech.vcg Require Import General_VCG.
 
 Module G := VCG.
 
@@ -1796,5 +1797,5 @@ Qed.
 
 End VCGforSearchPrice.
 
-Check eq_instance_VCG_price.
-Print Assumptions eq_instance_VCG_price.
+(* Check eq_instance_VCG_price. *)
+(* Print Assumptions eq_instance_VCG_price. *)

@@ -16,7 +16,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-From vcg Require Import bubblesort.
+From mech Require Import bubblesort.
 
 (** Misc. *)
 

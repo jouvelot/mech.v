@@ -1,6 +1,6 @@
 (coq.theory
- (package coq-vcg)
- (name vcg)
+ (package coq-mech)
+ (name mech.lib)
  (flags
    :standard
    -w -notation-overridden

@@ -36,7 +36,7 @@ Require Import Coq.Logic.IndefiniteDescription.
 Require Import Coq.Logic.Classical.
 Require Import Coq.Logic.Decidable.
 
-From vcg Require Import lib labelling.
+From mech Require Import lib labelling.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

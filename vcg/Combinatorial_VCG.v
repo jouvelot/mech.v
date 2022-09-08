@@ -21,7 +21,8 @@
 
 From mathcomp Require Import all_ssreflect.
 
-From vcg Require Import mech General_VCG.
+From mech.lib Require Import mech.
+From mech.vcg Require Import General_VCG.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -116,5 +117,6 @@ End Rationality.
 
 End CombinatorialAuction.
 
-Check truthful_Combinatorial_VCG.
-Print Assumptions truthful_Combinatorial_VCG.
+(* Disabled until we get a flag in Coq to do so *)
+(* Check truthful_Combinatorial_VCG. *)
+(* Print Assumptions truthful_Combinatorial_VCG. *)

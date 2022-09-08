@@ -1,8 +1,12 @@
 # mech.v
 
-A Coq- and Mathematical Components-based formalization project for mechanism design, `mech.v`, with applications to many existing mechanisms, including General VCG,  VCG for Search, Combinatorial VCG, Fixed/First/Second Price, ... and their properties.
+A Coq- and Mathematical Components-based formalization project for
+mechanism design, `mech.v`, with applications to many existing
+mechanisms, including General VCG, VCG for Search, Combinatorial VCG,
+Fixed/First/Second Price, ... and their properties.
 
-This is Work In Progress and should do not used for "final consumption".
+This is Work In Progress and should do not used for "final
+consumption".
 
 This has been tested under Coq 8.15 and mathcomp 1.13.
 

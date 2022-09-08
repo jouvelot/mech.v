@@ -16,7 +16,7 @@ From Coq Require Import Unicode.Utf8.
 From mathcomp Require Import all_ssreflect.
 From mathcomp.fingroup Require Import perm.
 
-From vcg Require Import lib labelling mech.
+From mech.lib Require Import lib labelling mech.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -159,5 +159,5 @@ Qed.
 
 End NotTruthfulness.
 
-Check not_truthful_GSP.
-Print Assumptions not_truthful_GSP.
+(* Check not_truthful_GSP. *)
+(* Print Assumptions not_truthful_GSP. *)

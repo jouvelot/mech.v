@@ -37,7 +37,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-From vcg Require Import lib labelling mech.
+From mech.lib Require Import lib labelling mech.
 
 Variable (n'' : nat).
 

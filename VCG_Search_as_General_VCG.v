@@ -445,21 +445,20 @@ elim=> [o _ //=|x xs IH o /= /andP [bi xoi]].
 - pose uxoi := ububble_uniq (ouniq (idxas o)) xs.
   pose ouxoi := Outcome (uniq_from_idxa uxoi).
   move: (@le_transposed_welfare x ouxoi) => /=. 
-  rewrite !cancel_inv_map_idxa => /(_ bi) /=.
+  rewrite !cancel_inv_map_idxa => /(_ bi) /=. 
   move: (IH o xoi) => le1 le2.
-  move: (leq_trans le1 le2) => {le1 le2}.  
-  set s1 := (X in _ <= X -> _); set s2 := (X in _ -> _ <= X).
-  have -> // : s1 = s2.
-    apply: eq_bigr => s _ /= {s1 s2}.
-    rewrite /bidding !ffunE /t_bidding /=.
-    congr (if _ then _ else _); first by rewrite !mem_tnth.
-    set t1 := (X in bid_in _ (tnth X _)); set t2 := (X in _ = bid_in _ (tnth X _) _).
-    have permC : t1 = t2.
-      rewrite /t1 /t2 !apermE !permE /=.
-      apply: eq_from_tnth => s'.
-      by rewrite !tnth_map tnth_ord_tuple.
-    congr (bid_in _ (tnth _ _)) => //.
-    by congr (slot_of (tnth _ _) _).
+  move: (leq_trans le1 le2) => {le1 le2}.   
+  set s1 := (X in _ <= X -> _) => lew1.
+  rewrite (@leq_trans s1) // eq_leq // => {lew1}.
+  apply: eq_bigr => s _ /=.
+  rewrite /bidding !ffunE /t_bidding.
+  congr (if _ then _ else _); first by rewrite !mem_tnth. 
+  set t1 := (X in bid_in _ (tnth X _)); set t2 := (X in _ = bid_in _ (tnth X _) _).
+  have permC : t1 = t2. 
+    rewrite /t1 /t2 !apermE !permE /=.
+    apply: eq_from_tnth => s'.
+    by rewrite !tnth_map tnth_ord_tuple.
+  by rewrite permC; congr (bid_in _ (tnth _ _) (slot_of (tnth _ _) _)).
 Qed.
 
 End Welfare.
@@ -493,7 +492,7 @@ Lemma mem_oStar (j : A) (jisslot: idxa bs j < k) : j \in (oStar bs).
 Proof.
 apply/tnthP.
 exists (inord (idxa bs j)).
-rewrite /oStar /t_oStar tnth_map tnth_ord_tuple.
+rewrite /oStar /t_oStar tnth_map tnth_ord_tuple. 
 have -> : slot_as_agent (inord (idxa bs j)) = idxa bs j. 
   apply: val_inj => /=.
   by rewrite inordK.
@@ -503,7 +502,7 @@ Qed.
 Lemma mem_oStar_inv j : j \in (oStar bs) → idxa bs j < k.
 Proof.
 move/tnthP => [ij] ->.
-rewrite tnth_map tnth_ord_tuple.
+rewrite tnth_map tnth_ord_tuple. 
 have -> : slot_as_agent ij = inord ij. 
   apply: val_inj => /=. 
   by rewrite inordK // (ltn_trans (ltn_ord ij) lt_k_n).
@@ -1757,7 +1756,7 @@ have eqlabiota: map_tuple (tnth (tlabel bs)) oStar =
   apply: eq_from_tnth => s.
   rewrite !tnth_map.
   congr tnth.
-  exact: val_inj. 
+  exact: val_inj.  
 set s1 := (X in X <= _ -> _); set s2 := (X in _ -> X <= _).
 have -> : s1 = s2.
   apply: eq_bigr => j _.

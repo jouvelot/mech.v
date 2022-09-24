@@ -588,28 +588,25 @@ Qed.
 Lemma idxa_wins_as_slot j :
   (idxa bs j < k') = (slot_of j (G.oStar o'01 bs1) != last_slot).
 Proof.
-rewrite slot_as_idxa //. 
-- have [] := boolP (idxa bs j < k') => [ltjk'|].
-  rewrite ifT; last by rewrite (@ltn_trans k').
+rewrite slot_as_idxa //.  
+have [] := boolP (idxa bs j < k') => [ltjk'|].
+- rewrite ifT; last by rewrite (@ltn_trans k').
   by rewrite below_last_ord inordK // ltnW.
-- rewrite -ltnNge ltnS leq_eqVlt => /orP [/eqP eqk'j|].
-  - rewrite (_ : inord (idxa bs j) = last_slot) ?if_same ?eq_refl //.
-    apply: val_inj => /=.
-    by rewrite inordK // -eqk'j.
-  - by move=> ltk'j; rewrite ifF ?eq_refl // leq_gtF.
+- rewrite -ltnNge ltnS leq_eqVlt => /orP [/eqP eqk'j|];
+    last by move=> ltk'j; rewrite ifF ?eq_refl // leq_gtF.                                    
+  rewrite (_ : inord (idxa bs j) = last_slot) ?if_same ?eq_refl //.
+  apply: val_inj => /=.
+  by rewrite inordK // -eqk'j.
 Qed.
 
 Lemma slot_won_as_slot_of j (ltijk' : idxa bs j < k') :
   slot_won bs j = slot_of j (G.oStar o'01 bs1).
-Proof.
-rewrite slot_as_idxa // ifT //; last by rewrite (@ltn_trans k'). 
-by rewrite wonE.
-Qed.
+Proof. by rewrite slot_as_idxa // ifT // ?wonE; last by rewrite (@ltn_trans k'). Qed.
 
 Lemma eq_welfares_i j : 
   VCG.welfare_without_i j (instance_biddings bs) = VCG.welfare_without_i j bs1.
 Proof.
-rewrite /G.welfare_without_i /G.bidSum_i /G.bidSum.  
+rewrite /G.welfare_without_i /G.bidSum_i /G.bidSum.   
 pose h := (fun o => Outcome (uniq_map_o bs o)).
 pose F := (fun o => \sum_(j0 < n | j0 != j) tnth bs1 j0 o).
 rewrite [in RHS](@reindex_inj _ _ _ _ h _ F) /= => [|o1 o2 h12]; last first.
@@ -626,18 +623,13 @@ have -> : slot_of j' (h o) = S.last_slot; last by rewrite S.last_ctr_eq0 /= muln
   rewrite /slot_of.
   case: tnthP => p //.
   case: sig_eqW => s /= eqj'. 
-  have: idxa bs j' \in o.
-    apply/tnthP.
-    exists s.
-    by rewrite eqj' tnth_map /idxa cancel_inv_idxa.
-  by rewrite j'ino.
+  apply: (@contraFeq _ _ _ _ _ j'ino) => _.
+  by apply/tnthP; exists s; rewrite eqj' tnth_map /S.idxa cancel_inv_idxa.
 Qed.
 
 Local Lemma mem_oStar j (ltj'k : idxa bs j < k) : idxa bs j \in oStar. 
 Proof.
-apply/tnthP.
-exists (inord (idxa bs j)).
-rewrite tnth_map tnth_ord_tuple.
+apply/tnthP; exists (inord (idxa bs j)); rewrite tnth_map tnth_ord_tuple.
 apply: val_inj => /=.
 by rewrite inordK.
 Qed.
@@ -675,13 +667,13 @@ congr (_ - _); first by exact: eq_welfares_i.
 exact: eq_welfares.
 Qed.
 
-Definition U := prefs.U p.
-Definition U1 := prefs.U p1.
+Notation U := (prefs.U p).
+Notation U1 := (prefs.U p1).
 
 Lemma RelFP (o1 : O1) (o : O) : Ro o1 o -> U1^~o1 =1 U^~o. 
 Proof.
 move=> Ro1 j. 
-rewrite /U1 /U /prefs.U /= /v1 (surjective_pairing o1) ffunE. 
+rewrite /prefs.U /= /v1 (surjective_pairing o1) ffunE. 
 move: (Ro1 j).  
 rewrite (surjective_pairing o1). 
 case: ifP => [w //= [_ /(_ w) [-> ->]] //| /= -> [] /esym /eqP -> _].

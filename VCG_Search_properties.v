@@ -168,16 +168,14 @@ Lemma leq_value_loses (s : slot) (lti's : i' < s) :
   tnth bs a <= tnth (tsort bs') (slot_as_agent s).
 Proof.
 move: diff; rewrite /differ_on /action_on => d.
-move: iloses; rewrite /is_winner => /negbT lek'i.
-move: (lek'i).
-apply: contraR.
+move: iloses; rewrite /is_winner => /negbT lek'i. 
+apply: (@contraR _ _ _ lek'i).
 rewrite -ltnNge.
 set sa := slot_as_agent s. 
 move: (labellingP geq_bid bs') => /forallP /(_ sa) /eqP ->.  
 rewrite eq_labelling_loses.
 have nea: tnth l' sa != a. 
-  move: lti's.
-  apply: contraTneq.
+  apply: (@contraTneq _ _ _ _ _ lti's).
   have <- : tnth l' i' = a by rewrite tnth_mktuple /lt_index //= eq_refl cancel_idxa.
   move/(labelling_inj is_labelling_iloses)/eqP.
   rewrite -(inj_eq val_inj) /= => /eqP ->.
@@ -188,8 +186,7 @@ have -> : tnth l' sa = tnth l (agent_pred sa).
     by rewrite lti's andTb (@leq_trans k') //= ?leq_ord // leqNgt.
 rewrite /l !cancel_inv_idxa => leis.
 have ltis1: i < agent_pred sa.
-  move: leis.
-  apply: contraLR.
+  apply: (@contraLR _ _ _ leis).
   rewrite -!ltnNge !ltnS.
   exact: sorted_bids_sorted.
 rewrite (@ltn_trans (agent_pred sa)) //= (@leq_trans s) // ?leq_ord //.
@@ -465,8 +462,7 @@ move: (labellingP geq_bid bs') => /forallP /(_ sa) /eqP ->.
 rewrite eq_labellling_stable.
 move: (labellingP geq_bid bs) => /forallP /(_ sa) /eqP ->.
 rewrite uniq_labelling /l' d // cancel_a -/i.
-move: ltis.
-apply: contraTneq => /(labelling_inj (tlabelP geq_bid bs)) => <- /=.
+apply: (@contraTneq _ _ _ _ _ ltis) => /(labelling_inj (tlabelP geq_bid bs)) => <- /=.
 by rewrite ltnn.
 Qed.
 

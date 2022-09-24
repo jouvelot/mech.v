@@ -155,17 +155,13 @@ Proof. by rewrite (@leq_trans k') // leqNgt negbT. Qed.
 Let l' := lt_labelling geq_bid a bs bs' l.
 
 Lemma is_labelling_iloses : is_labelling bs' l'.
-Proof.
-apply: (labelling_differ_on_lt diff lt_i'_i).
-exact: tlabelP.
-Qed.
+Proof. apply: (labelling_differ_on_lt diff lt_i'_i); exact: tlabelP. Qed.
 
 Lemma eq_labelling_loses : projT1 (exists_labellingW geq_bid bs') = l'.
 Proof.
-apply: labelling_singleton. 
+apply: (@labelling_singleton _ _ geq_bid bs'); last by rewrite is_labelling_iloses. 
 move: (exists_labellingW geq_bid bs') => [lab islab]. 
 exact: islab.
-by rewrite is_labelling_iloses. 
 Qed.
 
 Lemma leq_value_loses (s : slot) (lti's : i' < s) : 
@@ -243,12 +239,11 @@ Proof. by rewrite /price ifT // (@ltn_trans k'). Qed.
 Lemma eq_price_bs'_over : 
   price bs' a = \sum_(s < k | i' < s <= i) externality (tsort bs') s + price bs a.
 Proof.
-rewrite /price ifT; last by rewrite (@ltn_trans k').
+rewrite /price /externality ifT; last by rewrite (@ltn_trans k').
 rewrite ifT; last by rewrite (@ltn_trans k').
 rewrite (split_sum_ord lt_i'_i).  
 congr (_ + _).
 apply: eq_bigr => s ltis.
-rewrite /externality.
 congr (_ * _).
 set j := slot_as_agent s. 
 move: (labellingP geq_bid bs') => /forallP /(_ j) /eqP ->. 
@@ -326,11 +321,11 @@ have -> : val i = i' + (i - i') by rewrite subnKC //= ltnW.
 have -> : slot_won bs a = inord (i' + (i - i')).
   apply: val_inj => /=.
   by rewrite mini inordK subnKC // ltnW.
-have -> : slot_won bs' a = inord i' by rewrite wonE.
+have -> : slot_won bs' a = inord i' by rewrite wonE. 
 apply: truthful_over_ind; last by rewrite subnKC // ltnW.
-by rewrite /antimonotone => x y; exact: S.sorted_ctrs.
-exact: antimonotone_sorted. 
-exact: leq_value_over.
+- by rewrite /antimonotone => x y; exact: S.sorted_ctrs.
+- exact: antimonotone_sorted. 
+- exact: leq_value_over.
 Qed.
 
 End Overbid.
@@ -364,7 +359,7 @@ rewrite ifF; last by rewrite ltnNge (ltnW lti's) //= andbF.
 move: diff; rewrite /differ_on /action_on => d.
 rewrite d // cancel_a. 
 have: j != idxa bs a by rewrite negbT //; apply: gtn_eqF; rewrite (@ltn_trans i').
-apply: contraTneq => /l_inj ->; last by rewrite negbK.
+by apply: contraTneq => /l_inj ->; last by rewrite negbK.
 Qed.
 
 Lemma eq_price_bs_under : 
@@ -383,22 +378,20 @@ Lemma truthful_under_ind (B C : slot -> nat) (K : bid)
   K * (C (inord i) - C (inord (i + m))).
 elim: m => [_|m IH ltim1i'].
 - rewrite addn0.
-  under eq_bigl => s.
-    rewrite ltnNge andNb.
-  over.
+  under eq_bigl => s do rewrite ltnNge andNb.
   by rewrite big_pred0_eq.
 - have ltimi'1 : i + m < i'.+1.
     by rewrite (@ltn_trans i') // (@leq_trans (i + m.+1)) //  ltn_add2l. 
   have ltimk' : i + m < k' by rewrite (@leq_ltn_trans i').
   have tltim1k1 : i + m.+1 < k'.+1 by rewrite addnS.
   rewrite (@sum_diff (C (inord (i + m))) (C (inord i))) //; last first. 
-  rewrite sortedC // ?inordK ?leq_addr // (@ltn_trans k') //.
-  rewrite sortedC // !inordK // ?leq_add2l // (@ltn_trans k') // (@leq_ltn_trans i') //.
-  rewrite (bigD1 (inord (i + m.+1))) /=; last first.
-    rewrite inordK // ?leqnn ?andbT. 
-    by rewrite -[X in X <= _]addn0 -addn1 -addnA addn0 leq_add2l.
-  rewrite big_trim_bound_P //mulnDr leq_add //; last by apply: IH.
-  by rewrite ord_predK // leq_mul2r Kbound ?orbT.
+  - by rewrite sortedC // ?inordK ?leq_addr // (@ltn_trans k').
+  - by rewrite sortedC // !inordK // ?leq_add2l // (@ltn_trans k') // (@leq_ltn_trans i').
+  - rewrite (bigD1 (inord (i + m.+1))) /=; last first.
+    - rewrite inordK // ?leqnn ?andbT. 
+      by rewrite -[X in X <= _]addn0 -addn1 -addnA addn0 leq_add2l.
+    - rewrite big_trim_bound_P //mulnDr leq_add //; last by apply: IH.
+      by rewrite ord_predK // leq_mul2r Kbound ?orbT.
 Qed.
 
 Lemma geq_value_under m (ltmi'i : i + m <= i') :
@@ -407,7 +400,7 @@ Proof.
 rewrite -bid_true_value /action_on -[X in _ <= nat_of_ord X]labelling_spec_idxa. 
 apply: sorted_bids_sorted.
 have -> : val (slot_as_agent (inord (i + m))) = i + m; last by exact: leq_addr.
-  by move=> /=; rewrite inordK // (@leq_ltn_trans i') // (@ltn_trans k').
+  by rewrite /= inordK // (@leq_ltn_trans i') // (@ltn_trans k').
 Qed.
 
 Lemma truthful_under : utility bs' a <= utility bs a.
@@ -433,9 +426,9 @@ have -> : slot_won bs' a = inord (i + (i' - i)).
   by rewrite mini' inordK subnKC // ltnW.
 rewrite wonE //.
 apply: truthful_under_ind; last by rewrite subnKC // ltnW. 
-by rewrite /antimonotone => x y; exact: S.sorted_ctrs.
-exact: antimonotone_sorted.
-exact: geq_value_under.
+- by rewrite /antimonotone => x y; exact: S.sorted_ctrs.
+- exact: antimonotone_sorted.
+- exact: geq_value_under.
 Qed.
   
 End Underbid.
@@ -481,7 +474,7 @@ End Stable.
 
 Lemma truthful_i_wins : utility bs' a <= utility bs a.
 Proof.
-rewrite /utility.
+rewrite /utility. 
 have [] := boolP (i' == i) => [/eqP|]; first exact: truthful_stable. 
 rewrite neq_ltn => /orP [lti'i|ltii']; first exact: truthful_over.
 exact: truthful_under.  
@@ -628,7 +621,7 @@ apply: eq_bigr => j' _.
 rewrite /instance_biddings /instance_bidding /t_bidding tnth_map ffunE !tnth_ord_tuple.
 move: (Ri1 j' (h o)); rewrite /action_on => ->.
 rewrite /bid_in labelling_spec_idxa.
-case: ifP => j'ino; first by rewrite relabel_slot. 
+case: ifP => j'ino; first by rewrite relabel_slot.  
 have -> : slot_of j' (h o) = S.last_slot; last by rewrite S.last_ctr_eq0 /= muln0.
   rewrite /slot_of.
   case: tnthP => p //.
@@ -656,19 +649,18 @@ rewrite /G.welfare_with_i /G.bidSum_i /G.bidSum.
 rewrite (eq_bigr (fun j => tnth bs1 j (G.oStar o'01 bs1))) // => j' nej'j. 
 rewrite eq_instance_vcg_oStar_oStar; last by exact: uniq_oStar. 
 rewrite !tnth_mktuple !ffunE /instance_biddings /instance_bidding /t_bidding. 
-move: (Ri1 j' (G.oStar o'01 bs1)); rewrite /action_on => ->.
-case: ifP => j'ino.      
+move: (Ri1 j' (G.oStar o'01 bs1)); rewrite /action_on => ->. 
+case: ifP => j'ino.
 - rewrite /bid_in labelling_spec_idxa relabel_slot //. 
   congr (_ * 'ctr_ (slot_of _ _)). 
   apply: eq_from_tnth => s /=.
   rewrite eq_GoStar // /OStar.t_oStar !tnth_map.
   congr tnth.
   exact: val_inj.
-- have -> : slot_of j' (G.oStar o'01 bs1) = last_slot. 
+- have -> : slot_of j' (G.oStar o'01 bs1) = last_slot; last by rewrite S.last_ctr_eq0 /= muln0.
     rewrite slot_as_idxa // ifF //.
     apply: (@contraFF _ _ _ j'ino) => ltj'k. 
     exact: mem_oStar.
-  by rewrite S.last_ctr_eq0 /= muln0.
 Qed.
 
 Lemma MR : Ro (m1 bs1) (m bs).

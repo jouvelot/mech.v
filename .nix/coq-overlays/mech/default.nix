@@ -6,7 +6,7 @@
 
 { lib, mkCoqDerivation, which, coq
   ## declare extra dependencies here, to be used in propagateBuildInputs e.g.
-  , mathcomp
+  , mathcomp, algebra-tactics
   , version ? null }:
 
 with lib; mkCoqDerivation {
@@ -33,7 +33,11 @@ with lib; mkCoqDerivation {
   # releaseRev = v: "v${v}";
 
   ## Add dependencies in here (declare them first at the begining of the file
-  propagatedBuildInputs = [ mathcomp.algebra mathcomp.fingroup ]; ## e.g. `= [ mathcomp coq-elpi ]`
+  propagatedBuildInputs = [
+    mathcomp.algebra
+    mathcomp.fingroup
+    algebra-tactics
+  ];
 
   useDune2 = true;
 

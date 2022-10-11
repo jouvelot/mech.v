@@ -39,3 +39,5 @@ Find below some links to bibliography and related projects:
 
 - Pierre Jouvelot, Mines Paris, Université PSL
 - Emilio Gallego Arias, Inria, Paris
+- Lucas Massoni Sguerra, Mines Paris, Université PSL
+

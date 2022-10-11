@@ -31,7 +31,8 @@ From Coq Require Import Init.Prelude Unicode.Utf8.
 From mathcomp Require Import all_ssreflect.
 From mathcomp Require Import fingroup.perm.
 
-From vcg Require Import lib labelling mech General_VCG VCG_Search_as_General_VCG.
+From mech.lib Require Import lib labelling mech.
+From mech.vcg Require Import General_VCG VCG_Search_as_General_VCG.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -685,5 +686,5 @@ exact: G.truthful_General_VCG.
 Qed.
 
 (* Print Assumptions truthful_VCG_for_Search. *)
-Print Assumptions truthful_VCG_for_Search_rel.
+(* Print Assumptions truthful_VCG_for_Search_rel. *)
 

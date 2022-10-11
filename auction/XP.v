@@ -15,7 +15,7 @@
 From Coq Require Import Unicode.Utf8.
 From mathcomp Require Import all_ssreflect all_algebra.
 
-From vcg Require Import lib mech.
+From mech.lib Require Import lib mech.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -77,5 +77,5 @@ Qed.
 
 End Properties.
 
-Print Assumptions truthful_FP.
-Check truthful_FP.
+(* Print Assumptions truthful_FP. *)
+(* Check truthful_FP. *)

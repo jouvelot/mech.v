@@ -12,7 +12,7 @@ From Coq Require Import Unicode.Utf8.
 From mathcomp Require Import all_ssreflect.
 From mathcomp.fingroup Require Import perm.
 
-From vcg Require Import lib.
+From mech Require Import lib.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

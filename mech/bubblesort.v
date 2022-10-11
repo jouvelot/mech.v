@@ -548,5 +548,6 @@ apply.
 by rewrite (@leq_trans i) // ltn_predL.
 Qed.
 
-Check strict_bubble_sort_spec.
-Print Assumptions strict_bubble_sort_spec.
+(* Disabled until Coq supports a flag for this *)
+(* Check strict_bubble_sort_spec. *)
+(* Print Assumptions strict_bubble_sort_spec. *)

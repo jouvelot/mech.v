@@ -383,6 +383,17 @@ Definition prefs := auction.prefs a v.
 
 Section Properties.
 
+(** SP is rational if one bids truthfully. *)
+
+Theorem rational (bs : bids) (i : A) (i_wins : is_winner bs i) : 
+  tnth bs i = v i -> price bs i <= v i.
+Proof. 
+move: i_wins; rewrite /is_winner => /eqP _ <-.
+by rewrite -(labelling_spec_idxa geq_bid bs i) tsorted_bids_sorted // le_ord_succ.
+Qed.
+
+(** SP is truthful *)
+
 Theorem truthful_SP : truthful prefs.
 Proof. 
 rewrite /truthful => bs bs' i diff /=.

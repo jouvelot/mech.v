@@ -59,9 +59,9 @@ End Algorithm.
 
 End FP.
 
-(** FP has zero utility for the winner if s/he bids truthfully. *)
+Section Theorems.
 
-Section ZeroUtility.
+(** FP has zero utility for the winner if s/he bids truthfully. *)
 
 Variable (a_n' : nat).
 
@@ -97,7 +97,13 @@ rewrite /U /prefs.U /= /auction.U /auction.p /= tnth_map ifT -?tv;
 by move: i_wins => /=; rewrite /is_winner tnth_ord_tuple.
 Qed.
 
-End ZeroUtility.
+(** FP is rational if one bids truthfully. *)
+
+Theorem rational (bs : bids) (i : A) : 
+  tnth bs i = tnth vs i -> price bs i <= tnth vs i.
+Proof. by rewrite /price labelling_spec_idxa => ->. Qed.
+
+End Theorems.
 
 (** Non truthfulness. *)
 

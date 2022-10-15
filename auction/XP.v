@@ -4,7 +4,7 @@
 
   Fixed Price, as a mech.v instance.
 
-  Proofs of truthfulness and Pareto-optimality.
+  Proofs of rationality, truthfulness and Pareto-optimality.
 
   Pierre Jouvelot (7/2021).
 
@@ -48,6 +48,14 @@ Variable v : agent.type n -> 'I_b.
 Definition p := auction.prefs a v.
 
 Section Properties.
+
+(** XP is rational if one bids one's true value `v`. *)
+
+Notation bids := (n.-tuple 'I_b).
+
+Lemma rational (bs : bids) (i : agent.type n) (i_wins : is_winner  bs i) : 
+  tnth bs i = v i -> price <= v i.
+Proof. by move=> <-. Qed.
 
 Lemma truthful_FP : truthful p.
 Proof. 

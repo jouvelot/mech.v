@@ -4,7 +4,7 @@
   
   Generalized Second Prize (see Tim Roughgarden's Lecture note #13 CS269I).
 
-  Proof by counter-example that GSP is not truthful.
+  Proof of rationality and, by counter-example, that GSP is not truthful.
 
   Pierre Jouvelot (30/6/2021).
 
@@ -70,6 +70,23 @@ Definition slot_won := @sub_ord k' (k' - i').
 Definition price := [bid (agent_succ i') in bs] * 'ctr_slot_won.
 
 End Algorithm.
+
+(** GSP is rational if one bids one's true value `v`. *)
+
+Variable v : A -> bid.
+
+Theorem rational (bs : bids) (i : A) (i_wins : is_winner  bs i) : 
+  tnth bs i = v i -> price bs i <= v i * 'ctr_(slot_won bs i).
+Proof. 
+move: i_wins; rewrite /is_winner => /eqP _ <-.
+have tsorted_bids_sorted: sorted_bids (tsort bs).
+  apply/sorted_bids_sorted.
+  apply: sort_sorted.
+  exact: total_geq_bid.
+rewrite /price -(labelling_spec_idxa geq_bid bs i).
+case s0: ('ctr_ (slot_won bs i) == ord0); first by move: s0 => /eqP -> /=; rewrite !muln0.
+by rewrite leq_pmul2r ?lt0n ?negbT // tsorted_bids_sorted // le_ord_succ.
+Qed.
 
 End GSP.
 

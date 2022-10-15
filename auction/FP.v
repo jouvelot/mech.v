@@ -4,7 +4,7 @@
   
   First Prize.
 
-  Proof by counter-example that FP is not truthful.
+  Proof of 0-utility, rationality and, by counter-example, that FP is not truthful.
 
   Pierre Jouvelot (30/1/2022).
 
@@ -61,8 +61,6 @@ End FP.
 
 Section Theorems.
 
-(** FP has zero utility for the winner if s/he bids truthfully. *)
-
 Variable (a_n' : nat).
 
 Notation A := (A a_n').
@@ -87,6 +85,8 @@ Variable (vs : n.-tuple bid).
 Definition ps := auction.prefs a (tnth vs).
 
 Definition U := prefs.U ps.
+
+(** FP has zero utility for the winner if s/he bids truthfully. *)
 
 Lemma zero_utility (bs : bids) (i : A) (i_wins : is_winner bs i) :
   tnth bs i = tnth vs i -> U i (m bs) = 0.

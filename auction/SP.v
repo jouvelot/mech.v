@@ -7,6 +7,7 @@
   Reference: see Tim Roughgarden's Lecture note #13 CS269I.
 
   Proofs :
+  - SP is rational.
   - SP is truthful.
   - SP is Pareto-optimal.
 

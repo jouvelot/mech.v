@@ -462,26 +462,22 @@ Qed.
 
 Section Nash.
 
-Variable bs : bids.
-
-Definition l := tlabel geq_bid bs.
-
-Notation strategy := (strategy [eqType of bid] n).
-
-Definition wolf : strategy := fun j => if idxa bs j == i0 then v j else ord0.
-
-Definition twolf := [tuple wolf j | j < n].
-
-Definition sorted_twolf := [tuple of (v (tnth l i0)) :: nseq n' bid0].
-
 Notation cancel_inv_idxa := (cancel_inv_idxa geq_bid).
 Notation labelling_spec_idxa := (labelling_spec_idxa geq_bid).
 Notation tlabel := (tlabel geq_bid).
 
+Variable bs : bids.
+
+Definition l := tlabel bs.
+
+Definition wolf := [tuple if idxa bs j == i0 then v j else bid0 | j < n].
+
+Definition sorted_wolf := [tuple of (v (tnth l i0)) :: nseq n' bid0].
+
 Local Lemma refold (b : bid) : b :: nseq n'' b = nseq n' b. 
 Proof. by []. Qed.
 
-Lemma sorted_sorted_twolf : sorted_bids sorted_twolf.
+Lemma sorted_sorted_wolf : sorted_bids sorted_wolf.
 Proof.
 move=> j1 j2 le12.
 rewrite !(tnth_nth bid0).
@@ -494,7 +490,7 @@ have [/eqP -> |] := boolP (j1 == i0).
   by rewrite -(@prednK j2) // -(@prednK j1) //= !refold nth_nseq if_same.
 Qed.
 
-Lemma perm_eq_twolf : perm_eq sorted_twolf twolf. 
+Lemma perm_eq_wolf : perm_eq sorted_wolf wolf. 
 Proof.
 apply/tuple_permP.
 exists (tperm i0 (tnth l i0)).
@@ -508,30 +504,30 @@ have [/eqP eqi0|] := boolP (i == i0).
 - rewrite nth_agent_enum /= => nei0. 
   rewrite -lt0n in nei0. 
   have [/eqP eqil0|neil0] := boolP (Ordinal ltin == tnth l i0).
-  - rewrite eqil0 tpermR /= /twolf tnth_map tnth_ord_tuple /wolf.
+  - rewrite eqil0 tpermR /= tnth_map tnth_ord_tuple /wolf.
     rewrite -(@prednK i) //= ?refold ?nth_nseq ?if_same ifF //.
     apply: (contra_eqF _ eqil0) => /eqP <-.
     by rewrite cancel_idxa -(inj_eq val_inj) /= -lt0n.
   - rewrite -[in LHS](@prednK i) //= refold nth_nseq if_same. 
-    rewrite tpermD /twolf ?tnth_map ?tnth_ord_tupl /wolf; last exact: (contra_neq _ neil0).
+    rewrite tpermD ?tnth_map ?tnth_ord_tupl /wolf; last exact: (contra_neq _ neil0).
     - rewrite tnth_ord_tuple ifF //.
       apply: (contra_neqF _ neil0) => /eqP <-.
       by rewrite cancel_idxa.
     - by rewrite -(inj_eq val_inj) /= eq_sym -lt0n.
 Qed.
 
-Lemma sorted_wolf : tsort twolf = sorted_twolf. 
+Lemma sort_wolf : tsort wolf = sorted_wolf. 
 Proof.
 have tr: transitive geq_bid by exact: transitive_geq_bid.
 apply: val_inj => /=. 
-have := perm_eq_twolf => /(@perm_sortP _ geq_bid) <- //; last by exact: anti_geq_bid.
+have := perm_eq_wolf => /(@perm_sortP _ geq_bid) <- //; last by exact: anti_geq_bid.
 - rewrite sorted_sort => [//|//|].  
-  rewrite (iffLR (sorted_bids_sorted sorted_twolf)) //.
-  exact: sorted_sorted_twolf.
+  rewrite (iffLR (sorted_bids_sorted sorted_wolf)) //.
+  exact: sorted_sorted_wolf.
 - exact: total_geq_bid.
 Qed.                                      
 
-Lemma Nash_wolf_and_sheep (tv : tnth bs =1 v) : Nash_equilibrium prefs wolf.
+Lemma Nash_wolf_and_sheep (tv : tnth bs =1 v) : Nash_equilibrium prefs (tnth wolf).
 Proof.
 rewrite /Nash_equilibrium => i s'. 
 rewrite /U /prefs.U /= /auction.U /auction.p /= !tnth_map !tnth_ord_tuple.
@@ -545,12 +541,12 @@ case: ifP => [/eqP iw|neiw].
   - by rewrite tsorted_bids_sorted // iw.
   - by rewrite /action_on !tnth_map !tnth_ord_tuple ifF // (negbTE neji).
 - rewrite eqix'0 -tv.
-  pose b := [tuple wolf j  | j < n]. 
-  rewrite leqn0 subn_eq0 (@eq_losing_price b b' i) ?negbT //; last first.
+  rewrite leqn0 subn_eq0 (@eq_losing_price wolf b' i) ?negbT //; last first. 
+  - by rewrite tuple_of_tnth in neiw.
   - rewrite /differ_on /action_on => j.
     by rewrite !tnth_map !tnth_ord_tuple -{2}(negbK (j == i)) => ->.
-  - have -> : tnth (tsort b) i0 = tnth (tsort bs) i0. 
-      rewrite sorted_wolf (tnth_nth bid0) /=. 
+  - have -> : tnth (tsort wolf) i0 = tnth (tsort bs) i0. 
+      rewrite sort_wolf (tnth_nth bid0) /=. 
       by rewrite -[in RHS](cancel_inv_idxa bs i0) (labelling_spec_idxa bs) -tv.
     by rewrite -(labelling_spec_idxa bs) tsorted_bids_sorted.
 Qed.

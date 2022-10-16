@@ -10,6 +10,7 @@
   - SP is rational.
   - SP is truthful.
   - SP is Pareto-optimal.
+  - Provide 2 Nash equilibria (default and "Wolf and Sheep").
 
   Pierre Jouvelot (30/6/2021).
 
@@ -414,7 +415,149 @@ case: ifP => iw.
   exact: tsorted_bids_sorted.
   by move: iw; apply: contraFneq => ->.
   by apply/eqP.
-Qed.  
+Qed. 
+
+(** Two proofs that SP with truthful bidding is a Nash equilibrium:
+    - direct
+    - using weak dominance property. *)
+
+Lemma SP_Nash_truthful_direct: Nash_equilibrium prefs v.
+Proof.
+rewrite /Nash_equilibrium => i s'. 
+rewrite /U /prefs.U /= /auction.U /auction.p /= !tnth_map !tnth_ord_tuple.
+case: ifP => [iw'|//].
+move: iw'; rewrite /is_winner /actions /price => /eqP eqix'0.  
+case: ifP => [iw|neiw]; last first.
+- pose bs := [tuple v j | j < n]; set bs' := (X in tsort X).
+  rewrite eqix'0 (@eq_losing_price bs bs' i) //; last by rewrite negbT.
+  - have -> : v i = tnth (tsort bs) (idxa bs i) 
+      by rewrite labelling_spec_idxa tnth_map tnth_ord_tuple.
+    by rewrite leqn0 subn_eq0 tsorted_bids_sorted. 
+  - rewrite /differ_on /action_on => j. 
+    by rewrite !tnth_map !tnth_ord_tuple -{2}(negbK (j == i)) => ->.
+- rewrite leq_sub2l // /price.
+  move: (iw); rewrite /is_winner => /eqP eqix0.
+  set bs := actions v; set bs' := set_in_actions v s' i.
+  rewrite eqix0 eqix'0 (@eq_winning_price bs bs' i) // => j neji.
+  by rewrite /differ_on /action_on !tnth_map !tnth_ord_tuple ifF // (negbTE neji).
+Qed.
+
+Definition m' := truthfulMech.new truthful_SP.
+
+Definition a' := 
+  auction.new (fun (o : mech.O m') i => 
+                 let: (w, bs) := tnth o i in if w then Some (price bs i) else None).
+
+Definition prefs' := auction.prefs a' v.
+
+Lemma SP_Nash_truthful_dominant: Nash_equilibrium prefs' v.
+Proof.
+apply: dominant_is_Nash.
+apply: (iffLR (@truthfulMech.truthful_iff_weakly_dominant _ _ m' prefs')). 
+exact: truthful_SP.
+Qed.
+
+(** "Wolf and sheep" is a Nash equilibrium for SP when bidding truthfully. 
+     See https://homepages.cwi.nl/~apt/stra/ch7.pdf. *)
+
+Section Nash.
+
+Variable bs : bids.
+
+Definition l := tlabel geq_bid bs.
+
+Notation strategy := (strategy [eqType of bid] n).
+
+Definition wolf : strategy := fun j => if idxa bs j == i0 then v j else ord0.
+
+Definition twolf := [tuple wolf j | j < n].
+
+Definition sorted_twolf := [tuple of (v (tnth l i0)) :: nseq n' bid0].
+
+Notation cancel_inv_idxa := (cancel_inv_idxa geq_bid).
+Notation labelling_spec_idxa := (labelling_spec_idxa geq_bid).
+Notation tlabel := (tlabel geq_bid).
+
+Local Lemma refold (b : bid) : b :: nseq n'' b = nseq n' b. 
+Proof. by []. Qed.
+
+Lemma sorted_sorted_twolf : sorted_bids sorted_twolf.
+Proof.
+move=> j1 j2 le12.
+rewrite !(tnth_nth bid0).
+have [/eqP -> |] := boolP (j1 == i0).
+- have [/eqP -> //=|ne20] := boolP (j2 == i0).
+  have lt02: 0 < j2 by move: ne20;  rewrite -(inj_eq val_inj) /= lt0n.
+  by rewrite -(@prednK j2) //= refold nth_nseq if_same.
+- rewrite -(inj_eq val_inj) /= -lt0n => lt01. 
+  have lt02: 0 < j2 by rewrite (@leq_trans j1). 
+  by rewrite -(@prednK j2) // -(@prednK j1) //= !refold nth_nseq if_same.
+Qed.
+
+Lemma perm_eq_twolf : perm_eq sorted_twolf twolf. 
+Proof.
+apply/tuple_permP.
+exists (tperm i0 (tnth l i0)).
+apply: (@eq_from_nth _ ord0) => [|i ltin]; first by rewrite !size_tuple.
+rewrite /= size_nseq in ltin. 
+rewrite !(nth_map ord_max) -?enumT ?size_enum_ord //.
+have [/eqP eqi0|] := boolP (i == i0).
+- rewrite eqi0 /= nth_agent_enum.
+  have -> : @Ordinal (S n') O is_true_true = ord0 by exact: val_inj.
+  by rewrite tpermL /= tnth_map tnth_ord_tuple /wolf cancel_inv_idxa -(inj_eq val_inj).
+- rewrite nth_agent_enum /= => nei0. 
+  rewrite -lt0n in nei0. 
+  have [/eqP eqil0|neil0] := boolP (Ordinal ltin == tnth l i0).
+  - rewrite eqil0 tpermR /= /twolf tnth_map tnth_ord_tuple /wolf.
+    rewrite -(@prednK i) //= ?refold ?nth_nseq ?if_same ifF //.
+    apply: (contra_eqF _ eqil0) => /eqP <-.
+    by rewrite cancel_idxa -(inj_eq val_inj) /= -lt0n.
+  - rewrite -[in LHS](@prednK i) //= refold nth_nseq if_same. 
+    rewrite tpermD /twolf ?tnth_map ?tnth_ord_tupl /wolf; last exact: (contra_neq _ neil0).
+    - rewrite tnth_ord_tuple ifF //.
+      apply: (contra_neqF _ neil0) => /eqP <-.
+      by rewrite cancel_idxa.
+    - by rewrite -(inj_eq val_inj) /= eq_sym -lt0n.
+Qed.
+
+Lemma sorted_wolf : tsort twolf = sorted_twolf. 
+Proof.
+have tr: transitive geq_bid by exact: transitive_geq_bid.
+apply: val_inj => /=. 
+have := perm_eq_twolf => /(@perm_sortP _ geq_bid) <- //; last by exact: anti_geq_bid.
+- rewrite sorted_sort => [//|//|].  
+  rewrite (iffLR (sorted_bids_sorted sorted_twolf)) //.
+  exact: sorted_sorted_twolf.
+- exact: total_geq_bid.
+Qed.                                      
+
+Lemma Nash_wolf_and_sheep (tv : tnth bs =1 v) : Nash_equilibrium prefs wolf.
+Proof.
+rewrite /Nash_equilibrium => i s'. 
+rewrite /U /prefs.U /= /auction.U /auction.p /= !tnth_map !tnth_ord_tuple.
+set b' := (X in price X).
+case: ifP => [iw'|//]. 
+move: iw'; rewrite /is_winner /actions /price => /eqP eqix'0.  
+case: ifP => [/eqP iw|neiw].  
+- rewrite /price leq_sub2l // /set_in_actions /actions.
+  set b := (X in tsort X).
+  rewrite eqix'0 (@eq_winning_price b b' i) // => [|j neji]. 
+  - by rewrite tsorted_bids_sorted // iw.
+  - by rewrite /action_on !tnth_map !tnth_ord_tuple ifF // (negbTE neji).
+- rewrite eqix'0 -tv.
+  pose b := [tuple wolf j  | j < n]. 
+  rewrite leqn0 subn_eq0 (@eq_losing_price b b' i) ?negbT //; last first.
+  - rewrite /differ_on /action_on => j.
+    by rewrite !tnth_map !tnth_ord_tuple -{2}(negbK (j == i)) => ->.
+  - have -> : tnth (tsort b) i0 = tnth (tsort bs) i0. 
+      rewrite sorted_wolf (tnth_nth bid0) /=. 
+      by rewrite -[in RHS](cancel_inv_idxa bs i0) (labelling_spec_idxa bs) -tv.
+    by rewrite -(labelling_spec_idxa bs) tsorted_bids_sorted.
+Qed.
+
+End Nash.
+
+(** Trutful bidding is a Pareto optimum. *)
 
 Lemma Pareto_optimal_SP : Pareto_optimal prefs (true_value_strategy prefs).
 Proof.

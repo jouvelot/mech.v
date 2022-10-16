@@ -460,7 +460,7 @@ Qed.
 (** "Wolf and sheep" is a Nash equilibrium for SP when bidding truthfully. 
      See https://homepages.cwi.nl/~apt/stra/ch7.pdf. *)
 
-Section Nash.
+Section Wolf.
 
 Notation cancel_inv_idxa := (cancel_inv_idxa geq_bid).
 Notation labelling_spec_idxa := (labelling_spec_idxa geq_bid).
@@ -540,8 +540,7 @@ case: ifP => [/eqP iw|neiw].
   rewrite eqix'0 (@eq_winning_price b b' i) // => [|j neji]. 
   - by rewrite tsorted_bids_sorted // iw.
   - by rewrite /action_on !tnth_map !tnth_ord_tuple ifF // (negbTE neji).
-- rewrite eqix'0 -tv.
-  rewrite leqn0 subn_eq0 (@eq_losing_price wolf b' i) ?negbT //; last first. 
+- rewrite eqix'0 -tv leqn0 subn_eq0 (@eq_losing_price wolf b' i) ?negbT //; last first. 
   - by rewrite tuple_of_tnth in neiw.
   - rewrite /differ_on /action_on => j.
     by rewrite !tnth_map !tnth_ord_tuple -{2}(negbK (j == i)) => ->.
@@ -551,7 +550,7 @@ case: ifP => [/eqP iw|neiw].
     by rewrite -(labelling_spec_idxa bs) tsorted_bids_sorted.
 Qed.
 
-End Nash.
+End Wolf.
 
 (** Trutful bidding is a Pareto optimum. *)
 

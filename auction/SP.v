@@ -530,14 +530,14 @@ Qed.
 Lemma Nash_wolf_and_sheep (tv : tnth bs =1 v) : Nash_equilibrium prefs (tnth wolf).
 Proof.
 rewrite /Nash_equilibrium => i s'. 
-rewrite /U /prefs.U /= /auction.U /auction.p /= !tnth_map !tnth_ord_tuple.
+rewrite /U /prefs.U /= /auction.U /auction.p /= !tnth_map !tnth_ord_tuple. 
 set b' := (X in price X).
 case: ifP => [iw'|//]. 
 move: iw'; rewrite /is_winner /actions /price => /eqP eqix'0.  
 case: ifP => [/eqP iw|neiw].  
 - rewrite /price leq_sub2l // /set_in_actions /actions.
-  set b := (X in tsort X).
-  rewrite eqix'0 (@eq_winning_price b b' i) // => [|j neji]. 
+  rewrite tuple_of_tnth in iw *.
+  rewrite eqix'0 (@eq_winning_price wolf b' i) // => [|j neji]. 
   - by rewrite tsorted_bids_sorted // iw.
   - by rewrite /action_on !tnth_map !tnth_ord_tuple ifF // (negbTE neji).
 - rewrite eqix'0 -tv leqn0 subn_eq0 (@eq_losing_price wolf b' i) ?negbT //; last first. 

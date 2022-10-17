@@ -529,7 +529,7 @@ split => //.
 by move=> ->.
 Qed.
 
-Lemma truthful_iff_weakly_dominant_i i bs (tvi : action_on bs i = 'v_i) :
+Local Lemma truthful_iff_weakly_dominant_i i bs (tvi : action_on bs i = 'v_i) :
   (forall bs', truthful' p bs bs' i) <-> 
   (forall bs', differ_on bs bs' i -> weakly_dominates (action_on bs) (action_on bs') i).
 Proof.

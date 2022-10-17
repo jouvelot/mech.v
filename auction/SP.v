@@ -451,13 +451,9 @@ Definition a' :=
 Definition prefs' := auction.prefs a' v.
 
 Lemma SP_Nash_truthful_dominant: Nash_equilibrium prefs' v.
-Proof.
-apply: dominant_is_Nash.
-apply: (iffLR (@truthfulMech.truthful_iff_weakly_dominant _ _ m' prefs')). 
-exact: truthful_SP.
-Qed.
+Proof. exact: truthfulMech.Nash_truthful. Qed.
 
-(** "Wolf and sheep" is a Nash equilibrium for SP when bidding truthfully. 
+(** "Wolf and sheep" bidding is a Nash equilibrium for SP when bidding truthfully. 
      See https://homepages.cwi.nl/~apt/stra/ch7.pdf. *)
 
 Section Wolf.

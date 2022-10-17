@@ -501,7 +501,7 @@ Variable m : @truthfulMech.type A n.
 Notation agent := (agent.type n).
 Notation prefs := (@prefs.type A n).
 
-Variable p : prefs m.
+Notation p := (p m).
 
 Notation "'v_ i" := (prefs.v p i) (at level 10).
 
@@ -554,12 +554,19 @@ split=> [t i s' /=|/= d bs bs' i diff tv].
   by rewrite tv.
 Qed.
 
+Lemma Nash_truthful: Nash_equilibrium p (true_value_strategy p).
+Proof.
+apply: dominant_is_Nash.
+apply: (iffLR truthful_iff_weakly_dominant). 
+by case: m. 
+Qed.
+
 End Properties.
 
 Lemma truthful_implies_weakly_dominant (A : eqType) n (m : truthfulMech.type A n) : 
   weakly_dominant (p m) (true_value_strategy (p m)).
 Proof.
-apply: (iffLR (truthful_iff_weakly_dominant (p m))). 
+apply: (iffLR (truthful_iff_weakly_dominant m)). 
 by case: m.
 Qed.
 

@@ -555,11 +555,7 @@ split=> [t i s' /=|/= d bs bs' i diff tv].
 Qed.
 
 Lemma Nash_truthful: Nash_equilibrium p (true_value_strategy p).
-Proof.
-apply: dominant_is_Nash.
-apply: (iffLR truthful_iff_weakly_dominant). 
-by case: m. 
-Qed.
+Proof. by apply/dominant_is_Nash/(iffLR truthful_iff_weakly_dominant); case: m. Qed.
 
 End Properties.
 

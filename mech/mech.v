@@ -563,13 +563,6 @@ Qed.
 
 End Properties.
 
-Lemma truthful_implies_weakly_dominant (A : eqType) n (m : truthfulMech.type A n) : 
-  weakly_dominant (p m) (true_value_strategy (p m)).
-Proof.
-apply: (iffLR (truthful_iff_weakly_dominant m)). 
-by case: m.
-Qed.
-
 End truthfulMech.
 
 Coercion truthfulMech.b : truthfulMech.type >-> mech.type.

@@ -177,8 +177,7 @@ Lemma dominant_strict_is_weak : strictly_dominant -> weakly_dominant.
 Proof.
 move=> d i s'. 
 move: (d i s').  
-have [] := boolP ([forall i, s i == s' i]) => 
-           [eqss' _|/eqfunP ness' /(_ ness')]; last by exact: ltnW.
+have [eqss' _|/eqfunP ness' /(_ ness')] := boolP ([forall i, s i == s' i]); last by exact: ltnW.
 rewrite /dominates /= eq_leq //.
 congr (U _ (_ _)).
 apply: eq_from_tnth => j.
@@ -201,7 +200,7 @@ Lemma dominant_is_Nash : weakly_dominant s -> Nash_equilibrium s.
 Proof.
 move=> d i s' /=.  
 move: (d i (fun j => if j == i then s' j else s j)).
-have [] := boolP ([forall i, s i == s' i]) => [eqss'|_ ltuu'].
+have [eqss'|_ ltuu'] := boolP ([forall i, s i == s' i]).
 - rewrite eq_leq //; congr (U i (m _)).
   apply: eq_from_tnth => j.
   rewrite !tnth_map !tnth_ord_tuple.
@@ -218,7 +217,7 @@ Lemma Nash_uniq : strictly_dominant s -> forall s', Nash_equilibrium s' -> s' =1
 Proof.
 rewrite /strictly_dominant /dominates /Nash_equilibrium /= => d s' N i.
 move: (d i s'). 
-have [] := boolP ([forall i, s i == s' i]) => [/eqfunP -> //|/eqfunP ness' /(_ ness')].
+have [/eqfunP -> //|/eqfunP ness' /(_ ness')] := boolP ([forall i, s i == s' i]).
 by rewrite ltnNge N.
 Qed.
 
@@ -251,11 +250,11 @@ Lemma Nash_singleton : strictly_dominant s -> singleton Nash_equilibrium_spec.
 Proof.
 move=> d _ _ [s1 NE1] [s2 NE2].
 apply/ffunP => i.
-move: (d i s1).
-have [] := boolP ([forall i, s i == s1 i]) => [/forallP/(_ i)/eqP <-|/eqfunP ness1 /(_ ness1)];
-                                          last by rewrite /dominates /= ltnNge NE1. 
+move: (d i s1). 
+have [/forallP/(_ i)/eqP <-|/eqfunP ness1 /(_ ness1)] := boolP ([forall i, s i == s1 i]);
+  last by rewrite /dominates /= ltnNge NE1. 
 move: (d i s2).
-have [] := boolP ([forall i, s i == s2 i]) => [/forallP/(_ i)/eqP <- //|/eqfunP ness2 /(_ ness2)].
+have [/forallP/(_ i)/eqP <- //|/eqfunP ness2 /(_ ness2)] := boolP ([forall i, s i == s2 i]).
 by rewrite /dominates /= ltnNge NE2. 
 Qed.
 
@@ -550,7 +549,7 @@ split=> [t i s' /=|/= d bs bs' i diff tv].
   rewrite (leq_trans ltuu) // eq_leq //; congr (U _ _ (m _)). 
   apply: eq_from_tnth => j.
   rewrite tnth_map tnth_ord_tuple.
-  have [] := boolP (j == i) => [/eqP ->|/diff //].
+  have [/eqP ->|/diff //] := boolP (j == i).
   by rewrite tv.
 Qed.
 

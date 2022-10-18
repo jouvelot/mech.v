@@ -265,7 +265,7 @@ have relab (j : A) (ltij : i < j): tnth bs' (tnth l j) =  tnth (tsort bs) j.
   - by rewrite andbF !relab ?ltnNge // tsorted_bids_sorted.
 Qed.
 
-Lemma under_inj: injective under_index.
+Lemma under_inj : injective under_index.
 Proof.
 move=> j1 j2.
 wlog: j1 j2 / j1 <= j2 => [H|].
@@ -450,10 +450,10 @@ Definition a' :=
 
 Definition prefs' := auction.prefs a' v.
 
-Lemma SP_Nash_truthful_dominant: Nash_equilibrium prefs' v.
+Lemma SP_Nash_truthful : Nash_equilibrium prefs' v.
 Proof. exact: truthfulMech.Nash_truthful. Qed.
 
-(** "Wolf and sheep" bidding is a Nash equilibrium for SP when bidding truthfully. 
+(** "Wolf and sheep" bidding is another Nash equilibrium for SP when bidding truthfully. 
      See https://homepages.cwi.nl/~apt/stra/ch7.pdf. *)
 
 Section Wolf.
@@ -548,7 +548,7 @@ Qed.
 
 End Wolf.
 
-(** Trutful bidding is a Pareto optimum. *)
+(** Trutful bidding in SP is a Pareto optimum. *)
 
 Lemma Pareto_optimal_SP : Pareto_optimal prefs (true_value_strategy prefs).
 Proof.
@@ -570,9 +570,9 @@ have -> // : 0 < U' -> U' = U; last by rewrite (@leq_ltn_trans U).
     by rewrite /price iw iw' (@eq_winning_price bs bs' i).
   - apply/eqP; rewrite subn_eq0 /price.
     rewrite /is_winner in niw iw'.  
-    rewrite iw' (@eq_losing_price bs bs' i) //; last by rewrite niw.    
-    have: tnth (tsort bs) (idxa bs i) <= tnth (tsort bs) i0 by exact: tsorted_bids_sorted.
-    by rewrite labelling_spec_idxa tnth_map tnth_ord_tuple. 
+    rewrite iw' (@eq_losing_price bs bs' i) //; last by rewrite niw.     
+    rewrite (@leq_trans (tnth (tsort bs) (idxa bs i))) //; last by exact: tsorted_bids_sorted.
+    by rewrite !labelling_spec_idxa tnth_map tnth_ord_tuple. 
 by rewrite ltnn. 
 Qed.
 

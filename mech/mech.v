@@ -62,6 +62,9 @@ End Agent.
 
 End agent.
 
+Notation "{ 'agent' n }" := (agent.type n)
+  (at level 0, format "{ 'agent' n }") : type_scope.
+
 (** Mechanism, for a given domain [A] of actions, also called "messages", of [n] agents *) 
 
 Module mech.
@@ -80,6 +83,9 @@ End mech.
 
 Coercion mech.M : mech.type >-> Funclass.
 
+Notation "{ 'mech' n 'of' A }" := (@mech.type A n)
+  (at level 0, format "{ 'mech' n 'of' A }") : type_scope.
+
 (** Maps of agents' preferences, also called "profiles", for a given mechanism [m]. *)
 
 Module prefs.
@@ -88,22 +94,24 @@ Section Prefs.
 
 Variable (A : Type) (n : nat).
 
-Definition mech : Type := @mech.type A n.
+Definition mech : Type := {mech n of A}.
 
-Notation agent := (agent.type n).
-Notation strategy := (agent -> A).
+Local Notation strategy := ({agent n} -> A).
 
 Record type (m : mech) :=
   new {
       v : strategy;               (* "true value" strategy, mapping each agent private true 
                                      value, or "type", to an action/message *)
-      U : agent -> mech.O m -> nat;   (* utility *)
+      U : {agent n} -> mech.O m -> nat;   (* utility *)
       s : strategy                (* strategy used in [m] *)
     }. 
 
 End Prefs.
 
 End prefs.
+
+Notation "{ 'strategy' 'of' n 'with' A }" := ({agent n} -> A)
+  (at level 0, format "{ 'strategy' 'of' n 'with' A }") : type_scope.
 
 (** Auction, as a subclass of [mech]. *) 
 
@@ -115,22 +123,20 @@ Variable (n m : nat).
 
 Notation A := ('I_m).       (* Actions are bids, codede as ordinals, less than [m] *)
 
-Notation agent := (agent.type n).
-Notation strategy := (agent -> A).
-
 Record type := 
     new {
-        b :> @mech.type A n;              (* base mechanism *)
-        p : mech.O b -> agent -> option nat   (* price to pay for the outcome, per (winning) agent *)
+        b :> {mech n of A};              (* base mechanism *)
+        p : mech.O b -> {agent n} -> option nat   (* price to pay for the outcome, per (winning) agent *)
       }.
 
 (* Default auction a utility, given a true value strategy v. *)
 
-Definition U (a : type) (v : strategy) := fun i (o : mech.O a) => 
-                                            match p o i with
-                                            | Some p => v i - p
-                                            | _ => 0
-                                            end.
+Definition U (a : type) (v : {strategy of n with A}) := 
+  fun i (o : mech.O a) => 
+    match p o i with
+    | Some p => v i - p
+    | _ => 0
+    end.
 
 (* Default [prefs] for auction [a], given true value [v] (and [s] = [v]). *)
 
@@ -148,19 +154,18 @@ Section Strategy.
 
 Variable (A : eqType) (n : nat).
 
-Notation agent := (agent.type n).
-
-Definition strategy := agent -> A.
-
-Variable (m : @mech.type A n).
+Variable (m : {mech n of A}).
 Variable (p : @prefs.type A n m).
 
 Definition U := prefs.U p.
 
 Definition true_value_strategy := prefs.v p.
 
+Notation strategy := {strategy of n with A}.
+Notation agent := {agent n}.
+
 Definition actions (s : strategy) := [tuple s j | j < n].
-Definition set_in_actions (s s' : strategy) i :=
+Definition set_in_actions (s s' : {strategy of n with A}) i :=
   [tuple if j == i then s' j else s j | j < n].
 
 Section Dominance. (* See [1] *)
@@ -311,10 +316,9 @@ Section Truthfulness. (* for arbitrary action types *)
 
 Variable (n : nat) (A : Type).
 
-Notation agent := (agent.type n).
 Notation prefs := (@prefs.type A n).
 
-Variable m : @mech.type A n.
+Variable m : {mech n of A}.
 
 Variable p : @prefs m.
 
@@ -391,7 +395,7 @@ Variable (n : nat) (A : finType).
 Notation agent := (agent.type n).
 Notation prefs := (@prefs.type A n).
 
-Variable m : @mech.type A n.
+Variable m : {mech n of A}.
 
 Variable p : @prefs m.
 
@@ -484,7 +488,7 @@ Variable (A : Type) (n : nat).
 
 Record type := 
     new {
-        b :> @mech.type A n;             (* base mechanism *)
+        b :> {mech n of A};             (* base mechanism *)
         p : prefs.type b;                (* preferences *)
         _ : truthful p                   (* truthful prop *)
       }.
@@ -568,7 +572,7 @@ Section Perm.
 
 Variable (n : nat) (A : eqType).
 
-Variable m : @mech.type A n.
+Variable m : {mech n of A}.
 
 Notation O := (mech.O m).
 
@@ -585,7 +589,7 @@ Variable M_perm_ind : forall Pi bs, m (ptuple Pi bs) = m bs.
 
 Variable (bs bs' : n.-tuple A).
 
-Variable (s : strategy A n).
+Variable (s : {strategy of n with A}).
 
 Variable Pi : {perm 'I_n}.
 
@@ -628,7 +632,7 @@ Section Sorted.
 
 Variable (n : nat) (A : eqType).
 
-Variable m : @mech.type A n.
+Variable m : {mech n of A}.
 
 Notation O := (mech.O m).
 
@@ -641,7 +645,7 @@ Variable M_perm_ind : forall Pi bs,  m (ptuple Pi bs) = m bs.
 
 Variable (bs bs' : n.-tuple A) (i : 'I_n).
 
-Variable (s : strategy A n).
+Variable (s : {strategy of n with A}).
 
 Variable leq_act : rel A.
 
@@ -683,7 +687,7 @@ Variable (n : nat ) (A1 A2 : Type).
 
 Notation agent := (agent.type n).
 
-Variable (m1 : @mech.type A1 n) (m2 : @mech.type A2 n).
+Variable (m1 : {mech n of A1}) (m2 : {mech n of A2}).
 
 Notation O1 := (mech.O m1).
 Notation O2 := (mech.O m2).

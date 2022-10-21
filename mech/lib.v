@@ -30,24 +30,16 @@ End Misc.
 
 Section Arith.
 
-Lemma leq_transpose b1 b2 c1 c2
-      (leb2b1 : b1 >= b2)
-      (lec2c1 : c1 >= c2) :
+Lemma leq_transpose b1 b2 c1 c2 (leb2b1 : b1 >= b2) (lec2c1 : c1 >= c2) :
   b1 * c2 + b2 * c1 <= b1 * c1 + b2 * c2.
 Proof.
-have f: (b1 - b2) * (c1 - c2) = b1 * c1 + b2 * c2 - (b1 * c2 + b2 * c1).
-  rewrite mulnBr 2!mulnBl ?subnBA;
-    last by rewrite leq_mul2r leb2b1 orbT.
-  rewrite [X in _ = _ - X]addnC subnDA addnBAC //;
-    last by rewrite leq_mul2r leb2b1 orbT.
-- have [] := boolP (b2 == b1) => [/eqP -> |].
-  by rewrite addnC.
-- have [] := boolP (c2 == c1) => [/eqP -> //|].
-  rewrite !neq_ltn.
-  move/leq_gtF: lec2c1; move/leq_gtF: leb2b1 => -> ->.
-  rewrite !orbF => ltc2c1 ltb2b1.
-  apply: ltnW.
-  by rewrite -subn_gt0 -f muln_gt0 2!subn_gt0 ltb2b1 ltc2c1.
+have f: (b1 - b2) * (c1 - c2) = b1 * c1 + b2 * c2 - (b1 * c2 + b2 * c1). 
+  rewrite mulnBr 2!mulnBl ?subnBA; last by rewrite leq_mul2r leb2b1 orbT.
+  rewrite [X in _ = _ - X]addnC subnDA addnBAC //; last by rewrite leq_mul2r leb2b1 orbT.
+have [/eqP -> |] := boolP (b2 == b1); first by rewrite addnC.
+have [/eqP -> //|] := boolP (c2 == c1). 
+rewrite !neq_ltn (@ltnNge c1) (@ltnNge b1) leb2b1 lec2c1 /= !orbF => ltc2c1 ltb2b1.
+by rewrite ltnW // -subn_gt0 -f muln_gt0 2!subn_gt0 ltb2b1 ltc2c1.
 Qed.
 
 Lemma lenn1 j (lt0j : 0 < j) : j <= j.-1 = false.
@@ -57,21 +49,16 @@ Lemma sum_diff (y x z : nat) (leyz : z <= y) (leyx : y <= x) :
   x - z = (y - z) + (x - y).
 Proof.
 rewrite addnBAC //. 
-congr (_ - _).
-by rewrite subnKC // ?leq_sub2l // (@leq_ltn_trans i) // ?leq_subr.
+by congr (_ - _); rewrite subnKC // ?leq_sub2l // (@leq_ltn_trans i) // ?leq_subr.
 Qed.
 
-Lemma swap_dist_subl x x' y y' v 
-      (lexx' : x <= x') (leyy' : y <= y')
-      (leyvx : y <= v * x) :
+Lemma swap_dist_subl x x' y y' v (lexx' : x <= x') (leyy' : y <= y') (leyvx : y <= v * x) :
   v * (x' - x) <= y' - y  -> v * x' - y' <= v * x - y.
 Proof.
-- have [] := boolP (v * x' < y') => ltvx'y'.
-  by have /eqP // -> : v * x' - y' == 0 by rewrite -leqn0 -(subnn y') leq_sub2r // ltnW.
-- move: ltvx'y'; rewrite -ltnNge ltnS.
-  rewrite leq_eqVlt => /orP [/eqP -> |lty'vx']; first by rewrite subnn.
-  move: lexx'; rewrite leq_eqVlt => /orP [/eqP -> _ |ltx'x g]. 
-  rewrite leq_sub2l //.
+have [ltvx'y'|] := boolP (v * x' < y').
+- by have /eqP // -> : v * x' - y' == 0 by rewrite -leqn0 -(subnn y') leq_sub2r // ltnW.
+- rewrite -ltnNge ltnS leq_eqVlt => /orP [/eqP -> |lty'vx']; first by rewrite subnn.
+  move: lexx'; rewrite leq_eqVlt => /orP [/eqP -> _ |ltx'x g]; first by rewrite leq_sub2l.
   rewrite leq_subCl subnA //; last by rewrite leq_mul2l ltnW // orbT.
   by rewrite -mulnBr addnC -leq_subRL.
 Qed.
@@ -80,10 +67,9 @@ Lemma swap_dist_subr x x' y y' v
       (lex'x : x' <= x) (ley'y : y' <= y) :
     y - y' <= v * (x - x') -> v * x' - y' <= v * x - y.
 Proof.
-- have [] := boolP (v * x' < y') => ltvx'y'.
-  by have /eqP // -> : v * x' - y' == 0 by rewrite -leqn0 -(subnn y') leq_sub2r // ltnW.
-- move: ltvx'y'; rewrite -ltnNge ltnS.
-  rewrite leq_eqVlt => /orP [/eqP -> |lty'vx']; first by rewrite subnn.
+have [ltvx'y'|] := boolP (v * x' < y').
+- by have /eqP // -> : v * x' - y' == 0 by rewrite -leqn0 -(subnn y') leq_sub2r // ltnW.
+- rewrite -ltnNge ltnS leq_eqVlt => /orP [/eqP -> |lty'vx']; first by rewrite subnn.
   move: ley'y; rewrite leq_eqVlt => /orP [/eqP -> _ |lty'y]; first by rewrite leq_sub2r // leq_mul.
   rewrite leq_psubRL; last by rewrite subn_gt0.
   rewrite addnBA; last by rewrite ltnW.
@@ -96,11 +82,10 @@ Local Open Scope ring_scope.
 Import GRing.Theory Num.Theory.
 
 Lemma ler_swap [R : numDomainType] (x y z t : R) (h : x - y <= z - t) : t - y <= z - x.
-Proof.
-by rewrite ler_subr_addl addrA [X in X - y <= _]addrC -addrA -ler_subr_addl in h.
-Qed.
+Proof. by rewrite ler_subr_addl addrA [X in X - y <= _]addrC -addrA -ler_subr_addl in h. Qed.
 
 Close Scope ring_scope.
+
 End Arith.
 
 (** Sequences *)
@@ -179,8 +164,8 @@ Qed.
 Lemma cancel_ord_pred m (j : 'I_m.+1) : 0 < j -> ord_succ (ord_pred j) = j.
 Proof.
 move: j => [s p] /= lt0s.
-apply: ord_inj; rewrite /= prednK //; move: p.
-by rewrite -[X in X < m.+1](@prednK s) // -eqSS => /ltn_eqF ->.
+apply: ord_inj; rewrite /= prednK //. 
+by move: p; rewrite -[X in X < m.+1](@prednK s) // -eqSS => /ltn_eqF ->.
 Qed.
 
 Definition last_ord m := Ordinal (ltnSn m).
@@ -196,13 +181,12 @@ Qed.
 Lemma ord_succ_mon n (j j' : 'I_n.+1) : j <= j' -> ord_succ j <= ord_succ j'.
 Proof.
 move=> lejj' /=.
-have [] := boolP (j' != ord_max) => j'notlast.
-- rewrite !eq_proper_addS //=.
-  rewrite below_last_ord in j'notlast => //.
-  exact: leq_ltn_trans lejj' j'notlast.
-  by rewrite below_last_ord in j'notlast.
-- move: j'notlast; rewrite negbK => /eqP -> /=.
-  rewrite ifT //=.
+have [j'notlast|] := boolP (j' != ord_max).
+- rewrite below_last_ord in j'notlast => //.
+  rewrite !eq_proper_addS //=.
+  exact: (@leq_ltn_trans j'). 
+- rewrite negbK => /eqP -> /=.
+  rewrite eq_refl. 
   exact: ltn_addS_ord.
 Qed.
 
@@ -210,10 +194,7 @@ Lemma ord_pred_inj n (j j' : 'I_n.+1) (lt0j : 0 < j) (lt0j' : 0 < j') :
   ord_pred j = ord_pred j' -> j = j'.
 Proof.
 move/eqP.
-rewrite -(inj_eq val_inj) /=.
-(* move: (@PeanoNat.Nat.pred_inj j1 j2). *)
-rewrite -!subn1.
-rewrite -(eqn_add2r 1) -!addnABC // ?subnn ?addn0 => /eqP.
+rewrite -(inj_eq val_inj) /= -!subn1 -(eqn_add2r 1) -!addnABC // ?subnn ?addn0 => /eqP.
 exact: ord_inj.
 Qed.
 
@@ -234,12 +215,7 @@ Proof. by rewrite /= !eq_proper_addS; rewrite below_last_ord in jnotlast. Qed.
 Lemma lt_le_agent_succ n (j j' : 'I_n.+1) :
   j < j' -> ord_succ j <= j'.
 Proof.
-move=> ltjj'.
-rewrite -lt_le_agent // -(inj_eq val_inj) /=.
-have/ltn_eqF -> // : j < n.
-move: (ltn_ord j').
-rewrite ltnS.
-by apply: leq_trans.
+by move=> ltjj'; rewrite -lt_le_agent // -(inj_eq val_inj) /= neq_ltn (@leq_trans j') // leq_ord.
 Qed.
 
 Definition le_ord {n : nat} := [rel j1 j2 : 'I_n | j1 <= j2].
@@ -249,14 +225,13 @@ Proof. by apply: val_inj => /=; rewrite nth_enum_ord. Qed.
 
 Lemma sort_enum : forall n, sort le_ord (enum 'I_n) = enum 'I_n.
 Proof.
-case=> [|n]. 
-have -> //: enum 'I_0 = [::] by apply: size0nil; rewrite size_enum_ord.
-have r_transitive: transitive (@le_ord n.+1) by move=> j1 j2 j3 /=; apply: leq_trans.
-rewrite sorted_sort //= (@path_sorted _ _ (inord 0)) //.
+case=> [|n]; first by have -> : enum 'I_0 = [::] by apply: size0nil; rewrite size_enum_ord.
+rewrite sorted_sort //=; first by exact: leq_trans.  
+rewrite (@path_sorted _ _ (inord 0)) //.
 apply/(pathP (inord 0)) => //= j ltjs. 
 rewrite size_enum_ord in ltjs.
 rewrite nth_enum_ord //. 
-have [] := boolP (j == 0) => [/eqP -> //=|]; first by rewrite inordK.
+have [/eqP -> //=|] := boolP (j == 0); first by rewrite inordK.
 rewrite -lt0n => lt0j.
 by rewrite -(prednK lt0j) /= nth_enum_ord //= (@leq_trans j) // ?ltn_predL // ltnW.
 Qed.
@@ -292,33 +267,31 @@ Proof.
 rewrite size_take size_drop size_tuple.
 case: ifP => [//|/negbT].
 rewrite -leqNgt leq_eqVlt => /orP [/eqP //|]. 
-rewrite ltnNge. 
-by have -> // : m'.+1 - m <= n - m by rewrite leq_sub2r.
+by rewrite ltnNge leq_sub2r.
 Qed.
 
 Lemma sort_inj_ord : forall n (t : n.-tuple 'I_n) (tinj : injective (tnth t)),
   sort le_ord t = enum 'I_n.
 Proof. 
 case=> [t _|n t tinj]; first by rewrite tuple0 sortE /= [RHS]size0nil // size_enum_ord.
-have r_transitive: transitive le_ord by move=> j1 j2 j3 /=; apply: leq_trans.
 move: (@perm_iota_sort _ le_ord (inord 0) t) => [s p] eqs. 
-rewrite -sort_enum.
+rewrite -sort_enum. 
 apply/perm_sortP => //; last first.
-rewrite perm_sym.
-apply/tuple_permP. 
-have inv_l_inj : injective (invF tinj) by apply: (@can_inj _ _ _ (tnth t)); exact: f_invF.
-exists (perm inv_l_inj) => //=.
-apply: (@eq_from_nth _ (inord 0)) => [|j ltjs]; 
-  first by rewrite size_enum_ord size_map size_enum_ord.
-apply: val_inj => /=.
-rewrite size_enum_ord in ltjs.
-rewrite nth_enum_ord ?(@nth_map _ (inord 0) _ _ (fun j => tnth t (perm inv_l_inj j))) //;
-  last by rewrite size_enum_ord.
-rewrite permE canF_sym ?nth_enum_ord //.
-apply: invF_f.
-by move=> j1 j2 /=; rewrite -eqn_leq => /eqP; apply: val_inj.
-exact: leq_trans.
-exact: leq_total.
+- rewrite perm_sym.
+  apply/tuple_permP. 
+  have inv_l_inj : injective (invF tinj) by apply: (@can_inj _ _ _ (tnth t)); exact: f_invF.
+  exists (perm inv_l_inj) => //=.
+  apply: (@eq_from_nth _ (inord 0)) => [|j ltjs];
+    first by rewrite size_enum_ord size_map size_enum_ord.
+  apply: val_inj => /=.
+  rewrite size_enum_ord in ltjs.
+  rewrite nth_enum_ord ?(@nth_map _ (inord 0) _ _ (fun j => tnth t (perm inv_l_inj j))) //;
+          last by rewrite size_enum_ord.
+  rewrite permE canF_sym ?nth_enum_ord //.
+  exact: invF_f.
+- by move=> j1 j2 /=; rewrite -eqn_leq => /eqP; apply: val_inj.
+- exact: leq_trans.
+- exact: leq_total.
 Qed.
 
 Lemma inj_map_tuple (T1 T2 : eqType) (f : T1 -> T2) n :
@@ -348,7 +321,7 @@ Definition tuple_i m (t : m.-tuple T) (x : T) (lt_i_m : i < m) :=
 Lemma tuple_i_last m (t : m.+1.-tuple T) (x : T) :
   tnth t ord_max = last x (val t).
 Proof.
-rewrite (tnth_nth x) /=.
+rewrite (tnth_nth x) /=. 
 have eqns1: m = (size t).-1 by rewrite size_tuple.
 rewrite [X in nth _ _ X]eqns1.
 exact: nth_last.
@@ -367,16 +340,13 @@ nth_split_i j ltji; last by move/ltnW: lt_i_m.
 by rewrite nth_take.
 Qed.
 
-Lemma shifted_tuple_i m (t : m.+1.-tuple T) (x : T) (lt_i_m : i < m.+1)
-  (j : 'I_m.+1) :
+Lemma shifted_tuple_i m (t : m.+1.-tuple T) (x : T) (lt_i_m : i < m.+1) (j : 'I_m.+1) :
   i <= j -> j < m -> tnth (@tuple_i m.+1 t x lt_i_m) j = tnth t (ord_succ j).
 Proof.
-move=> leij ltjn1.
-move/ltnW: (ltn_ord i) => lein.
-rewrite tcastE !(tnth_nth x) /=.
-rewrite nth_cat size_takel; last by rewrite size_tuple; move/ltnW: lt_i_m.
+move=> leij ltjn1. 
+rewrite tcastE !(tnth_nth x) /= nth_cat size_takel; last by rewrite size_tuple ltnW. 
 rewrite leq_gtF // nth_cat size_drop size_tuple subnS ltn_predRL -subSn //.
-rewrite ltn_sub2r ?nth_drop //; last first.
+rewrite ltn_sub2r ?nth_drop //.
 have -> // : i.+1 + (j - i) = j.+1
   by rewrite addnC addnBAC -?addnBA // subSn ?subnn ?addn1.
 by rewrite eq_proper_addS.
@@ -384,10 +354,7 @@ Qed.
 
 Lemma last_tuple_i m (t : m.+1.-tuple T) (x : T) (lt_i_m : i < m.+1) :
  tnth (@tuple_i m.+1 t x lt_i_m) ord_max = x.
-Proof.
-rewrite (@tuple_i_last m _ x).
-by rewrite val_tcast /= cats1 last_cat last_rcons.
-Qed.
+Proof. by rewrite (@tuple_i_last m _ x) val_tcast /= cats1 last_cat last_rcons. Qed.
 
 Lemma tuple_i_uniq m (t : m.-tuple T) (x : T) (lt_i_m : i < m) :
   uniq (x :: t) -> uniq (tuple_i t x lt_i_m).
@@ -426,14 +393,12 @@ Proof.
 rewrite [LHS](@bigID _ _ _ _ _ (fun s => val s == i - m)) /= addnC.
 congr (_ + _).
 - apply: eq_bigl => s.
-  rewrite andbC andbA (@andb_id2r _ _ (i - m < s)) //= => _.
-  rewrite leq_eqVlt andb_orr subnSK //. 
-  rewrite eq_sym andNb orFb andb_idl // => /ltn_eqF //.
-  move/negbT => //.
+  rewrite andbC andbA (@andb_id2r _ _ (i - m < s)) //= => _. 
+  by rewrite leq_eqVlt andb_orr subnSK // eq_sym andNb orFb andb_idl // => /ltn_eqF // /negbT.
 - rewrite (big_pred1 (inord (i - m))) // => s.
   rewrite andb_idl /= => [|/eqP ->]; last by rewrite subnSK ?leqnn ?leq_subr.
   congr (_ == _). 
- by rewrite inordK.
+  by rewrite inordK.
 Qed.
 
 Lemma big_shrinkl m F i i' (lti'i : i' < i) : 
@@ -452,10 +417,8 @@ apply: eq_bigl => s.
 rewrite -andbA.
 congr (_ && _).
 have -> /= : (s != inord (i + m.+1)) = (val s != i + m.+1). 
-  move: s => [s p'].
-  by rewrite -(inj_eq val_inj) /= inordK.
-rewrite leq_eqVlt andb_orl andbN orFb addnS ltnS andb_idr // -ltnS => /ltn_eqF.
-exact: negbT.
+  by move: s => [s p']; rewrite -(inj_eq val_inj) /= inordK.
+by rewrite leq_eqVlt andb_orl andbN orFb addnS ltnS andb_idr // -ltnS => /ltn_eqF /negbT.
 Qed.
 
 Lemma max_monotonic
@@ -463,9 +426,7 @@ Lemma max_monotonic
   (F F' : T -> nat)
   (ltFF' : forall o : T, F o <= F' o) :
   \max_o F o <= \max_o F' o.
-Proof.
-by elim/big_ind2:_ => // m1 m2 n1 n2 h1 h2; rewrite geq_max !leq_max h1 h2 orbT.
-Qed.
+Proof. by elim/big_ind2:_ => // m1 m2 n1 n2 h1 h2; rewrite geq_max !leq_max h1 h2 orbT. Qed.
 
 Lemma split_sum_ord (j j' k : nat) (ltjj' : j < j') F :
   \sum_(s < k | j < s) F s = \sum_(s < k | j < s <= j') F s + \sum_(s < k | j' < s) F s.
@@ -481,32 +442,30 @@ Lemma reindex_ge_i n (i : 'I_n) m (F : 'I_m.+1 -> nat)
       (lt0m : 0 < m) (ltil : i < last_ord m) :
       \sum_(s < m.+1 | i < s) F s = \sum_(s < m.+1 | i <= s < m) F (ord_succ s).
 Proof.
-rewrite (bigD1 ord_max) //=.
-rewrite [in RHS](bigD1 (ord_pred ord_max)) //=; last first.
-  apply/andP. split; last by rewrite ltn_predL.
-  rewrite -ltnS (ltn_predK lt0m) //.
+rewrite (bigD1 ord_max) //= [in RHS](bigD1 (ord_pred ord_max)) //=; last first.
+  apply/andP; split; last by rewrite ltn_predL.
+  by rewrite -ltnS (ltn_predK lt0m).
 rewrite cancel_ord_pred //=.
 congr (_ + _).
 set P := (X in \sum_(s < m.+1 | X s) _ = _). 
 rewrite (@reindex_onto _ _ _ _ _
-               (@ord_succ m) (@ord_pred m.+1) P) //= => [|s /andP [ltis nesx]]; last first.
-- rewrite cancel_ord_pred //.
-  exact: (leq_ltn_trans (leq0n i)).
-- apply: eq_bigl => s.
-  rewrite /P below_last_ord //=.
-  case: s => [s' p] /=.
-  rewrite -![X in _ = _ && ~~ X](inj_eq val_inj) /=.
-  - case eqs'm: (s' == m).
-    rewrite ltnn andbF andFb.
-    move: eqs'm => /eqP ->.
-    by rewrite ltnn andbF andFb.
-  - rewrite cancel_ord_succ //= ?eqxx ?andbT.
-    rewrite ltnS -ltn_predRL.
+               (@ord_succ m) (@ord_pred m.+1) P) //= => [|s /andP [ltis nesx]]; 
+  last by rewrite cancel_ord_pred // (leq_ltn_trans (leq0n i)).
+apply: eq_bigl => s.
+rewrite /P below_last_ord //=.
+case: s => [s' p] /=.
+rewrite -![X in _ = _ && ~~ X](inj_eq val_inj) /=.
+case eqs'm: (s' == m).
+- rewrite ltnn andbF andFb.
+  move: eqs'm => /eqP ->.
+  by rewrite ltnn andbF andFb.
+- rewrite cancel_ord_succ //= ?eqxx ?andbT.
+  - rewrite ltnS -ltn_predRL.
     rewrite -andbA [X in _ = _ && X]andbC.
     rewrite -(@prednK m lt0m) ltnS.
-    by rewrite -ltn_neqAle.
-  move: eqs'm p; rewrite ltnS leq_eqVlt => ->.
-  by rewrite orFb.
+    by rewrite -ltn_neqAle. 
+  - move: eqs'm p; rewrite ltnS leq_eqVlt => ->.
+    by rewrite orFb.
 Qed.
 
 Lemma big_split_subn k (P : 'I_k -> bool) F1 F2
@@ -528,11 +487,9 @@ Lemma sum_ord0 m (P : 'I_m.+1 -> bool) F :
 Proof.
 move=> eq0m P0.
 rewrite (bigD1 ord0) // -[in RHS](addn0 (F ord0)).
-congr (_ + _) => //=.
-set sum := (X in X = 0).
-have -> : sum = \sum_(i < m.+1 | false) F i.
-  apply: eq_bigl => i.
-  by rewrite only_ord0 // andbF.
+congr (_ + _) => //=. 
+set sum := (LHS). 
+have -> : sum = \sum_(i < m.+1 | false) F i by apply: eq_bigl => i; rewrite only_ord0 // andbF.
 exact: big_pred0_eq.
 Qed.
 
@@ -598,8 +555,7 @@ pose f := fun s => F (inord s).
 set g := fun s => f s.-1 - f s.
 under (eq_bigr (fun (s : 'I_k.+1) => g s)) => i /andP [ltli leih].
   congr (F _ - F _); last by apply: val_inj => /=; rewrite inordK.
-  apply: val_inj => /=.
-  by rewrite inordK // (@ltn_trans i) // ltn_predL (@leq_ltn_trans l).
+  by apply: val_inj => /=; rewrite inordK // (@ltn_trans i) // ltn_predL (@leq_ltn_trans l).
 rewrite -(@big_mkord _ _ _ _ (fun s => l < s <= h) g).
 have -> : \sum_(0 <= i < k.+1 | l < i <= h) g i = \sum_(l.+1 <= i < h.+1) g i. 
   by rewrite (@big_nat_widenl _ _ _ l.+1 0) // (@big_nat_widen _ _ _ _ h.+1 k.+1) ?ltn_ord.
@@ -631,7 +587,7 @@ Proof. by move/(sorted_sort rtr) => hs; apply/val_inj/hs. Qed.
 Lemma perm_iota_sort_tuple (T : eqType) leT n (t : n.-tuple T) :
   { lbl : n.-tuple 'I_n | sort leT t = [seq tnth t i | i <- lbl] }.
 Proof.
-case: n t => [|n] t; first by exists [tuple]; rewrite tuple0.
+case: n t => [|n] t; first by exists [tuple]; rewrite tuple0. 
 have x : T by have [x t'] := tupleP t.
 have [lbl h_perm h_idx] := perm_iota_sort leT x t.
 have lbl_tuple: size (map (@inord n) lbl) == n.+1.
@@ -656,37 +612,34 @@ Lemma sorted_tuple_i t (lt_i_m : i < k.+1) :
   sorted_tuple t -> sorted_tuple (tuple_i t ord0 lt_i_m).
 Proof.
 move=> st s1 s2 lts1s2.
-- have [] := boolP (s1 < i) => [lts1i|].
-  rewrite [X in _ <= nat_of_ord X]id_tuple_i //.
-  have [] := boolP (s2 < i) => [lts2i|]; first by rewrite id_tuple_i //; exact: st.
+have [lts1i|] := boolP (s1 < i).
+- rewrite [X in _ <= nat_of_ord X]id_tuple_i //.
+  have [lts2i|] := boolP (s2 < i); first by rewrite id_tuple_i //; exact: st.
   rewrite -leqNgt => leis2.
-  - have [] := boolP (s2 < k) => [lts2m1|].
-    rewrite shifted_tuple_i //.
+  have [lts2m1|] := boolP (s2 < k).
+  - rewrite shifted_tuple_i //.
     apply: (@leq_trans (tnth t s2)); last exact: (st).
     apply: st.
     by rewrite /ord_succ /= eq_proper_addS //=.
   - rewrite -below_last_ord negbK => /eqP ->.
     by rewrite last_tuple_i leq0n.
 - rewrite -leqNgt => leis1.
-  - have [] := boolP (s1 < k) => [lts1m1|].
-    rewrite [X in _ <= nat_of_ord X]shifted_tuple_i //.
-    - have [] := boolP (s2 < i) => [lts2i|].
-      have: s1 < i by exact: leq_ltn_trans lts1s2 lts2i.
+  have [lts1m1|] := boolP (s1 < k).
+  - rewrite [X in _ <= nat_of_ord X]shifted_tuple_i //.
+    have [lts2i|] := boolP (s2 < i).
+    - have: s1 < i by exact: leq_ltn_trans lts1s2 lts2i.
       by rewrite ltnNge leis1.
     - rewrite -leqNgt => leis2.
-      - have [] := boolP (s2 < k) => [lts2m1|].
-        rewrite shifted_tuple_i //.
-        have: ord_succ s1 <= ord_succ s2 by rewrite /ord_succ /= !eq_proper_addS.
-        exact: st.
+      have [lts2m1|] := boolP (s2 < k).
+      - by rewrite shifted_tuple_i // st // /ord_succ /= !eq_proper_addS.
       - rewrite -below_last_ord negbK => /eqP ->.
         by rewrite last_tuple_i leq0n.
-  - rewrite -below_last_ord negbK => /eqP eqs1m.
-    rewrite eqs1m.
-    have ->: s2 = ord_max.
-      apply: val_inj => /=.
-      move: (conj lts1s2 (leq_ord s2)) => /andP.
-      by rewrite eqs1m /= -eqn_leq eq_sym => /eqP.
-    exact: leqnn.
+  - rewrite -below_last_ord negbK => /eqP eqs1m. 
+    rewrite eqs1m eq_leq //. 
+    congr (_ (tnth _ _)).
+    apply: val_inj => /=.
+    move: (conj lts1s2 (leq_ord s2)) => /andP.
+    by rewrite eqs1m /= -eqn_leq eq_sym => /eqP.
 Qed.
 
 End Tuple_i.
@@ -704,12 +657,11 @@ Proof.
 move=> t1 t2 /eqP.
 rewrite eqEtuple => /forallP eq_tp.
 apply/eqP; rewrite eqEtuple; apply/forallP => j.
-- have [] := boolP ((i1 != j) && (i2 != j)) => [/andP [nei1 nei2]|/nandP].
+have [/andP [nei1 nei2]|/nandP] := boolP ((i1 != j) && (i2 != j)).
   by move: (eq_tp j); rewrite !tnth_mktuple !tpermD.
-- rewrite !negbK.
-  move=> [/eqP <- |/eqP <-].
-  by move: (eq_tp i2); rewrite !tnth_mktuple tpermR.
-  by move: (eq_tp i1); rewrite !tnth_mktuple tpermL.
+rewrite !negbK.
+move=> [/eqP <- |/eqP <-]; first by move: (eq_tp i2); rewrite !tnth_mktuple tpermR.
+by move: (eq_tp i1); rewrite !tnth_mktuple tpermL.
 Qed.
 
 Definition itperm : {perm (k.+1.-tuple T)} := perm tuple_perm_inj.
@@ -721,33 +673,33 @@ Lemma tuple_tperm_uniq
   uniq (tuple_tperm t). 
 Proof.
 rewrite map_inj_uniq => [|x y]; first by rewrite val_ord_tuple enum_uniq.
-- have [] := boolP ((i1 != x) && (i2 != x)) => [/andP [nexi1 nexi2]|/nandP].
-  rewrite tpermD //.
-  - have [] := boolP ((i1 != y) && (i2 != y)) => [/andP [neyi1 neyi2]|/nandP].
+have [/andP [nexi1 nexi2]|/nandP] := boolP ((i1 != x) && (i2 != x)).
+- rewrite tpermD //.
+  have [/andP [neyi1 neyi2]|/nandP] := boolP ((i1 != y) && (i2 != y)).
     rewrite tpermD // => /eqP.
     by rewrite (tnth_uniq x0) // => /eqP.
-  - rewrite !negbK;move=> [/eqP <- |/eqP <-].
-    - rewrite tpermL => /eqP.
-      rewrite (tnth_uniq x0) // eq_sym.
-      by move/negPn; rewrite nexi2.
-    - rewrite tpermR => /eqP.
-      rewrite (tnth_uniq x0) // eq_sym.
-      by move/negPn; rewrite nexi1.
-- rewrite !negbK; move=> [/eqP <-|/eqP <-].
-  - - have [] := boolP ((i1 != y) && (i2 != y)) => [/andP [neyi1 neyi2]|/nandP].
-      rewrite tpermL tpermD // => /eqP.
-      rewrite (tnth_uniq x0) //.
-      by move/negPn; rewrite neyi2.
-    - rewrite !negbK; move=> [/eqP <- |/eqP <-]; first by rewrite tpermL.
-      rewrite tpermR tpermL => /eqP.
-      by rewrite (tnth_uniq x0) // => /eqP.
-  - - have [] := boolP ((i1 != y) && (i2 != y)) => [/andP [neyi1 neyi2]|/nandP].
-      rewrite tpermR tpermD // => /eqP.
-      rewrite (tnth_uniq x0) //.
-      by move/negPn; rewrite neyi1.
-    - rewrite !negbK; move=> [/eqP <- |/eqP <-] //.
-      rewrite tpermR tpermL => /eqP.
-      by rewrite (tnth_uniq x0) // eq_sym => /eqP.
+  rewrite !negbK;move=> [/eqP <- |/eqP <-].
+  - rewrite tpermL => /eqP.
+    rewrite (tnth_uniq x0) // eq_sym => /negPn.
+    by rewrite nexi2.
+  - rewrite tpermR => /eqP.
+    rewrite (tnth_uniq x0) // eq_sym => /negPn.
+    by rewrite nexi1.
+rewrite !negbK; move=> [/eqP <-|/eqP <-].
+- have [/andP [neyi1 neyi2]|/nandP] := boolP ((i1 != y) && (i2 != y)).
+  - rewrite tpermL tpermD // => /eqP.
+    rewrite (tnth_uniq x0) // => /negPn.
+    by rewrite neyi2.
+  - rewrite !negbK; move=> [/eqP <- |/eqP <-]; first by rewrite tpermL.
+    rewrite tpermR tpermL => /eqP.
+    by rewrite (tnth_uniq x0) // => /eqP.
+- have [/andP [neyi1 neyi2]|/nandP] := boolP ((i1 != y) && (i2 != y)).
+  - rewrite tpermR tpermD // => /eqP.
+    rewrite (tnth_uniq x0) // => /negPn.
+    by rewrite neyi1.
+  - rewrite !negbK; move=> [/eqP <- |/eqP <-] //.
+    rewrite tpermR tpermL => /eqP.
+    by rewrite (tnth_uniq x0) // eq_sym => /eqP.
 Qed.
 
 Lemma notin_itperm (j : T) :
@@ -798,7 +750,7 @@ have eqszt' : size t' = k.+1 by rewrite /t' apermE permE !size_tuple.
 rewrite size_map eqszt' in ltik1. 
 rewrite /t' apermE permE !(nth_map ord0) ?eqszsz' ?size_tuple -?enumT ?size_enum_ord //.
 rewrite (tnth_nth ord0) /=. 
-have [] := boolP ((i != i1) && (i != i2)) => [/andP [ne1 ne2]|ne12].
+have [/andP [ne1 ne2]|ne12] := boolP ((i != i1) && (i != i2)).
 - rewrite T.nth_aperm_id // ?size_map ?size_tuple //=. 
   rewrite tpermD // -?(inj_eq val_inj) // 1?eq_sym // ?(tnth_nth ord0) //= nth_enum_ord //=.
   by rewrite (nth_map ord0) ?size_tuple.
@@ -846,7 +798,8 @@ Lemma tuple_eq_swap_sorted (t : k.+1.-tuple 'I_m.+1) (i1i2s : seq ('I_k.+1 * 'I_
 Proof.  
 elim: i1i2s t => [t //=|i1i2 i1i2s /= IH t /=]. 
 - apply/val_inj => /=.
-  apply: (@eq_from_nth _ ord0) => [|i ltit /=]; first by rewrite size_map size_enum_ord size_tuple.
+  apply: (@eq_from_nth _ ord0) => [|i ltit /=];
+    first by rewrite size_map size_enum_ord size_tuple.
   rewrite size_tuple in ltit.
   rewrite (nth_map ord0) ?size_enum_ord //.
   apply: val_inj => /=.
@@ -875,24 +828,25 @@ set bs' := (swap _ _ _).
 rewrite (surjective_pairing bs') => /andP [allb sorted'].
 exists (map (fun t => (inord t.1, inord t.2)) ts).
 set ots := (inord_transpositions ts). 
-split.
--  suff: forall ts, (swap is_bubble s ts).1 /\ (swap is_bubble s ts).2 = map val (tswap t ots).2 -> 
+split. 
+-  suff: forall ts, (swap is_bubble s ts).1 /\ 
+                      (swap is_bubble s ts).2 = map val (tswap t ots).2 -> 
                (tswap t (inord_transpositions ts)).1.
-    apply.
-    rewrite allb; split=> //.  
-    apply: (@eq_from_nth _ 0) => [|i ltim1]; first by rewrite size_swap !size_map !size_tuple.
-    rewrite size_swap size_map size_tuple in ltim1.
-    rewrite tuple_eq_swap_sorted !(nth_map ord0) /= ?inordK 
-            ?size_map -?enumT ?size_enum_ord ?nth_swap_ltn //.
-    congr (nth _ (swap _ _ _).2 _); first by rewrite (inord_transpositionsK allb).
-    rewrite nth_enum_ord // nth_swap_ltn //. 
-    move=> j ltjs.
-    rewrite size_map size_tuple in ltjs.
-    by rewrite (nth_map ord0) ?ltn_ord ?size_tuple. 
+     apply.
+     rewrite allb; split=> //.  
+     apply: (@eq_from_nth _ 0) => [|i ltim1]; first by rewrite size_swap !size_map !size_tuple.
+     rewrite size_swap size_map size_tuple in ltim1.
+     rewrite tuple_eq_swap_sorted !(nth_map ord0) /= ?inordK 
+             ?size_map -?enumT ?size_enum_ord ?nth_swap_ltn //.
+     congr (nth _ (swap _ _ _).2 _); first by rewrite (inord_transpositionsK allb).
+     rewrite nth_enum_ord // nth_swap_ltn //. 
+     move=> j ltjs.
+     rewrite size_map size_tuple in ltjs.
+     by rewrite (nth_map ord0) ?ltn_ord ?size_tuple. 
   elim=> [//=|a l IH /= [/andP []]].
   rewrite /bubblesort.is_bubble (surjective_pairing a) /= szs =>  
             /andP [/andP [le1m le2m] isba] swapl _.
-  rewrite -(inj_eq val_inj) !(@tnth_nth _ _ (inord 0)) /= !inordK //=. 
+  rewrite -(inj_eq val_inj) !(@tnth_nth _ _ (inord 0)) /= !inordK //=.  
   have -> : val (nth (inord 0) t a.2) <= val (nth (inord 0) t a.1) = 
              ((nth 0 s a.2) <= (nth 0 s a.1)). 
     rewrite !(nth_map ord0) /= ?size_tuple //. 
@@ -921,7 +875,7 @@ apply: introP => [/uniqP u x y txty|].
   by move: (u x0 x y) txty; rewrite !(tnth_nth x0) !inE !size_tuple !ltn_ord => /(_ erefl erefl).
 - apply: contraNnot => tinj.
   apply/(@uniqP _ x0) => x y. 
-  rewrite !inE !size_tuple => ltxk1 ltyk1 nxny.
+  rewrite !inE !size_tuple => ltxk1 ltyk1 nxny. 
   have/eqP: Ordinal ltxk1 = Ordinal ltyk1 by apply: tinj; rewrite !(tnth_nth x0).
   by rewrite -(inj_eq val_inj) /= => /eqP.
 Qed.
@@ -955,14 +909,15 @@ Proof.
 move=> u.
 rewrite /uniq_is_bubble /tuple_is_bubble /= (surjective_pairing i1i2).
 set i1 := i1i2.1; set i2 := i1i2.2.
-have [] := boolP (i1 == i2) => [eq12|ne12]; first by rewrite orTb.
-rewrite !orFb (leq_eqVlt (tnth t i2)).
+have [eq12|ne12] := boolP (i1 == i2); first by rewrite orTb.
+rewrite !orFb (leq_eqVlt (tnth t i2)). 
 have -> : (val (tnth t i2) == val (tnth t i1)) = false.
   move: ne12.
   apply: contra_neqF => /= /eqP eq12.
   move/(tuple_uniqP ord0)/(_ i1 i2): u.
-  have/eqP -> : tnth t i1 == tnth t i2 by rewrite -(inj_eq val_inj) /= eq12.
-  by move=> /(_ erefl).
+  apply.
+  apply: val_inj => /=.
+  by rewrite eq12.
 by rewrite orFb.
 Qed.
 
@@ -981,8 +936,8 @@ move=> tswap1 tswap2 => s1 s2 lt12.
 elim: i1i2s t u tswap1 tswap2 => [//= t u _|i1i2 i1i2s IH /= t u /andP [_ ?] tswap2]. 
 - rewrite /tuple_up_sorted_tuple => /(_ s1 s2 (ltnW lt12)).
   rewrite leq_eqVlt => /orP [/eqP eq12|//].
-  move: u => /(tuple_uniqP ord0)/(_ s1 s2). 
-  have/eqP -> : tnth t s1 == tnth t s2 by rewrite -(inj_eq val_inj) /= eq12.
+  move: u => /(tuple_uniqP ord0)/(_ s1 s2).
+  have/eqP ->: tnth t s1 == tnth t s2 by rewrite -(inj_eq val_inj) /= eq12.
   by move=> /(_ erefl)/eqP;  rewrite -(inj_eq val_inj) /= ltn_eqF.
 - by rewrite IH ?it_aperm_uniq.
 Qed.
@@ -1017,11 +972,9 @@ congr (_, _).
     by elim: xs => [t' b' //=|x' xs' IH /= t' b']; last by rewrite /f /= !IH.
 Qed.
 
-Lemma ububble_uniq (t : k.+1.-tuple 'I_m.+1) (ut : uniq t) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) : uniq (uswap t i1i2s).2.
-Proof. 
-elim: i1i2s t ut => [//|i1i2 i1i2s IH t ut /=]. 
-by rewrite it_aperm_uniq // IH.
-Qed.
+Lemma ububble_uniq (t : k.+1.-tuple 'I_m.+1) (ut : uniq t) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) : 
+  uniq (uswap t i1i2s).2.
+Proof. by elim: i1i2s t ut => [//|i1i2 i1i2s IH t ut /=]; rewrite it_aperm_uniq // IH. Qed.
 
 Lemma notin_ububble (t : k.+1.-tuple T) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) 
       (j : T) (nojin : j \notin t) :
@@ -1056,7 +1009,7 @@ Lemma transitive_geq_bid : transitive geq_bid.
 Proof. exact/rev_trans/leq_trans. Qed.
 
 Lemma reflexive_geq_bid : reflexive geq_bid.
-Proof. move=> x. exact: leqnn. Qed.
+Proof. by move=> x; exact: leqnn. Qed.
 
 Lemma anti_geq_bid: antisymmetric geq_bid.
 Proof. by move=> x y /anti_leq /val_inj. Qed.
@@ -1081,8 +1034,8 @@ split=> sortedbs => [|j1 j2 lej1j2].
     rewrite [X in nth ord0 _ X](_ : m = Ordinal (ltn_trans (ltnSn m) m1)) // -tnth_nth.
     by rewrite sortedbs //=.
 - rewrite !(tnth_nth ord0).
-  have jin (j : 'I_k) : j \in [pred j' : 'I_k | j' < size bs].
-    by rewrite unfold_in /= size_tuple ltn_ord.
+  have jin (j : 'I_k) : j \in [pred j' : 'I_k | j' < size bs] 
+      by rewrite unfold_in /= size_tuple ltn_ord.
   apply: (sorted_leq_nth transitive_geq_bid leqnn) => //; first exact: jin.
   exact: jin.
 Qed.

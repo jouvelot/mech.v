@@ -120,10 +120,9 @@ Qed.
 Lemma idxa_inj : injective idxa.  
 Proof.
 move=> i1 i2.
-rewrite /idxa /ssr_have /=. 
+rewrite /idxa /ssr_have /=.  
 case: sorted_diff_agent_spec_ex => x1 <-.
-case: sorted_diff_agent_spec_ex => x2 <-.
-by move=> ->.
+by case: sorted_diff_agent_spec_ex => x2 <- ->.
 Qed.
 
 Lemma labelling_in k (t : k.-tuple 'I_n) j : 
@@ -133,7 +132,7 @@ Proof. by rewrite -(mem_map (labelling_inj tlabelP)) cancel_idxa. Qed.
 Lemma uniq_from_idxa k (o : k.-tuple 'I_n) (ut : uniq o) :
   uniq (map_tuple (tnth tlabel) o).
 Proof.
-rewrite -(map_inj_uniq idxa_inj) -map_comp.
+rewrite -(map_inj_uniq idxa_inj) -map_comp. 
 have/eqP: map_tuple (idxa \o tnth tlabel) o = o.
   apply: (@eq_from_tnth) => j.
   by rewrite tnth_map /= cancel_inv_idxa.

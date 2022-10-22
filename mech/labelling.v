@@ -59,12 +59,9 @@ Qed.
 
 Lemma labelling_onto l (islab : is_labelling l) i : {i' | tnth l i' == i}.
 Proof.
-apply: sigW.
+apply: sigW. 
 pose p := perm (labelling_inj islab).
-have/codomP: i \in codom p.
-  move/(_ i): (perm_onto p).
-  by rewrite inE.
-move=> [i'] ->.
+have/codomP [i'->]: i \in codom p by move/(_ i): (perm_onto p); rewrite inE.
 by exists i'; rewrite permE.
 Qed.
 
@@ -72,10 +69,9 @@ Axiom labelling_singleton : singleton is_labelling.
 
 Lemma uniq_labelling : projT1 exists_labellingW = tlabel.
 Proof.  
-apply: labelling_singleton.
+apply: labelling_singleton; last by exact tlabelP. 
 move: exists_labellingW => [lab islab].
 exact: islab.
-exact tlabelP. 
 Qed.
 
 Lemma sorted_diff_agent_spec_ex (i : 'I_n) :
@@ -118,7 +114,7 @@ congr tnth.
 have <- : tlabel = projT1 exists_labellingW.
   move: exists_labellingW => [l'' p''] /=.
   by rewrite (labelling_singleton p'' tlabelP).
-rewrite cancel_idxa //.
+by rewrite cancel_idxa.
 Qed.
 
 Lemma idxa_inj : injective idxa.  
@@ -159,10 +155,8 @@ have islid: is_labelling labelling_id.
   congr tnth.
   apply/val_inj => /=.
   exact: sorted_sort.
-apply: labelling_singleton.
-apply: tlabelP.
-
-exact: islid.
+apply: labelling_singleton; last exact: islid.
+exact: tlabelP.
 Qed.
 
 Lemma idxaK (ss : sorted r s) (tr : transitive r) i : idxa i = i.
@@ -208,14 +202,13 @@ Admitted.
 Lemma labelling_differ_on_eq l :
   idxa' = idxa -> is_labelling r s l -> is_labelling r s' l.
 Proof.
-move=> eqii' isl.
+move=> eqii' isl. 
 have <- : ge_labelling l = l.
   apply: eq_from_tnth => j.
   rewrite /ge_labelling /ge_index tnth_mktuple eqii'.
-  case: ifP => [/eqP -> |_].
-  - have -> : l = tlabel r s by apply: (@labelling_singleton _ _ r s) => //; exact: tlabelP.
-    by rewrite cancel_idxa.
-  - by rewrite ifF // leqNgt andNb.
+  case: ifP => [/eqP -> |_]; last by rewrite ifF // leqNgt andNb.
+  have -> : l = tlabel r s by apply: (@labelling_singleton _ _ r s) => //; exact: tlabelP.
+  by rewrite cancel_idxa.
 apply: labelling_differ_on_ge => //=.
 by rewrite leq_eqVlt eq_sym eqii' eq_refl orTb.
 Qed.

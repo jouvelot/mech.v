@@ -72,8 +72,7 @@ have [ltxs|] := boolP (ix < size s).
 - rewrite -leqNgt => lesx.
   exists 0 => //; first by rewrite size_take; case: ifP.
   move: (@leq_bigmax_nat n (nth 0 s) 0 (leq0n n)).
-  have eq0: nth 0 s ix = 0 by rewrite nth_default. 
-  by rewrite nth_take // mx eq0 leqn0 => /eqP.
+  by rewrite nth_take // mx (@nth_default _ _ _ ix) // leqn0 => /eqP.
 Qed.
 
 Lemma bigmax_nth_in n s (lt0s : 0 < size s) (ltns : n < size s) : 
@@ -86,11 +85,11 @@ Proof. by rewrite -ltnS index_ltn ?bigmax_nth_in_take. Qed.
 
 Lemma bigmax_nth_take m n s (ltmn1 : m < n.+1) (ltns : n < size s) :
   \max_(m <= i < n.+1) nth 0 s i = \max_(m <= i < size (take n.+1 s)) nth 0 (take n.+1 s) i. 
-Proof.
-have sztk: size (take n.+1 s) = n.+1. 
-  rewrite size_take.
-  have [//|nen1s] := boolP (n.+1 < size s).
-  by have/eqP eqzn1 : size s == n.+1 by rewrite eqn_leq ltns leqNgt nen1s.
+Proof. 
+have sztk: size (take n.+1 s) = n.+1.  
+  rewrite size_take. 
+  have [//|nen1s] := boolP (n.+1 < size s). 
+  by apply/eqP; rewrite eqn_leq ltns leqNgt nen1s.
 rewrite -[in LHS](cat_take_drop n.+1 s) [LHS](@big_cat_nat _ _ _ n.+1) 1?(@leq_trans n m) //=. 
 rewrite (@big_geq _ _ _ n.+1) // maxn0 !big_nat -{1 2}sztk.
 by apply: eq_bigr => i /andP [_ ltn1]; by rewrite nth_cat ltn1.
@@ -160,12 +159,11 @@ Lemma uniq_transposed_iota : uniq transposed_iota.
 Proof.
 rewrite (@map_uniq _ _ (nth 0 transposed_iota)) //. 
 set ti := (X in uniq X). 
-have -> : ti = iota 0 n.
+have -> : ti = iota 0 n; last exact: iota_uniq.
   apply: (@eq_from_nth _ 0) => [|i ltis]; first by rewrite size_map size_transposed size_iota.
-  rewrite size_map size_transposed in ltis.
+  rewrite size_map size_transposed in ltis. 
   rewrite !(nth_map 0) ?size_transposed ?nth_iota ?add0n ?size_iota ?ltn_transpose //.
   exact: transposeK.
-exact: iota_uniq.
 Qed.
 
 Lemma perm_eq_transposed_iota : perm_eq transposed_iota (iota 0 n).  
@@ -340,8 +338,7 @@ have [/eqP eqin1 //=|nein1] := boolP (index mx s == n.+1).
   rewrite leq_eqVlt => /orP [eqixn1|ltxn1]; first by rewrite eqin1 !ltn1s. 
   by rewrite ltn1s !andbT (@ltn_trans n.+1). 
 - have ltxn1: index mx s < n.+1 by rewrite (@ltn_neqAle _ n.+1) bigmax_nth_index_leq // andbT.
-  by rewrite (@ltn_trans n.+1 _ (size s)) // !ltxn1 ltn1s nth_index
-             ?leq_bigmax_nat ?bigmax_nth_in.
+  by rewrite (@ltn_trans n.+1) // !ltxn1 ltn1s nth_index ?leq_bigmax_nat ?bigmax_nth_in.
 Qed.
 
 End Bubbles.
@@ -369,7 +366,7 @@ rewrite (@perm_trans _ (take (n.+1 + m.+1) (aperm s (ix, n.+1)))) //.
 - rewrite perm_eq_take_aperm // -?addSnnS // bigmax_nth_index_leq //(@ltn_trans (n.+2 + m)) //.
   by rewrite addSnnS ltn_addr.
 - have szap : n.+1 + m.+1 < size (aperm s (ix, n.+1)) by rewrite size_aperm -addSnnS.
-  move: (@IH (aperm s (ix, n.+1)) m.+1 szap).
+  move: (@IH (aperm s (ix, n.+1)) m.+1 szap). 
   by have -> // : n + m.+2 = n.+1 + m.+1 by rewrite addnS addSn.
 Qed.
 
@@ -509,11 +506,9 @@ Lemma bubble_equiv s t :
 Proof.
 rewrite /is_bubble (surjective_pairing t).
 split=> [/andP [/andP [-> ->]] /orP [/eqP -> //|/andP [lt12 ->]]|
-        /andP [/andP [-> ->]] /andP [le12 ->]].
-- by rewrite !leqnn.
+        /andP [/andP [-> ->]] /andP [le12 ->]/=]; first by rewrite !leqnn.
 - by rewrite ltnW.
-- rewrite leq_eqVlt in le12.
-  by rewrite !andbT le12.
+- by rewrite andbT -leq_eqVlt.
 Qed.
 
 Lemma nth_swap_ltn n i : forall ts s (ltnth : forall i, i < size s -> nth 0 s i < n.+1),

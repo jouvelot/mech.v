@@ -126,8 +126,8 @@ Proof. by rewrite /transpose eq_refl. Qed.
 
 Lemma transposeD (ne1 : i != i1) (ne2 : i != i2) : transpose (i1, i2) i = i.
 Proof. 
-rewrite /transpose /= ifF ?ifF //; first by move: ne2; apply: contra_neqF => /eqP.
-by move: ne1; apply: contra_neqF => /eqP.
+rewrite /transpose /= ifF ?ifF //; first by exact: negbTE.
+exact: negbTE.
 Qed.
 
 Lemma ltn_transpose n (lt1n : i1 < n) (lt2n : i2 < n) (ltin : i < n) :
@@ -214,7 +214,7 @@ Qed.
 
 Lemma nth_aperm_id (ne1 : i != i1) (ne2 : i != i2) : nth 0 (aperm (i1, i2)) i = nth 0 s i.
 Proof.                                                                     
-have nej j: i != j -> (i == j) = false by apply: contra_neqF => /eqP.
+have nej j: i != j -> (i == j) = false by move/negPf.
 by rewrite /aperm (nth_map 0) // /transpose ?size_iota // nth_iota //= add0n !ifF 2?nej.
 Qed.
 

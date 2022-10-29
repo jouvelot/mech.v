@@ -872,7 +872,7 @@ Lemma tuple_uniqP k (T : eqType) (x0 : T) (t : k.-tuple T) :
 Proof.
 apply: introP => [/uniqP u x y txty|].  
 - apply: val_inj => /=.
-  by move: (u x0 x y) txty; rewrite !(tnth_nth x0) !inE !size_tuple !ltn_ord => /(_ erefl erefl).
+  by move: (u x0 x y) txty; rewrite !(tnth_nth x0) !inE !size_tuple !ltn_ord => /(_ erefl erefl). 
 - apply: contraNnot => tinj.
   apply/(@uniqP _ x0) => x y. 
   rewrite !inE !size_tuple => ltxk1 ltyk1 nxny. 
@@ -896,9 +896,8 @@ Definition uniq_is_bubble (t : k.+1.-tuple T) (i1i2 : 'I_k.+1 * 'I_k.+1) :=
 Local Fixpoint uswapb b (t : k.+1.-tuple 'I_m.+1) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) :=
   match i1i2s with
   | [::] => (b, t)
-  | i1i2 :: i1i2s' => let bt' := 
-                      uswapb b (aperm t (itperm T i1i2.1 i1i2.2)) i1i2s' in
-             (uniq_is_bubble t i1i2 && bt'.1, bt'.2)
+  | i1i2 :: i1i2s' => let bt' := uswapb b (aperm t (itperm T i1i2.1 i1i2.2)) i1i2s' in
+                    (uniq_is_bubble t i1i2 && bt'.1, bt'.2)
   end.
 
 Notation uswap' := (uswapb true).
@@ -912,8 +911,7 @@ set i1 := i1i2.1; set i2 := i1i2.2.
 have [eq12|ne12] := boolP (i1 == i2); first by rewrite orTb.
 rewrite !orFb (leq_eqVlt (tnth t i2)). 
 have -> : (val (tnth t i2) == val (tnth t i1)) = false.
-  move: ne12.
-  apply: contra_neqF => /= /eqP eq12.
+  apply: (contra_neqF _ ne12)=> /= /eqP eq12.
   move/(tuple_uniqP ord0)/(_ i1 i2): u.
   apply.
   apply: val_inj => /=.
@@ -933,13 +931,13 @@ Lemma uniq_swap_sorted i1i2s (t : k.+1.-tuple 'I_m.+1) (u : uniq t) :
   uniq_up_sorted_tuple (uswap' t i1i2s).2.
 Proof.
 move=> tswap1 tswap2 => s1 s2 lt12.
-elim: i1i2s t u tswap1 tswap2 => [//= t u _|i1i2 i1i2s IH /= t u /andP [_ ?] tswap2]. 
-- rewrite /tuple_up_sorted_tuple => /(_ s1 s2 (ltnW lt12)).
-  rewrite leq_eqVlt => /orP [/eqP eq12|//].
-  move: u => /(tuple_uniqP ord0)/(_ s1 s2).
-  have/eqP ->: tnth t s1 == tnth t s2 by rewrite -(inj_eq val_inj) /= eq12.
-  by move=> /(_ erefl)/eqP;  rewrite -(inj_eq val_inj) /= ltn_eqF.
-- by rewrite IH ?it_aperm_uniq.
+elim: i1i2s t u tswap1 tswap2 => [//= t u _|i1i2 i1i2s IH /= t u /andP [_ ?] tswap2]; 
+                                last by rewrite IH ?it_aperm_uniq.
+rewrite /tuple_up_sorted_tuple => /(_ s1 s2 (ltnW lt12)).
+rewrite leq_eqVlt => /orP [/eqP eq12|//].
+move/(tuple_uniqP ord0)/(_ s1 s2): u.
+have/eqP ->: tnth t s1 == tnth t s2 by rewrite -(inj_eq val_inj) /= eq12.
+by move=> /(_ erefl)/eqP; rewrite -(inj_eq val_inj) /= ltn_eqF.
 Qed.
 
 Definition uswap (t : k.+1.-tuple 'I_m.+1) (i1i2s : seq ('I_k.+1 * 'I_k.+1)) :=
@@ -961,11 +959,10 @@ suff/(_ true): forall b, uswapb b t xs = foldl f (b, t) xs.
 elim: xs t => [//=|x xs IH t b /=].
 rewrite IH [RHS]surjective_pairing.
 congr (_, _).
-- case u: (uniq_is_bubble t x). 
-  - by rewrite andTb; congr (foldl _ _ _).1; rewrite /f u andTb.
-  - rewrite /f u !andFb -/f /= => {IH}.
-    have -> // : forall t', (foldl f (false, t') xs).1 = false.
-      by elim: xs => [//=|x' xs' IH /= t']; by rewrite /f /= andbF -/f IH.
+- case u: (uniq_is_bubble t x); first by rewrite andTb; congr (foldl _ _ _).1; rewrite /f u andTb.
+  rewrite /f u !andFb -/f /= => {IH}.
+  have -> // : forall t', (foldl f (false, t') xs).1 = false.
+    by elim: xs => [//=|x' xs' IH /= t']; by rewrite /f /= andbF -/f IH.
 - case u: (uniq_is_bubble t x); first by congr (foldl _ _ _).2; rewrite /f u andTb.
   rewrite /f u !andFb -/f /= => {IH}.
   have -> //= : forall t' b', (foldl f (b', t') xs).2 = (foldl f (false, t') xs).2.
@@ -1025,14 +1022,11 @@ Proof.
 split=> sortedbs => [|j1 j2 lej1j2].
 - apply: (@path_sorted _ geq_bid ord_max).
   apply/(pathP ord0) => j ltjz.
-  move: j ltjz => [_|m m1].
-  - have -> : nth ord0 (ord_max :: bs) 0 = ord_max by rewrite nth0.
-    by move: (ltn_ord (nth ord0 bs 0)).
-  - rewrite -nth_behead /behead /geq_bid. 
-    rewrite size_tuple in m1. 
-    rewrite (_ : m.+1 = Ordinal m1) // -tnth_nth.
-    rewrite [X in nth ord0 _ X](_ : m = Ordinal (ltn_trans (ltnSn m) m1)) // -tnth_nth.
-    by rewrite sortedbs //=.
+  move: j ltjz => [_ |m m1] /=; first by rewrite /geq_bid leq_ord.
+  rewrite size_tuple in m1. 
+  rewrite (_ : m.+1 = Ordinal m1) // -tnth_nth.
+  rewrite [X in nth ord0 _ X](_ : m = Ordinal (ltn_trans (ltnSn m) m1)) // -tnth_nth.
+  by rewrite /geq_bid sortedbs //=.
 - rewrite !(tnth_nth ord0).
   have jin (j : 'I_k) : j \in [pred j' : 'I_k | j' < size bs] 
       by rewrite unfold_in /= size_tuple ltn_ord.

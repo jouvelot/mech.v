@@ -1463,9 +1463,9 @@ have: 'lab'_j = tnth oStar_i (inord j); last by rewrite psj; move/(@o_injective 
   rewrite eq_lab'_succ // shifted_tuple_i // ?inordK //.
   rewrite tnth_mktuple; apply: val_inj => /=.
   by rewrite !eq_proper_addS /= ?inordK.
-- rewrite -leqNgt leq_eqVlt.
-  have -> : (k' < j) = false by move: jino; apply: contraTF => /(not_in_oStar sorted_bs0)/negbT.
-  rewrite orbF => /eqP eqk'j.
+- rewrite -leqNgt leq_eqVlt => /orP [/eqP eqk'j|];
+    last by have -> : (k' < j) = false by 
+      move: jino; apply: contraTF => /(not_in_oStar sorted_bs0)/negbT.
   have ltjn': j < n' by rewrite -eqk'j; apply: lt_k_n.
   rewrite eq_lab'_succ //.   
   have -> : tnth oStar_i (inord j) = tnth oStar_i ord_max.

@@ -69,8 +69,8 @@ Variable (bs : bids) (a : A).
 
 Definition value := true_value a * 'ctr_(slot_won bs a).
 
-Let bs' := tsort bs. 
-Let i := idxa bs a.
+Notation bs' := (tsort bs). 
+Notation i := (idxa bs a).
 
 Variable (awins : i < S.k').
 
@@ -126,9 +126,9 @@ Qed.
 
 Variable (bs bs' : bids) (a : A) (diff : differ_on bs bs' a).
 
-Definition i := idxa bs a.
+Local Definition i := idxa bs a.
 
-Definition i' := idxa bs' a.
+Local Definition i' := idxa bs' a.
 
 Variable (bid_true_value : action_on bs a = true_value a).
 
@@ -683,6 +683,26 @@ Theorem truthful_VCG_for_Search_rel : truthful p.
 Proof.  
 apply: (@MP n A1 A m1 m Ra fR p1 p fRP fRvP Ro MR RelFP).
 exact: G.truthful_General_VCG.
+Qed.
+
+(** Rationality. *)
+
+Definition a := auction.new (fun (o : mech.O m) i => 
+                               let r := tnth o i in
+                               Some (if awins r then v i * 'ctr_(what r) - price r else 0)).
+
+Variable (bs' : bids).
+
+Definition value' i : bid := inord (v i * 'ctr_(slot_won (bs bs') i)).
+
+Theorem rational_VCG_for_Search :
+  (forall i o, slot_won (bs bs') i =  what (tnth o i)) -> 
+  (forall i s, v i * 'ctr_s < p'.+1) ->
+auction.rational a value'.
+Proof.
+move=> sw vb i o /=.
+case: ifP => [aw|//].
+by rewrite /value' -sw inordK ?leq_subr.
 Qed.
 
 (* Print Assumptions truthful_VCG_for_Search. *)

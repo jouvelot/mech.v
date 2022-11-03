@@ -62,9 +62,6 @@ End Agent.
 
 End agent.
 
-Notation "{ 'agent' n }" := (agent.type n)
-  (at level 0, format "{ 'agent' n }") : type_scope.
-
 (** Mechanism, for a given domain [A] of actions, also called "messages", of [n] agents *) 
 
 Module mech.
@@ -83,9 +80,6 @@ End mech.
 
 Coercion mech.M : mech.type >-> Funclass.
 
-Notation "{ 'mech' n 'of' A }" := (@mech.type A n)
-  (at level 0, format "{ 'mech' n 'of' A }") : type_scope.
-
 (** Maps of agents' preferences, also called "profiles", for a given mechanism [m]. *)
 
 Module prefs.
@@ -94,15 +88,16 @@ Section Prefs.
 
 Variable (A : Type) (n : nat).
 
-Definition mech : Type := {mech n of A}.
+Definition mech : Type := @mech.type A n.
 
-Local Notation strategy := ({agent n} -> A).
+Notation agent := (agent.type n).
+Notation strategy := (agent -> A).
 
 Record type (m : mech) :=
   new {
       v : strategy;               (* "true value" strategy, mapping each agent private true 
                                      value, or "type", to an action/message *)
-      U : {agent n} -> mech.O m -> nat;   (* utility *)
+      U : agent -> mech.O m -> nat;   (* utility *)
       s : strategy                (* strategy used in [m] *)
     }. 
 
@@ -110,62 +105,24 @@ End Prefs.
 
 End prefs.
 
-Notation "{ 'strategy' 'of' n 'with' A }" := ({agent n} -> A)
-  (at level 0, format "{ 'strategy' 'of' n 'with' A }") : type_scope.
-
-(** Auction, as a subclass of [mech]. *) 
-
-Module auction.
-
-Section Auction.
-
-Variable (n m : nat).
-
-Notation A := ('I_m).       (* Actions are bids, codede as ordinals, less than [m] *)
-
-Record type := 
-    new {
-        b :> {mech n of A};              (* base mechanism *)
-        p : mech.O b -> {agent n} -> option nat   (* price to pay for the outcome, per (winning) agent *)
-      }.
-
-(* Default auction a utility, given a true value strategy v. *)
-
-Definition U (a : type) (v : {strategy of n with A}) := 
-  fun i (o : mech.O a) => 
-    match p o i with
-    | Some p => v i - p
-    | _ => 0
-    end.
-
-(* Default [prefs] for auction [a], given true value [v] (and [s] = [v]). *)
-
-Definition prefs (a : type) v := prefs.new v (@U a v) v.
-
-End Auction.
-
-End auction.
-
-Coercion auction.b : auction.type >-> mech.type.
-
 (** Strategy, dominance, Nash equilibrium and Pareto properties. *)
 
 Section Strategy.
 
 Variable (A : eqType) (n : nat).
 
-Variable (m : {mech n of A}).
+Variable (m : @mech.type A n).
 Variable (p : @prefs.type A n m).
 
 Definition U := prefs.U p.
 
 Definition true_value_strategy := prefs.v p.
 
-Notation strategy := {strategy of n with A}.
-Notation agent := {agent n}.
+Notation agent := (agent.type n).
+Notation strategy := (agent -> A).
 
 Definition actions (s : strategy) := [tuple s j | j < n].
-Definition set_in_actions (s s' : {strategy of n with A}) i :=
+Definition set_in_actions (s s' : strategy) i :=
   [tuple if j == i then s' j else s j | j < n].
 
 Section Dominance. (* See [1] *)
@@ -318,7 +275,7 @@ Variable (n : nat) (A : Type).
 
 Notation prefs := (@prefs.type A n).
 
-Variable m : {mech n of A}.
+Variable m : @mech.type A n.
 
 Variable p : @prefs m.
 
@@ -395,7 +352,7 @@ Variable (n : nat) (A : finType).
 Notation agent := (agent.type n).
 Notation prefs := (@prefs.type A n).
 
-Variable m : {mech n of A}.
+Variable m : @mech.type A n.
 
 Variable p : @prefs m.
 
@@ -488,7 +445,7 @@ Variable (A : Type) (n : nat).
 
 Record type := 
     new {
-        b :> {mech n of A};             (* base mechanism *)
+        b :> @mech.type A n;             (* base mechanism *)
         p : prefs.type b;                (* preferences *)
         _ : truthful p                   (* truthful prop *)
       }.
@@ -572,7 +529,7 @@ Section Perm.
 
 Variable (n : nat) (A : eqType).
 
-Variable m : {mech n of A}.
+Variable m : @mech.type A n.
 
 Notation O := (mech.O m).
 
@@ -589,7 +546,7 @@ Variable M_perm_ind : forall Pi bs, m (ptuple Pi bs) = m bs.
 
 Variable (bs bs' : n.-tuple A).
 
-Variable (s : {strategy of n with A}).
+Variable (s : (@agent.type n -> A)).
 
 Variable Pi : {perm 'I_n}.
 
@@ -632,7 +589,7 @@ Section Sorted.
 
 Variable (n : nat) (A : eqType).
 
-Variable m : {mech n of A}.
+Variable m : @mech.type A n.
 
 Notation O := (mech.O m).
 
@@ -645,7 +602,7 @@ Variable M_perm_ind : forall Pi bs,  m (ptuple Pi bs) = m bs.
 
 Variable (bs bs' : n.-tuple A) (i : 'I_n).
 
-Variable (s : {strategy of n with A}).
+Variable (s : @agent.type n -> A).
 
 Variable leq_act : rel A.
 
@@ -687,7 +644,7 @@ Variable (n : nat ) (A1 A2 : Type).
 
 Notation agent := (agent.type n).
 
-Variable (m1 : {mech n of A1}) (m2 : {mech n of A2}).
+Variable (m1 : @mech.type A1 n) (m2 : @mech.type A2 n).
 
 Notation O1 := (mech.O m1).
 Notation O2 := (mech.O m2).
@@ -786,4 +743,57 @@ Definition mech := mech.new (fun u : n.-tuple unit => (c, p)).
 End DirectRevelation.
 
 End directRevelation.
+
+(** Auction, as a subclass of [mech]. *) 
+
+Module auction.
+
+Section Auction.
+
+Variable (n m : nat).
+
+Notation A := ('I_m).       (* Actions are bids, coded as ordinals, less than [m] *)
+Notation agent := (@agent.type n).
+
+Record type := 
+    new {
+        b :> @mech.type A n;              (* base mechanism *)
+        p : mech.O b -> agent -> option nat   
+                                  (* price to pay for the outcome, per (winning) agent *)
+      }.
+
+Variable (a : type) (v : agent -> A).
+
+(* Default auction a utility, given a true value strategy v. *)
+
+Definition U := fun i (o : mech.O a) => 
+                  match p o i with
+                  | Some p => v i - p
+                  | _ => 0
+                  end.
+
+(* Default [prefs] for auction [a], given true value [v] (and [s] = [v]). *)
+
+Definition prefs := prefs.new v U v.
+
+(* Properties *)
+
+(* This definition of [no_posiive_transfer] would ony make sense with [int] prices! *)
+
+Definition no_positive_transfer := forall i (o : mech.O a), 0 <= p o i.
+
+Theorem trivial_no_positive_transfer : no_positive_transfer.
+Proof. by move=> i o. Qed.
+
+Definition rational := forall i (o : mech.O a),
+    match p o i with
+    | Some p => p <= v i
+    | _ => true
+    end.
+
+End Auction.
+
+End auction.
+
+Coercion auction.b : auction.type >-> mech.type.
 

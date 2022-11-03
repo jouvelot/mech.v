@@ -385,14 +385,16 @@ Definition prefs := auction.prefs a v.
 
 Section Properties.
 
-(** SP is rational if one bids truthfully. *)
+(** SP is rational, if one bids truthfully. *)
 
-Theorem rational (bs : bids) (i : A) (i_wins : is_winner bs i) : 
-  tnth bs i = v i -> price bs i <= v i.
+Theorem rational (tv : forall bs, tnth bs =1 v) : auction.rational a v.
 Proof. 
-move: i_wins; rewrite /is_winner => /eqP _ <-.
-by rewrite -(labelling_spec_idxa geq_bid bs i) tsorted_bids_sorted // le_ord_succ.
-Qed.
+rewrite /auction.rational /auction.p /= => i o. 
+rewrite (surjective_pairing (tnth o i)).
+case: ifP => [iw|//]. 
+set bs := (tnth o i).2.
+by rewrite -(tv bs i) -(labelling_spec_idxa geq_bid bs i) tsorted_bids_sorted // le_ord_succ.
+Qed. 
 
 (** SP is truthful *)
 
@@ -442,16 +444,46 @@ case: ifP => [iw|neiw]; last first.
   by rewrite /differ_on /action_on !tnth_map !tnth_ord_tuple ifF // (negbTE neji).
 Qed.
 
-Definition m' := truthfulMech.new truthful_SP.
+(* SP being a truthful auction, it is a Nash equilibrium. *)
 
-Definition a' := 
-  auction.new (fun (o : mech.O m') i => 
+Definition m_t := truthfulMech.new truthful_SP.
+
+Definition a_t := 
+  auction.new (fun (o : mech.O m_t) i => 
                  let: (w, bs) := tnth o i in if w then Some (price bs i) else None).
 
-Definition prefs' := auction.prefs a' v.
+Definition prefs_t := auction.prefs a_t v.
 
-Lemma SP_Nash_truthful : Nash_equilibrium prefs' v.
+Lemma SP_Nash_truthful : Nash_equilibrium prefs_t v.
 Proof. exact: truthfulMech.Nash_truthful. Qed.
+
+(** Truthful bidding in SP is a Pareto optimum. *)
+
+Lemma Pareto_optimal_SP : Pareto_optimal prefs (true_value_strategy prefs).
+Proof.
+rewrite /Pareto_optimal /action_on => s' i. 
+set bs := [tuple v j  | j < n].
+set bs' := [tuple if j == i then s' j else v j  | j < n].
+have diff : differ_on bs bs' i.
+  move=> j.
+  rewrite /action_on /bs' !tnth_map !tnth_ord_tuple.
+  by case: ifP.
+set U := (X in X < _); set U' := (X in _ < X) => ltUU'. 
+move: (ltUU'). 
+have -> // : 0 < U' -> U' = U; last by rewrite (@leq_ltn_trans U).
+  rewrite /U /U' /prefs.U /= /auction.U /auction.p /=.
+  rewrite !tnth_map /= !tnth_ord_tuple => lt0U'.
+  case: ifP => [/eqP iw'|niw']; last by move: lt0U'; rewrite niw'. 
+  case: ifP => [/eqP iw|niw].
+  - congr (_ - _).
+    by rewrite /price iw iw' (@eq_winning_price bs bs' i).
+  - apply/eqP; rewrite subn_eq0 /price.
+    rewrite /is_winner in niw iw'.  
+    rewrite iw' (@eq_losing_price bs bs' i) //; last by rewrite niw.     
+    rewrite (@leq_trans (tnth (tsort bs) (idxa bs i))) //; last by exact: tsorted_bids_sorted.
+    by rewrite !labelling_spec_idxa tnth_map tnth_ord_tuple. 
+by rewrite ltnn. 
+Qed.
 
 (** "Wolf and sheep" bidding is another Nash equilibrium for SP when bidding truthfully. 
      See https://homepages.cwi.nl/~apt/stra/ch7.pdf. *)
@@ -547,34 +579,6 @@ case: ifP => [/eqP iw|neiw].
 Qed.
 
 End Wolf.
-
-(** Trutful bidding in SP is a Pareto optimum. *)
-
-Lemma Pareto_optimal_SP : Pareto_optimal prefs (true_value_strategy prefs).
-Proof.
-rewrite /Pareto_optimal /action_on => s' i. 
-set bs := [tuple v j  | j < n].
-set bs' := [tuple if j == i then s' j else v j  | j < n].
-have diff : differ_on bs bs' i.
-  move=> j.
-  rewrite /action_on /bs' !tnth_map !tnth_ord_tuple.
-  by case: ifP.
-set U := (X in X < _); set U' := (X in _ < X) => ltUU'. 
-move: (ltUU'). 
-have -> // : 0 < U' -> U' = U; last by rewrite (@leq_ltn_trans U).
-  rewrite /U /U' /prefs.U /= /auction.U /auction.p /=.
-  rewrite !tnth_map /= !tnth_ord_tuple => lt0U'.
-  case: ifP => [/eqP iw'|niw']; last by move: lt0U'; rewrite niw'. 
-  case: ifP => [/eqP iw|niw].
-  - congr (_ - _).
-    by rewrite /price iw iw' (@eq_winning_price bs bs' i).
-  - apply/eqP; rewrite subn_eq0 /price.
-    rewrite /is_winner in niw iw'.  
-    rewrite iw' (@eq_losing_price bs bs' i) //; last by rewrite niw.     
-    rewrite (@leq_trans (tnth (tsort bs) (idxa bs i))) //; last by exact: tsorted_bids_sorted.
-    by rewrite !labelling_spec_idxa tnth_map tnth_ord_tuple. 
-by rewrite ltnn. 
-Qed.
 
 End Properties.
 

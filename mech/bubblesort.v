@@ -166,23 +166,23 @@ have -> : ti = iota 0 n; last exact: iota_uniq.
   exact: transposeK.
 Qed.
 
+Ltac transposeX r := rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?r.
+
 Lemma perm_eq_transposed_iota : perm_eq transposed_iota (iota 0 n).  
 Proof.
 rewrite uniq_perm ?iota_uniq // ?uniq_transposed_iota // => x. 
 apply/(nthP 0)/(nthP 0); rewrite ?size_iota ?size_transposed.
 - move=> [i ltit <-].
-  have [/andP [ne1 ne2]|/nandP] := boolP (~~ (i == i1) && ~~ (i == i2)).
-  - by exists i => //;  rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeD.
-  - rewrite !negbK; move=> [/eqP ->|/eqP ->]. 
-    - by exists i2 => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeL.
-    - by exists i1 => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeR.
+  have [/andP [ne1 ne2]|/nandP] := boolP (~~ (i == i1) && ~~ (i == i2));
+    first by exists i => //;  transposeX transposeD.
+  rewrite !negbK; move=> [/eqP ->|/eqP ->]; first by exists i2 => //; transposeX transposeL.
+  by exists i1 => //; transposeX transposeR.
 - move=> [i ltit].
   rewrite nth_iota ?add0n // => <-.
-  have [/andP [ne1 ne2]|/nandP] := boolP (~~ (i == i1) && ~~ (i == i2)).
-  - by exists i => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeD. 
-  - rewrite !negbK; move=> [/eqP ->|/eqP ->]. 
-    - by exists i2 => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeR.
-    - by exists i1 => //; rewrite (nth_map 0) ?size_iota ?nth_iota ?add0n ?transposeL.
+  have [/andP [ne1 ne2]|/nandP] := boolP (~~ (i == i1) && ~~ (i == i2));
+    first by exists i => //; transposeX transposeD. 
+  rewrite !negbK; move=> [/eqP ->|/eqP ->]; first by exists i2 => //; transposeX transposeR.
+  by exists i1 => //; transposeX transposeL.
 Qed.
 
 End TransposedIota.

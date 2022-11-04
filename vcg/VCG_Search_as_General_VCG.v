@@ -176,6 +176,19 @@ Record O :=
    Outcome {obidders : 'winners;
             ouniq : uniq obidders}.
 
+(** Checking inhabitant existence for type O. *)
+
+Local Definition exists_o : O.
+have minnkn : minn k n = k by apply/minn_idPl; exact: le_k_n.
+have/Outcome // : uniq (tcast minnkn (@take_tuple _ k _ (ord_tuple n))).
+  apply/(tuple_uniqP ord0) => i1 i2.
+  rewrite !(tnth_nth ord_max) !val_tcast /= !nth_take ?ltn_ord //.   
+  have ltsn (s : 'I_k) : s < n by rewrite (@ltn_trans k) ?ltn_ord ?lt_k_n.
+  rewrite !nth_agent_enum /= => /eqP.  
+  rewrite -(inj_eq val_inj) /= => /eqP eq12.
+  by apply: val_inj.
+Defined.
+
 Coercion obidders : O >-> tuple_of.
 
 Canonical O_subType := Eval hnf in [subType for obidders].
@@ -191,9 +204,7 @@ Canonical O_predType := PredType (fun o x => x \in obidders o).
 Set Warnings "projection-no-head-constant".
 
 Lemma o_injective (o : O) : injective (tnth o).
-Proof.
-by move=> x y /eqP; rewrite (tnth_uniq (inord 0)) ?ouniq // => /eqP.
-Qed.
+Proof. by move=> x y /eqP; rewrite (tnth_uniq (inord 0)) ?ouniq // => /eqP. Qed.
 
 Lemma uniq_map_o (bs : bids) (o : O) : uniq (map_tuple (tnth (tlabel bs)) o).
 Proof.
@@ -299,8 +310,7 @@ Definition t_oStar := [tuple 'a* s | s < k].
 Lemma oStar_uniq : uniq t_oStar.
 Proof.
 rewrite map_inj_uniq => [|s1 s2 eq12]; first by rewrite val_ord_tuple enum_uniq.
-apply: slot_as_agent_inj.
-apply: (@labelling_inj _ _ geq_bid bs (tlabel bs)) => //.
+apply/slot_as_agent_inj/(@labelling_inj _ _ geq_bid bs (tlabel bs)) => //.
 exact: tlabelP.
 Qed.
 
@@ -309,8 +319,7 @@ Definition oStar := Outcome oStar_uniq.
 Notation "'b* s" := (bidding ('a* s) oStar) (at level 10).
 Notation "'idxa j" := (idxa bs j) (at level 10).
 
-Definition sorted_o o := 
-  ∀ s1 s2 : slot, s1 <= s2 → 'idxa (tnth o s1) <= 'idxa (tnth o s2).
+Definition sorted_o o := ∀ s1 s2 : slot, s1 <= s2 → 'idxa (tnth o s1) <= 'idxa (tnth o s2).
 
 Definition welfare (o : O) := 
   \sum_(s < k) bidding bs (tnth o s) o.
@@ -326,8 +335,7 @@ Lemma le_ioStar_io (o : O) (sorted_o : sorted_o o) :
   forall (s : slot), 'idxa ('a* s) <= 'idxa (tnth o s).
 Proof.
 case.
-elim=> [lt0k //=|s IH lts1k];
-  first by rewrite /idxa cancel_inv_idxa /slot_as_agent.
+elim=> [lt0k //=|s IH lts1k]; first by rewrite /idxa cancel_inv_idxa /slot_as_agent.
 have lt_s_k: s < k by rewrite (@ltn_trans (S s)). 
 set s' := Ordinal lt_s_k; set s'1 := Ordinal lts1k. 
 have: idxa bs (tnth o s') < idxa bs (tnth o s'1). 
@@ -345,8 +353,7 @@ Proof.
 move=> lti1I2.
 rewrite -(labelling_spec_idxa geq_bid) -[X in _ <= val X](labelling_spec_idxa geq_bid).
 rewrite (tnth_nth ord0) [X in _ <= val X](tnth_nth ord0). 
-apply: (sorted_leq_nth (@transitive_geq_bid p.-1)) => //.
-- exact: reflexive_geq_bid.
+apply: (sorted_leq_nth (@transitive_geq_bid p.-1)) => //; first by exact: reflexive_geq_bid.
 - apply/(@sorted_bids_sorted p' _).
   rewrite /tsort sorted_bids_sorted sort_sorted //. 
   exact: total_geq_bid.
@@ -494,9 +501,9 @@ by rewrite /idxa cancel_inv_idxa inordK ?ltn_ord // (ltn_trans (ltn_ord ij) lt_k
 Qed.
 
 Lemma mem_oStar_equiv j : idxa bs j < k <-> j \in oStar bs.
-Proof.
-split; first by exact: mem_oStar.
-exact: mem_oStar_inv.
+Proof. 
+split; first by exact: mem_oStar. 
+exact: mem_oStar_inv. 
 Qed.
 
 End Properties.
@@ -579,8 +586,7 @@ rewrite ltn_neqAle => /andP [_].
 rewrite leq_eqVlt ltnS leq_eqVlt jloses orbF.
 move=> /orP [|/eqP eqijk']; first by move/mem_oStar_inv/ltn_eqF: (jino) => ->. 
 rewrite slot_in_oStar; last by rewrite mem_oStar // eqijk'.
-apply: val_inj => /=.
-by rewrite inordK ?eqijk'.
+by apply: val_inj => /=; rewrite inordK ?eqijk'.
 Qed.
 
 Lemma wonE j (jwins : idxa bs j < k') : slot_won bs j = inord (idxa bs j).
@@ -620,7 +626,7 @@ Lemma bidSum_out_o (o : O) :
   \sum_(j < n | j \notin o) (bidding bs) j o = 0.
 Proof.
 apply/eqP; rewrite sum_nat_eq0.
-apply/forall_inP => j outo ; apply/eqP.
+apply/forall_inP => j outo; apply/eqP.
 rewrite ffunE.
 exact: ifN.
 Qed.
@@ -649,13 +655,10 @@ Proof. exact: arg_maxnP. Qed.
 
 Lemma oStar_extremum : max_bidSum_spec (OStar.oStar bs).
 Proof.
-have true_oStar: predT oStar by [].
-have max_oStar (o : O) : predT o → geq (bidSum (OStar.oStar bs)) (bidSum o).
-  move=> _.
-  rewrite bidSum_slot /bidSum /G.bidSum // !bidsSum_sumBid.
-  move: (OStar.le_welfare_o_oStar bs o).
-  by rewrite /OStar.max_welfare /OStar.welfare -bidSum_slot valid_bidSum.
-exact: ExtremumSpec.
+apply: ExtremumSpec => [//|o _].
+rewrite bidSum_slot /bidSum /G.bidSum // !bidsSum_sumBid.
+move: (OStar.le_welfare_o_oStar bs o).
+by rewrite /OStar.max_welfare /OStar.welfare -bidSum_slot valid_bidSum.
 Qed.
 
 Conjecture uniq_max_bidSum : uniq bs -> singleton max_bidSum_spec.
@@ -688,9 +691,8 @@ Qed.
 Lemma s_bid_as_bid_x_ctr (s : slot) : bidding bs (tnth oStar s) oStar = bid_ctr_slot s.
 Proof.
 rewrite /bidding ffunE /t_bidding tnth_mktuple mem_map; last by exact: widen_ord_inj.
-rewrite ifT.
-- by rewrite widen_slot_as_agent -oStar_id cancel_slot tnth_mktuple widen_slot_as_agent.
-- by apply/tnthP; exists s; rewrite tnth_ord_tuple.
+rewrite ifT; last by apply/tnthP; exists s; rewrite tnth_ord_tuple.
+by rewrite widen_slot_as_agent -oStar_id cancel_slot tnth_mktuple widen_slot_as_agent.
 Qed.
 
 Lemma bidSum_bid_ctr_slot : bidSum oStar = \sum_(s < k) bid_ctr_slot s.
@@ -721,7 +723,7 @@ Qed.
 
 Lemma bidSum_i_bid_ctr_slot :
   bidSum_i oStar = \sum_(s < k) bid_ctr_slot s - bid_ctr_agent i.
-Proof. move: bidSum_i_bid_ctr_agent; by rewrite bidSum_bid_ctr_slot. Qed.
+Proof. by move: bidSum_i_bid_ctr_agent; rewrite bidSum_bid_ctr_slot. Qed.
 
 End BidSum.
 
@@ -733,16 +735,14 @@ Variable (bs_bidders : n_bidders.-tuple bid).
 
 Lemma cast_n_tuple : minn n (n_bidders + (n - n_bidders)) = n.
 Proof.
-case lenbn: (n_bidders <= n).
-- by rewrite subnKC ?minnn.
-- move/negbT: lenbn; rewrite -ltnNge; move/ltnW=> lennb.
-  move: (lennb); rewrite -subn_eq0 => /eqP ->; rewrite addn0.
-  by apply/minn_idPl.
+case lenbn: (n_bidders <= n); first by rewrite subnKC ?minnn.
+move/negbT: lenbn; rewrite -ltnNge; move/ltnW=> lennb.
+move: (lennb); rewrite -subn_eq0 => /eqP ->; rewrite addn0.
+by apply/minn_idPl.
 Qed.
 
 Definition padded_bs_bidders : bids :=
-  tcast cast_n_tuple
-    (take_tuple n (cat_tuple bs_bidders (nseq_tuple (n - n_bidders) bid0))).
+  tcast cast_n_tuple (take_tuple n (cat_tuple bs_bidders (nseq_tuple (n - n_bidders) bid0))).
 
 Definition bs0 := locked padded_bs_bidders.
 
@@ -910,8 +910,7 @@ Lemma le_bubble_sort_welfare : forall xs (o : O) (noio : no_i_in o),
     xo.1 -> welfare_i o <= welfare_i (Outcome (ububble_uniq (ouniq o) xs)).
 Proof. 
 rewrite /=. 
-elim=> [o _ _|x xs IH o noio /= /andP [isb x12s']];
-      first by apply: leq_sum => s _; rewrite !ffunE.
+elim=> [o _ _|x xs IH o noio /= /andP [isb x12s']]; first by apply: leq_sum => s _; rewrite !ffunE.
 pose xo := Outcome (ububble_uniq (ouniq o) xs).
 have noixo: no_i_in xo by exact: (@notin_ububble _ _ o xs i). 
 move: (IH o noio x12s') (le_transposed_welfare_i noixo isb).
@@ -956,8 +955,7 @@ apply/bigmax_leqP => o _.
 rewrite /VCG_bidSum'' /G.bidSum''. 
 have body o': \sum_(j < n) tnth (G.bs'' i (biddings bs)) j o' =
               \sum_(j < n) t_bidding_i j o'.
-  apply: eq_bigr => j _.
-  by rewrite !tnth_mktuple !ffunE /t_bidding_i. 
+  by apply: eq_bigr => j _; rewrite !tnth_mktuple !ffunE /t_bidding_i. 
 rewrite (body o) (body oS) => {body}.
 have bidSum_out_o_i (o' : O) : \sum_(j < n | j \notin o') t_bidding_i j o' = 0.
   apply/eqP; rewrite sum_nat_eq0.
@@ -1371,10 +1369,9 @@ Proof.
 move: (mem_oStar_inv i_in_oStar); rewrite ltnS => leik'.
 move/ltnW: (leq_ltn_trans leik' ltk'j) => leij.
 rewrite (not_in_oStar sorted_bs0) //.
-apply: esym.
-apply: negbTE.
-- have [] := boolP (j < n') => [ltjn'|].
-  rewrite shifted_tuple_i // tnth_ord_tuple -has_pred1 -all_predC.
+apply/esym/negbTE.
+have [] := boolP (j < n') => [ltjn'|].
+- rewrite shifted_tuple_i // tnth_ord_tuple -has_pred1 -all_predC.
   apply/all_tnthP => s /=.
   rewrite neq_ltn; apply/orP; left.
   have: agent_succ (slot_as_agent s) < ord_succ j.
@@ -1385,10 +1382,10 @@ apply: negbTE.
 - rewrite -below_last_ord negbK => /eqP ->.
   rewrite eq_lab'_last -has_pred1 -all_predC.
   apply/all_tnthP => s /=.
-  - have [] := boolP (s < i) => ltsi.
-    by rewrite id_tuple_i // tnth_mktuple -(inj_eq val_inj) ltn_eqF.
-  - have [] := boolP (s < k') => [ltsk'|].
-    move: ltsi; rewrite -leqNgt => leis.
+  have [] := boolP (s < i) => ltsi;
+    first by rewrite id_tuple_i // tnth_mktuple -(inj_eq val_inj) ltn_eqF.
+  have [] := boolP (s < k') => [ltsk'|].
+  - move: ltsi; rewrite -leqNgt => leis.
     rewrite shifted_tuple_i // neq_ltn; apply/orP; right.
     rewrite tnth_mktuple widen_slot_as_agent /=.
     by move: leis; rewrite -ltnS eq_proper_addS.
@@ -1427,14 +1424,13 @@ Proof.
   apply/tnthP/tnthP => [[sj psj]|[sj psj]].
   - move: (psj) => ->; rewrite tnth_mktuple.
     exists ord_max; rewrite last_tuple_i shifted_tuple_i /= ?tnth_ord_tuple; last first.
-    exact: lt_slot_n'.
-    move/eqP: psj.
-    by rewrite tnth_mktuple -(inj_eq val_inj) /= => /eqP <-.
-    rewrite /succ_last_slot_agent widen_slot_as_agent.
-    have -> /=: sj = last_slot.
-      by apply: val_inj => /=; rewrite eqk'j psj tnth_mktuple.
-    apply: val_inj => /=; rewrite inordK ?ifF //; last by exact: lt_k_n.
-    exact: (ltn_eqF (lt_slot_n' last_slot)).
+    - exact: lt_slot_n'.
+    - by move/eqP: psj;  rewrite tnth_mktuple -(inj_eq val_inj) /= => /eqP <-.
+    - rewrite /succ_last_slot_agent widen_slot_as_agent.
+      have -> /=: sj = last_slot.
+        by apply: val_inj => /=; rewrite eqk'j psj tnth_mktuple.
+      apply: val_inj => /=; rewrite inordK ?ifF //; last by exact: lt_k_n.
+      exact: (ltn_eqF (lt_slot_n' last_slot)).
   - inord_in_oStar j.
     by rewrite eqk'j ltnSn.
 Qed.
@@ -1499,12 +1495,12 @@ congr (_ + _).
 - rewrite (bigID (fun j => j == i)) [in RHS](bigID (fun j => j == last_agent)) /=. 
   congr (_ + _).
   - rewrite (big_pred1 i) ?(big_pred1 last_agent) => [|j|j].
-    rewrite !tnth_mktuple !ffunE eq_refl /= /t_bidding.
-    by have/(not_in_oStar sorted_bs0) ->: k' < last_agent by exact: lt_k_n.
-    rewrite pred1E andb_idl; first by rewrite eq_sym.
-    by move=> /eqP ->; rewrite -leqNgt leq_ord.
-    rewrite pred1E andb_idl; first by rewrite eq_sym.
-    by move=> /eqP ->; rewrite ltnn.  
+    - rewrite !tnth_mktuple !ffunE eq_refl /= /t_bidding. 
+      by have/(not_in_oStar sorted_bs0) ->: k' < last_agent by exact: lt_k_n.
+    - rewrite pred1E andb_idl; first by rewrite eq_sym.
+      by move=> /eqP ->; rewrite -leqNgt leq_ord.
+    - rewrite pred1E andb_idl; first by rewrite eq_sym.
+      by move=> /eqP ->; rewrite ltnn.  
   - rewrite (@eq_bigl _ _ _ _ _ _ (fun j : A => i < j));
       last by move=> j; rewrite -leqNgt ltn_neqAle eq_sym andbC.
     rewrite [RHS](@eq_bigl _ _ _ _ _ _ (fun j : A => i <= j < last_agent));
@@ -1539,13 +1535,13 @@ congr (_ + _ ).
 - apply: eq_big => s; first by rewrite -leqNgt.
   rewrite -leqNgt /bidding ffunE /t_bidding /bid_in => leis.
   rewrite mem_tnth.
-  congr (_ * _); last first.
+  congr (_ * _); 
+    first by rewrite shifted_tuple_i tnth_mktuple -?widen_slot_as_agent //= lt_slot_n'.
   rewrite /slot_of.
   case: tnthP => p; last by have //=: ∃ i : 'I_k, tnth t_oStar s = tnth t_oStar i by exists s.
   case: sig_eqW => s'' /=.
   rewrite !tnth_mktuple.
   by move/widen_ord_inj => ->.
-  by rewrite shifted_tuple_i tnth_mktuple -?widen_slot_as_agent //= lt_slot_n'.
 Qed.
 
 (** Price equality, when agent [i] wins. *)
@@ -1575,7 +1571,7 @@ rewrite -/bs subnDl.
   - rewrite leq_sum //= => s _.
     by rewrite leq_mul2l sorted_ctrs ?orbT ?leq_pred.
   - have [] := boolP (i < last_slot) => [ltilast|].
-    - rewrite reindex_ge_i ?[X in _ <= X](bigD1 ord_max) //.
+    - rewrite reindex_ge_i ?[X in _ <= X](bigD1 ord_max) //. 
       rewrite big_cropr last_ctr_eq0 //= muln0 add0n leq_sum // => s /andP [leis ltsk'].
       rewrite leq_mul //; last by rewrite sorted_ctrs ?le_ord_succ.
       by rewrite commuting_succ_agent.
@@ -1586,7 +1582,6 @@ rewrite -/bs subnDl.
       rewrite big_cropr last_ctr_eq0  //= muln0 add0n. 
       apply: eq_bigr => s /andP [leis ltsk'].
       rewrite /slot_pred /slot_succ cancel_ord_succ //.
-      congr (_ * _). 
       by rewrite commuting_succ_agent.
     - rewrite -leqNgt leq_eqVlt => /orP [/eqP <-|]; last by rewrite not_lt_last_slot_i.
       rewrite sum0_gt_last (bigD1 last_slot) //= last_ctr_eq0 //= muln0 add0n.
@@ -1619,15 +1614,11 @@ Let i' := idxa bs i.
 Let l' := tlabel bs.
 
 Lemma sorted_bids_sorted : sorted_bids bs'.
-Proof.
-apply/sorted_bids_sorted.
-apply: sort_sorted.
-exact: total_geq_bid.
-Qed.
+Proof. by apply/sorted_bids_sorted/sort_sorted/total_geq_bid. Qed.
 
 Lemma eq_relabelled_price : price bs' i' = price bs i.
 Proof.
-rewrite /price tsortK //; last by exact: sorted_bids_sorted. 
+rewrite /price tsortK //; last exact: sorted_bids_sorted. 
 rewrite idxaK //; last exact: sorted_bids_sorted.
 Qed.
 
@@ -1644,7 +1635,7 @@ Qed.
 Lemma sorted_relabelled_bidding j o': instance_bidding bs' j o' = bidding bs' j o'.
 Proof.
 have sbs' := sorted_bids_sorted.
-rewrite !ffunE /t_bidding.
+rewrite !ffunE /t_bidding. 
 congr (if _ then _ else _); first by rewrite idxaK.
 by rewrite idxaK // tsortK.
 Qed. 
@@ -1653,8 +1644,7 @@ Lemma sorted_relabelled_biddings: instance_biddings bs' = biddings bs'.
 Proof.
 apply: eq_from_tnth => j.
 rewrite !tnth_mktuple.
-apply/ffunP => o'.
-by rewrite sorted_relabelled_bidding.
+by apply/ffunP => o'; rewrite sorted_relabelled_bidding.
 Qed.
 
 Lemma instance_perm_biddings : perm_eq (instance_biddings bs') (instance_biddings bs). 
@@ -1663,9 +1653,7 @@ apply/tuple_permP.
 exists (perm (labelling_inj (@tlabelP _ _ geq_bid bs))).
 rewrite -[X in _ = _ X](@eq_from_tnth _ _ (instance_biddings bs')) // => j.
 rewrite !tnth_mktuple.
-apply/ffunP => o'.
-rewrite -relabelled_bidding. 
-by rewrite permE -{1}(@cancel_inv_idxa _ _ geq_bid bs j).
+by apply/ffunP => o'; rewrite -relabelled_bidding permE -{1}(@cancel_inv_idxa _ _ geq_bid bs j).
 Qed.  
 
 Definition instance_vcg_price := @G.price [finType of O] o0 i (instance_biddings bs).
@@ -1683,11 +1671,9 @@ have mkES o :
   extremum_spec geq predT (G.bidSum (instance_biddings bs)) o ->
   extremum_spec geq predT (G.bidSum (biddings bs')) o.
   move=> [ox pT ge].
-  have tge (o' : O_finType) (p : predT o') :
-    geq (G.bidSum (biddings bs') ox) (G.bidSum (biddings bs') o').
-    move: (ge o' pT).
-    by rewrite !(G.perm_bidSum instance_perm_biddings) sorted_relabelled_biddings.
-  exact: (ExtremumSpec pT tge). 
+  apply: (ExtremumSpec pT) => [o' _].
+  move: (ge o' pT).
+  by rewrite !(G.perm_bidSum instance_perm_biddings) sorted_relabelled_biddings.
 apply: (@uniq_oStar bs'); first by exact: mkES.
 exact: mkES.
 Qed.
@@ -1708,7 +1694,7 @@ under [X in _ <= X -> _]eq_bigr=> j do rewrite tnth_map ffunE /= tnth_ord_tuple.
 have eqlabiota: map_tuple (tnth (tlabel bs)) oStar = 
                 [tuple tnth (tlabel bs) (slot_as_agent s)  | s < k].
   apply: eq_from_tnth => s.
-  rewrite !tnth_map.
+  rewrite !tnth_map. 
   congr tnth.
   exact: val_inj.   
 set s1 := (X in X <= _ -> _); set s2 := (X in _ -> X <= _).

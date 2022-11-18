@@ -676,23 +676,26 @@ Qed.
 
 (** Rationality. *)
 
-Definition a := auction.new (fun (o : mech.O m) i => 
-                               let r := tnth o i in
-                               Some (if awins r then v i * 'ctr_(what r) - price r else 0)).
+(* Assume for now divisibility on nats, for simplicity. *)
+Hypothesis divisR : forall R, 'ctr_(what R) %| price R.
 
-Variable (bs' : bids).
+Definition a := auction.new 
+                  (fun (o : mech.O m) i => 
+                     let r := tnth o i in
+                     if awins r then Some (price r %/ 'ctr_(what r)) else None).
 
-Definition value' i : bid := inord (v i * 'ctr_(slot_won (bs bs') i)).
-
-Theorem rational_VCG_for_Search :
-  (forall i o, slot_won (bs bs') i =  what (tnth o i)) -> 
-  (forall i s, v i * 'ctr_s < p'.+1) ->
-auction.rational a value'.
+Theorem rational_VCG_for_Search (tv : forall bs i, tnth bs i = true_value i ) :
+    auction.rational a v. 
 Proof.
-move=> sw vb i o /=.
-case: ifP => [aw|//].
-by rewrite /value' -sw inordK ?leq_subr.
-Qed.
+move=> i o. 
+rewrite /auction.p /v /=. 
+case: ifP => [|//]. 
+rewrite leq_divLR ?divisR //.
+have [bs -> /= iw] : exists bs, tnth o i = Result (idxa bs i < S.k') (S.price bs i) (slot_won bs i).
+  by admit. 
+by rewrite VCG_for_Search_rational // /bid_in /value labelling_spec_idxa tv.
+Admitted.
+
 
 (* Print Assumptions truthful_VCG_for_Search. *)
 (* Print Assumptions truthful_VCG_for_Search_rel. *)

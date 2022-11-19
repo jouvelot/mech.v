@@ -684,8 +684,9 @@ Definition a := auction.new
                      let r := tnth o i in
                      if awins r then Some (price r %/ 'ctr_(what r)) else None).
 
-Theorem rational_VCG_for_Search (tv : forall bs i, tnth bs i = true_value i ) :
-    auction.rational a v. 
+Variable (bid_true_value : forall bs i, action_on bs i = true_value i).
+
+Theorem rational_VCG_for_Search : auction.rational a v. 
 Proof.
 move=> i o. 
 rewrite /auction.p /v /=. 
@@ -693,7 +694,8 @@ case: ifP => [|//].
 rewrite leq_divLR ?divisR //.
 have [bs -> /= iw] : exists bs, tnth o i = Result (idxa bs i < S.k') (S.price bs i) (slot_won bs i).
   by admit. 
-by rewrite VCG_for_Search_rational // /bid_in /value labelling_spec_idxa tv.
+by rewrite VCG_for_Search_rational // /bid_in /value labelling_spec_idxa 
+           -/action_on bid_true_value.
 Admitted.
 
 

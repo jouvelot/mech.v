@@ -385,16 +385,15 @@ Definition prefs := auction.prefs a v.
 
 Section Properties.
 
-(** SP is rational, if one bids truthfully. *)
+(** SP is rational, if one bids truthfully. *) 
 
 Theorem rational (tv : forall bs, tnth bs =1 v) : auction.rational a v.
 Proof. 
 rewrite /auction.rational /auction.p /= => i o. 
-rewrite (surjective_pairing (tnth o i)).
-case: ifP => [iw|//]. 
-set bs := (tnth o i).2.
-by rewrite -(tv bs i) -(labelling_spec_idxa geq_bid bs i) tsorted_bids_sorted // le_ord_succ.
-Qed. 
+case: (tnth o i) => iw' bs'.
+case: ifP => [_|//]. 
+by rewrite -(tv bs' i) -(labelling_spec_idxa geq_bid bs' i) tsorted_bids_sorted // le_ord_succ.
+Qed.
 
 (** SP is truthful *)
 

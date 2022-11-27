@@ -674,6 +674,138 @@ apply: (@MP n A1 A m1 m Ra fR p1 p fRP fRvP Ro MR RelFP).
 exact: G.truthful_General_VCG.
 Qed.
 
+Section Sumn.
+
+Lemma set_nthE T (s : seq T) x0 n x :
+  set_nth x0 s n x = if n < size s
+    then take n s ++ x :: drop n.+1 s
+    else s ++ ncons (n - size s) x0 [:: x].
+Admitted.
+
+Lemma sumn_nconsE (s : seq nat) x0 n : sumn (ncons n x0 s) = n * x0 + sumn s.
+Proof.
+rewrite sumnE (big_nth x0) size_ncons /=.
+elim: n => [/=|n IH]; first by rewrite !add0n sumnE [RHS](big_nth x0).
+by rewrite addSn big_nat_recl // nth_ncons /= -addn1 IH addnA -mulSn addn1.
+Qed.
+
+Lemma sumn_set_nthE (s : seq nat) x0 n x :
+  let x' := x + (size s <= n) * (nth x0 s n + (n - size s) * x0) in 
+  sumn (set_nth x0 s n x)  = sumn s + x' - nth x0 s n.
+Proof.
+rewrite set_nthE !sumnE /= [in RHS]leqNgt.
+case: ifP => [ltns|_] /=.
+- rewrite big_cat big_cons /= mul0n addn0.  
+  rewrite (big_nth x0) [X in x + X](big_nth x0) [in RHS](big_nth x0). 
+  rewrite big_nat size_take size_drop ltns.  
+  under eq_bigr => ? /andP [_ ltis] do rewrite nth_take //. 
+  under [X in x + X]eq_bigr => ? _ do rewrite nth_drop. 
+  rewrite -big_nat addnC -addnA [in RHS]addnC -addnBA //.
+  - congr addn; rewrite [in RHS](@big_cat_nat _ _ _ n) //=; last by rewrite ltnW.  
+    rewrite addnC -addnBA //; last by rewrite big_ltn // leq_addr.
+    congr addn; rewrite -{3}(add0n n) [in RHS]big_addn.  
+    have -> : \sum_(0 <= i < size s - n.+1) nth x0 s (n.+1 + i) =
+             \sum_(1 <= i < size s - n) nth x0 s (i + n). 
+      rewrite big_add1 subnS. 
+      by under eq_bigr => ? _ do rewrite addSnnS addnC. 
+    by rewrite [in RHS]big_ltn /= ?subn_gt0 // addnC -addnBA ?subnn ?addn0 ?add0n.
+  - rewrite (@big_cat_nat _ _ _ n) //=; last by rewrite ltnW.
+    by rewrite [X in _ + X]big_ltn // addnC -addnA leq_addr.
+- rewrite mul1n big_cat //= -addnBA; last by rewrite addnC -addnA leq_addr.
+  congr addn; rewrite -sumnE sumn_nconsE /= addn0.
+  by rewrite -addnBA ?leq_addr // [nth _ _ _ + _]addnC -addnBA // subnn addn0 addnC.
+Qed.
+
+End Sumn.
+
+(** SP is a special case of VCG for Search.
+
+   See Tim Roughgarden (http://timroughgarden.org/f05/ca.pdf) *)
+    
+Section Surplus.
+
+(* 3 hypotheses to map VCG for Search into Second Prize. *)
+
+Hypothesis single_item : S.k' = 0.
+
+Hypothesis eqq'1 : S.q' = 1.
+
+Lemma lt1q : 1 < q.
+Proof. by rewrite /q eqq'1. Qed.
+Definition ctr1 := Ordinal lt1q.
+Hypothesis all_ctrs1 : forall s, 'ctr_s = ctr1.
+
+(*  A second-price Vickrey auction maximizes surplus, when bidding truthfully, i.e.,
+    surplus is equal to welfare. *)
+
+Variable bs : bids.
+
+Record C := new {
+               val : n.-tuple nat;
+               _ : sumn val = 1
+             }.
+
+Coercion val : C >-> tuple_of.
+
+Variable (c0 : C).
+
+Definition surplus c := \sum_(i < n) v i * tnth c i.
+
+Definition iw := tnth (tlabel bs) ord0.       (* winning agent in SP. *)
+
+Notation s0 := [tuple 0 | i < n].
+Notation sw := (set_nth 0 s0 iw 1).
+Local Lemma szn : size sw = n.
+Proof.
+rewrite size_set_nth /= size_map size_enum_ord.
+apply/maxn_idPr.
+exact: ltn_ord.
+Qed.
+Definition vw := tcast szn (in_tuple sw).
+
+Lemma isCvw : sumn vw = 1. 
+Proof.
+rewrite val_tcast sumn_set_nthE /sumn size_map /= !(nth_map iw) ?size_enum_ord ?ltn_ord //.
+rewrite leqNgt ltn_ord /= mul0n subn0 addn0 foldrE (big_nth 0) big_nat.
+under eq_bigr => i /andP [_ ltin].
+  rewrite (nth_map iw). over.
+  by rewrite size_map in ltin.
+by rewrite big1_eq.
+Qed. 
+Definition cw := new isCvw.
+
+Definition winner1 := [tuple iw].
+
+Lemma eqk1 : 1 = k.
+Proof. by rewrite /k single_item. Qed.
+Definition winners : k.-tuple S.A := tcast eqk1 winner1.
+
+Lemma uniq_winners : uniq winners.
+Proof. by rewrite val_tcast. Qed.
+Definition ow := Outcome uniq_winners.
+
+Lemma SP_is_surplus_maximizing (tv : tnth bs =1 v) :
+  surplus cw = welfare bs ow.
+Proof.
+rewrite /surplus /cw /welfare /OStar.welfare /bidding /t_bidding /bid_in.
+rewrite (@bigD1 _ _ _ _ iw) //= (@tnth_nth _ _ 0) val_tcast /= nth_set_nth /= eq_refl muln1.
+under eq_bigr => i ltin.
+  rewrite (@tnth_nth _ _ 0) val_tcast /= nth_set_nth /= ifF /=; last exact: negbTE.
+  rewrite (nth_map ord0) ?muln0 ?size_enum_ord ?ltn_ord //=. 
+  by over => //=.
+rewrite big1_eq addn0. 
+under eq_bigr => i _.
+  rewrite ffunE all_ctrs1 //= muln1 ifT; last by apply/tnthP; exists i.
+  by over. 
+have -> : \sum_(i0 < k) (λ i1, tnth bs (tnth winners i1)) i0 =
+           \sum_(0 <= i0 < k) tnth bs (tnth [tuple tnth (tlabel bs) ord0] 
+                                           (cast_ord (esym eqk1) (inord i0))).
+  by rewrite big_mkord; apply: eq_bigr => i _; rewrite tcastE inord_val.
+by rewrite -{1}eqk1 big_nat1 [tnth [tuple _] _](tnth_nth ord0) /= inordK //= tv.
+Qed.
+
+End Surplus.
+
 (** Rationality. *)
 
 (* Assume for now divisibility on nats, for simplicity. *)

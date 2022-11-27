@@ -700,7 +700,7 @@ Notation U2 := (@prefs.U A2 _ m2 p2).
 Variable RelFP : forall o1 o2, Ro o1 o2 -> U1^~o1 =1 U2^~o2.
 
 Lemma MP : truthful p1 -> truthful p2.
-Proof.
+Proof. 
 move=> h1 bs2 bs2' i hd1 ht1 /=.
 have ho := MR (fRiP bs2).
 have ho' := MR (fRiP bs2').
@@ -714,7 +714,7 @@ End Relational.
 
 (** Direct revelation mechanism, as a [mech] instance. *)
 
-Module directRevelation. (* See [3] *)
+Module directRevelationMech. (* See [3] *)
 
 Section DirectRevelation.
 
@@ -742,7 +742,7 @@ Definition mech := mech.new (fun u : n.-tuple unit => (c, p)).
 
 End DirectRevelation.
 
-End directRevelation.
+End directRevelationMech.
 
 (** Auction, as a subclass of [mech]. *) 
 
@@ -785,13 +785,79 @@ Definition no_positive_transfer := forall i (o : mech.O a), 0 <= p o i.
 Theorem trivial_no_positive_transfer : no_positive_transfer.
 Proof. by move=> i o. Qed.
 
-Definition rational := forall i (o : mech.O a),
+Definition individual_rational i := forall (o : mech.O a),
     match p o i with
     | Some p => p <= v i
     | _ => true
     end.
 
+Lemma individual_rational_if_strictly_useful i (lt0u : forall o, 0 < U i o) : 
+  individual_rational i.
+Proof. 
+move=> o.  
+move: (lt0u o).
+rewrite /U.
+case: (p o i) => // p.
+rewrite subn_gt0.
+exact: ltnW.
+Qed.
+
+Definition rational := forall i, individual_rational i.
+
+Lemma rational_if_strictly_useful (lt0u : forall i o, 0 < U i o) : rational.
+Proof. by move=> i; apply/individual_rational_if_strictly_useful/lt0u. Qed.
+
 End Auction.
+
+(** Relational mapping between auctions. *)
+
+Section Relational.
+
+Variable (n m : nat ).
+
+Notation agent := (agent.type n).
+Notation A := 'I_m.   (* actions are bids *)
+
+Variable (m1 : @mech.type A n) (m2 : @mech.type A n).
+
+Notation O1 := (mech.O m1).
+Notation O2 := (mech.O m2).
+
+Variable p1 : prefs.type m1.
+Variable p2 : prefs.type m2.
+
+Notation v1 := (@prefs.v _ n m1 p1).
+Notation v2 := (@prefs.v _ n m2 p2).
+
+(* Auction prices *)
+
+Variable r1 : mech.O m1 -> agent -> option nat.
+Variable r2 : mech.O m2 -> agent -> option nat.
+
+Definition act1 := new r1.
+Definition act2 := new r2.
+
+(* Relational framework *)
+
+Variable Ro : O1 -> O2 -> Prop.
+
+Variable RelFP : forall o1 o2 i, Ro o1 o2 -> @p _ _ act1 o1 i = @p _ _ act2 o2 i.
+Variable RelFvP : forall i, v1 i = v2 i.
+
+(* Functional variant *)
+
+Variable Mo : O2 -> O1.
+
+Hypothesis fRo : forall o2, Ro (Mo o2) o2.
+
+Lemma MP : rational act1 v1 -> rational act2 v2. 
+Proof.
+move=> h1 i o2. 
+rewrite -(@RelFP (Mo o2) o2 i) -?RelFvP; last exact: fRo.
+exact: h1.
+Qed.
+
+End Relational.
 
 End auction.
 

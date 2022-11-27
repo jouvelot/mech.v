@@ -387,12 +387,12 @@ Section Properties.
 
 (** SP is rational, if one bids truthfully. *) 
 
-Theorem rational (tv : forall bs, tnth bs =1 v) : auction.rational a v.
+Theorem individual_rational i (tv : forall bs, tnth bs i = v i) : auction.individual_rational a v i.
 Proof. 
-rewrite /auction.rational /auction.p /= => i o. 
+rewrite /auction.individual_rational /auction.p /= => o. 
 case: (tnth o i) => iw' bs'.
 case: ifP => [_|//]. 
-by rewrite -(tv bs' i) -(labelling_spec_idxa geq_bid bs' i) tsorted_bids_sorted // le_ord_succ.
+by rewrite -(tv bs') -(labelling_spec_idxa geq_bid bs' i) tsorted_bids_sorted // le_ord_succ.
 Qed.
 
 (** SP is truthful *)

@@ -726,14 +726,14 @@ Section Surplus.
 
 (* 3 hypotheses to map VCG for Search into Second Prize. *)
 
-Hypothesis single_item : S.k' = 0.
+Hypothesis a_single_slot_is_auctionned : S.k' = 0.
 
-Hypothesis eqq'1 : S.q' = 1.
+Hypothesis max_ctr_is_1 : S.q' = 1.
 
 Lemma lt1q : 1 < q.
-Proof. by rewrite /q eqq'1. Qed.
+Proof. by rewrite /q max_ctr_is_1. Qed.
 Definition ctr1 := Ordinal lt1q.
-Hypothesis all_ctrs1 : forall s, 'ctr_s = ctr1.
+Hypothesis all_ctrs_are_1 : forall s, 'ctr_s = ctr1.
 
 (*  A second-price Vickrey auction maximizes surplus, when bidding truthfully, i.e.,
     surplus is equal to welfare. *)
@@ -776,9 +776,9 @@ Definition cw := new isCvw.
 
 Definition winner1 := [tuple iw].
 
-Lemma eqk1 : 1 = k.
-Proof. by rewrite /k single_item. Qed.
-Definition winners : k.-tuple S.A := tcast eqk1 winner1.
+Lemma eq1k : 1 = k.
+Proof. by rewrite /k a_single_slot_is_auctionned. Qed.
+Definition winners : k.-tuple S.A := tcast eq1k winner1.
 
 Lemma uniq_winners : uniq winners.
 Proof. by rewrite val_tcast. Qed.
@@ -795,13 +795,13 @@ under eq_bigr => i ltin.
   by over => //=.
 rewrite big1_eq addn0. 
 under eq_bigr => i _.
-  rewrite ffunE all_ctrs1 //= muln1 ifT; last by apply/tnthP; exists i.
+  rewrite ffunE all_ctrs_are_1 //= muln1 ifT; last by apply/tnthP; exists i.
   by over. 
 have -> : \sum_(i0 < k) (λ i1, tnth bs (tnth winners i1)) i0 =
            \sum_(0 <= i0 < k) tnth bs (tnth [tuple tnth (tlabel bs) ord0] 
-                                           (cast_ord (esym eqk1) (inord i0))).
+                                           (cast_ord (esym eq1k) (inord i0))).
   by rewrite big_mkord; apply: eq_bigr => i _; rewrite tcastE inord_val.
-by rewrite -{1}eqk1 big_nat1 [tnth [tuple _] _](tnth_nth ord0) /= inordK //= tv.
+by rewrite -{1}eq1k big_nat1 [tnth [tuple _] _](tnth_nth ord0) /= inordK //= tv.
 Qed.
 
 End Surplus.

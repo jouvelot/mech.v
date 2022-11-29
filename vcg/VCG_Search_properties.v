@@ -704,13 +704,11 @@ case: ifP => [ltns|_] /=.
   - congr addn; rewrite [in RHS](@big_cat_nat _ _ _ n) //=; last by rewrite ltnW.  
     rewrite addnC -addnBA //; last by rewrite big_ltn // leq_addr.
     congr addn; rewrite -{3}(add0n n) [in RHS]big_addn.  
-    have -> : \sum_(0 <= i < size s - n.+1) nth x0 s (n.+1 + i) =
-             \sum_(1 <= i < size s - n) nth x0 s (i + n). 
-      rewrite big_add1 subnS. 
-      by under eq_bigr => ? _ do rewrite addSnnS addnC. 
-    by rewrite [in RHS]big_ltn /= ?subn_gt0 // addnC -addnBA ?subnn ?addn0 ?add0n.
-  - rewrite (@big_cat_nat _ _ _ n) //=; last by rewrite ltnW.
-    by rewrite [X in _ + X]big_ltn // addnC -addnA leq_addr.
+    rewrite subnS. 
+    under eq_bigr do rewrite addSnnS addnC.
+    rewrite -(@big_add1 _ _ _ _ _ predT (fun i => nth x0 s (i + n))).
+    by rewrite [in RHS]big_ltn //= ?subn_gt0 // addnC -addnBA ?subnn ?addn0 ?add0n.
+  - by rewrite (bigD1_seq n) ?leq_addr ?mem_index_iota /index_iota ?subn0 ?ltns ?iota_uniq.
 - rewrite mul1n big_cat //= -addnBA; last by rewrite addnC -addnA leq_addr.
   congr addn; rewrite -sumnE sumn_nconsE /= addn0.
   by rewrite -addnBA ?leq_addr // [nth _ _ _ + _]addnC -addnBA // subnn addn0 addnC.
@@ -736,7 +734,7 @@ Definition ctr1 := Ordinal lt1q.
 Hypothesis all_ctrs_are_1 : forall s, 'ctr_s = ctr1.
 
 (*  A second-price Vickrey auction maximizes surplus, when bidding truthfully, i.e.,
-    surplus is equal to welfare. *)
+    surplus is equal to max welfare. *)
 
 Variable bs : bids.
 
@@ -753,8 +751,7 @@ Definition surplus c := \sum_(i < n) v i * tnth c i.
 
 Definition iw := tnth (tlabel bs) ord0.       (* winning agent in SP. *)
 
-Notation s0 := [tuple 0 | i < n].
-Notation sw := (set_nth 0 s0 iw 1).
+Notation sw := (set_nth 0 [tuple 0 | i < n] iw 1).
 Local Lemma szn : size sw = n.
 Proof.
 rewrite size_set_nth /= size_map size_enum_ord.
@@ -774,18 +771,7 @@ by rewrite big1_eq.
 Qed. 
 Definition cw := new isCvw.
 
-Definition winner1 := [tuple iw].
-
-Lemma eq1k : 1 = k.
-Proof. by rewrite /k a_single_slot_is_auctionned. Qed.
-Definition winners : k.-tuple S.A := tcast eq1k winner1.
-
-Lemma uniq_winners : uniq winners.
-Proof. by rewrite val_tcast. Qed.
-Definition ow := Outcome uniq_winners.
-
-Lemma SP_is_surplus_maximizing (tv : tnth bs =1 v) :
-  surplus cw = welfare bs ow.
+Lemma eq_surplus : surplus cw = v iw.
 Proof.
 rewrite /surplus /cw /welfare /OStar.welfare /bidding /t_bidding /bid_in.
 rewrite (@bigD1 _ _ _ _ iw) //= (@tnth_nth _ _ 0) val_tcast /= nth_set_nth /= eq_refl muln1.
@@ -793,15 +779,26 @@ under eq_bigr => i ltin.
   rewrite (@tnth_nth _ _ 0) val_tcast /= nth_set_nth /= ifF /=; last exact: negbTE.
   rewrite (nth_map ord0) ?muln0 ?size_enum_ord ?ltn_ord //=. 
   by over => //=.
-rewrite big1_eq addn0. 
-under eq_bigr => i _.
-  rewrite ffunE all_ctrs_are_1 //= muln1 ifT; last by apply/tnthP; exists i.
-  by over. 
-have -> : \sum_(i0 < k) (λ i1, tnth bs (tnth winners i1)) i0 =
-           \sum_(0 <= i0 < k) tnth bs (tnth [tuple tnth (tlabel bs) ord0] 
-                                           (cast_ord (esym eq1k) (inord i0))).
-  by rewrite big_mkord; apply: eq_bigr => i _; rewrite tcastE inord_val.
-by rewrite -{1}eq1k big_nat1 [tnth [tuple _] _](tnth_nth ord0) /= inordK //= tv.
+by rewrite big1_eq addn0. 
+Qed.
+
+Lemma surplus_is_VCG_max_welfare (tv : tnth bs =1 v) :
+  surplus cw = OStar.max_welfare bs.
+Proof. 
+rewrite eq_surplus /OStar.max_welfare /OStar.welfare /bidding /t_bidding /OStar.oStar /=.
+under [RHS]eq_bigr => s _.
+  rewrite ffunE /= mem_tnth /bid_in all_ctrs_are_1 muln1 /OStar.t_oStar tnth_map.
+  rewrite -(labelling_spec_idxa geq_bid) cancel_inv_idxa tnth_ord_tuple.
+  over.
+have -> : \sum_(s < k) tnth [tuple of sort geq_bid bs] (slot_as_agent s) =
+         \sum_(0 <= s < k) tnth [tuple of sort geq_bid bs] (inord s). 
+  rewrite big_mkord; apply: eq_bigr => s _ /=.
+  have -> // : inord s = slot_as_agent s.
+    by apply: val_inj => /=; rewrite inordK // (@ltn_trans k) // S.lt_k_n.
+rewrite /k a_single_slot_is_auctionned big_nat1 /iw. 
+rewrite -(cancel_inv_idxa geq_bid bs (inord 0)) labelling_spec_idxa tv /=.
+congr (v (tnth _ _)).
+by apply: val_inj => /=; rewrite inordK.
 Qed.
 
 End Surplus.

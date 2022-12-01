@@ -57,7 +57,7 @@ Lemma rational (bs : bids) (i : agent.type n) (i_wins : is_winner  bs i) :
   tnth bs i = v i -> price <= v i.
 Proof. by move=> <-. Qed.
 
-Lemma truthful_FP : truthful p.
+Lemma truthful_XP : truthful p.
 Proof. 
 rewrite /truthful => bs bs' i tv /=.
 rewrite /action_on /auction.U /auction.p /= !tnth_map !tnth_ord_tuple => <-. 
@@ -67,7 +67,7 @@ rewrite /is_winner -ltnNge in niw.
 by rewrite leq_eqVlt subn_eq0 (ltnW niw).
 Qed.
 
-Lemma Pareto_optimal_FP : Pareto_optimal p (true_value_strategy p).
+Lemma Pareto_optimal_XP : Pareto_optimal p (true_value_strategy p).
 Proof.
 rewrite /Pareto_optimal /action_on => s' i.  
 set U := (X in X < _); set U' := (X in _ < X) => ltUU'. 
@@ -85,5 +85,5 @@ Qed.
 
 End Properties.
 
-(* Print Assumptions truthful_FP. *)
-(* Check truthful_FP. *)
+(* Print Assumptions truthful_XP. *)
+(* Check truthful_XP. *)

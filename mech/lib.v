@@ -1014,6 +1014,9 @@ Proof. by move=> x y /anti_leq /val_inj. Qed.
 Lemma total_geq_bid: total geq_bid.
 Proof. by move=> b1 b2; exact: leq_total. Qed.
 
+Lemma antisymmetric_geq_bid: antisymmetric geq_bid.
+Proof. by move=> x y; rewrite /geq_bid /= -eqn_leq eq_sym => eqxy; exact/eqP. Qed.
+
 Implicit Types (bs : k.-tuple 'I_n.+1).
 Definition sorted_bids bs := sorted_tuple bs.
 

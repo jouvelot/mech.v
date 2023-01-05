@@ -153,7 +153,18 @@ Proof. by rewrite (@leq_trans k') // leqNgt negbT. Qed.
 Let l' := lt_labelling geq_bid a bs bs' l.
 
 Lemma is_labelling_iloses : is_labelling bs' l'.
-Proof. apply: (labelling_differ_on_lt diff lt_i'_i); exact: tlabelP. Qed.
+Proof. 
+rewrite /l' /geq_bid.
+apply: labelling_differ_on_lt.
+- exact: transitive_geq_bid.
+- exact: reflexive_geq_bid.
+- exact: total_geq_bid.
+- exact: antisymmetric_geq_bid.
+- exact: diff.
+- exact: lt_i'_i.
+- exact: tlabelP.
+- exact: bid0.
+Qed.
 
 Lemma eq_labelling_loses : projT1 (exists_labellingW geq_bid bs') = l'.
 Proof.
@@ -161,6 +172,8 @@ apply: (@labelling_singleton _ _ geq_bid bs'); last by rewrite is_labelling_ilos
 move: (exists_labellingW geq_bid bs') => [lab islab]. 
 exact: islab.
 Qed.
+
+Notation lt_index := lx.
 
 Lemma leq_value_loses (s : slot) (lti's : i' < s) : 
   tnth bs a <= tnth (tsort bs') (slot_as_agent s).
@@ -224,11 +237,21 @@ Proof.
 apply: labelling_singleton.
 - move: (exists_labellingW geq_bid bs') => [lab islab]. 
   exact: islab.
-- by rewrite labelling_differ_on_lt // tlabelP. 
+- apply: labelling_differ_on_lt. 
+  - exact: transitive_geq_bid.
+  - exact: reflexive_geq_bid.
+  - exact: total_geq_bid.
+  - exact: antisymmetric_geq_bid.
+  - exact: diff.
+  - exact: lt_i'_i.
+  - exact: tlabelP.
+  - exact: bid0.
 Qed.
 
 Lemma eq_price_bs_over : price bs a = \sum_(s < k | i < s) externality (tsort bs) s.
 Proof. by rewrite /price ifT // (@ltn_trans k'). Qed.
+
+Notation lt_index := lx.
 
 Lemma eq_price_bs'_over : 
   price bs' a = \sum_(s < k | i' < s <= i) externality (tsort bs') s + price bs a.
@@ -333,7 +356,14 @@ Lemma eq_labelling_under : projT1 (exists_labellingW geq_bid bs') = l'.
 Proof.
 apply: labelling_singleton.
 move: (exists_labellingW geq_bid bs') => [lab islab]; first exact: islab.
-by rewrite labelling_differ_on_ge // ?tlabelP // ltnW.
+apply: labelling_differ_on_ge. 
+- exact: transitive_geq_bid.
+- exact: reflexive_geq_bid.
+- exact: total_geq_bid.
+- exact: antisymmetric_geq_bid.
+- exact: diff.
+- by rewrite ltnW.
+- exact: tlabelP.
 Qed.
 
 Lemma eq_price_bs'_under : price bs' a = \sum_(s < k | i' < s) externality (tsort bs) s.
@@ -435,7 +465,14 @@ Lemma eq_labellling_stable : projT1 (exists_labellingW geq_bid bs') = l'.
 Proof.
 apply: (@labelling_singleton _ _ geq_bid bs').
 move: (exists_labellingW geq_bid bs') => [lab islab] //.
-by apply/(labelling_differ_on_eq diff eq_i_i')/tlabelP.
+apply: labelling_differ_on_eq. 
+- exact: transitive_geq_bid.
+- exact: reflexive_geq_bid.
+- exact: total_geq_bid.
+- exact: antisymmetric_geq_bid.
+- exact: diff.
+- exact: eq_i_i'.
+- exact: tlabelP.
 Qed.
 
 Lemma truthful_stable : utility bs' a <= utility bs a.

@@ -83,19 +83,15 @@ have -> // : 0 < U' -> U' = U; last by rewrite (@leq_ltn_trans U).
 by rewrite ltnn. 
 Qed.
 
+From mathcomp Require Import perm. 
+
 Lemma anonmyous_XP : auction.anonymous a.
 Proof.
 rewrite /auction.anonymous => bs i1 i2 w1.
 rewrite /auction.is_winner /= !tnth_map tnth_ord_tuple /is_winner in w1 *.  
-split.
-- rewrite !tnth_map /agent.agents !tnth_ord_tuple /auction.swap.
-  case: eqP => [-> //|ne12].
-  by rewrite eq_refl.
-- rewrite /auction.price /= /agent.agents !tnth_map !tnth_ord_tuple /is_winner /auction.swap.
-  split => [|i [nei1 nei2]]; first by case: eqP => [-> //|ne12]; by rewrite eq_refl.
-  rewrite !tnth_map !tnth_ord_tuple. 
-  case: eqP => [/eqP|_]; first by rewrite -(negbK (i == i1)) nei1.
-  by rewrite -(negbK (i == i2)) nei2.
+split; first by rewrite !tnth_map !tnth_ord_tuple apermE tpermR.
+rewrite /auction.price /= !tnth_map !tnth_ord_tuple /is_winner apermE tpermR. 
+by split => [//|i [nei1 nei2]]; last by rewrite !tnth_map !tnth_ord_tuple apermE tpermD 1?eq_sym.
 Qed.
 
 End Properties.

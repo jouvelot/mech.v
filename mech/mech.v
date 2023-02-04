@@ -826,14 +826,12 @@ Definition price i (o : mech.O a) :=
   | _ => 0
   end.
 
-Definition swap (i1 i2 : agent) := fun i => if i == i1 then i2 else if i == i2 then i1 else i.
-
 Definition anonymous := 
   forall bs i1 i2, let o := mech.M (b a) bs in
-              let o21 := mech.M (b a) [tuple tnth bs (swap i1 i2 i) | i < n]
+              let o21 := mech.M (b a) [tuple tnth bs (aperm i (tperm i1 i2)) | i < n]
               in is_winner i1 o  -> is_winner i2 o21
                                    /\ price i1 o = price i2 o21
-                                   /\ (forall i, (i != i1 /\ i != i2) -> p o i = p o21 i).
+                                   /\ (forall i, i != i1 /\ i != i2 -> p o i = p o21 i).
 End Auction.
 
 (** Relational mapping between auctions. *)

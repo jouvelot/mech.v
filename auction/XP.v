@@ -83,7 +83,7 @@ have -> // : 0 < U' -> U' = U; last by rewrite (@leq_ltn_trans U).
 by rewrite ltnn. 
 Qed.
 
-Lemma anonmyous : auction.anonymous a.
+Lemma anonmyous_XP : auction.anonymous a.
 Proof.
 rewrite /auction.anonymous => bs i1 i2 w1.
 rewrite /auction.is_winner /= !tnth_map tnth_ord_tuple /is_winner in w1 *.  

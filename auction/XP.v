@@ -13,7 +13,7 @@
 *)
 
 From Coq Require Import Unicode.Utf8.
-From mathcomp Require Import all_ssreflect all_algebra.
+From mathcomp Require Import all_ssreflect all_algebra perm.
 
 From mech.lib Require Import lib mech.
 
@@ -82,8 +82,6 @@ have -> // : 0 < U' -> U' = U; last by rewrite (@leq_ltn_trans U).
   exact: ltnW.
 by rewrite ltnn. 
 Qed.
-
-From mathcomp Require Import perm. 
 
 Lemma anonmyous_XP : auction.anonymous a.
 Proof.

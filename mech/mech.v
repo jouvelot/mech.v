@@ -748,7 +748,7 @@ End directRevelationMech.
 
     An [auction] is a mechanism that has the following properties (Krishna, "Auction", 2010).
     - Universality. Outcomes are only defined in terms of actions, here, bids, and are
-      independant of the details of the goods to be auctioned;
+      independant of the details of the goods to be auctioned.
     - Anonymity. The identities of the bidders play no role in the outcome and prices. *)
 
 Module auction.
@@ -827,8 +827,9 @@ Definition price i (o : mech.O a) :=
   end.
 
 Definition anonymous := 
-  forall bs i1 i2, let o := mech.M (b a) bs in
-              let o21 := mech.M (b a) [tuple tnth bs (aperm i (tperm i1 i2)) | i < n]
+  forall bs i1 i2, let m := mech.M (b a) in
+              let o :=  m bs in
+              let o21 := m [tuple tnth bs (aperm i (tperm i1 i2)) | i < n]
               in is_winner i1 o  -> is_winner i2 o21
                                    /\ price i1 o = price i2 o21
                                    /\ (forall i, i != i1 /\ i != i2 -> p o i = p o21 i).

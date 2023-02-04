@@ -744,7 +744,12 @@ End DirectRevelation.
 
 End directRevelationMech.
 
-(** Auction, as a subclass of [mech]. *) 
+(** Auction, as a subclass of [mech].
+
+    An [auction] is a mechanism that has the following properties (Krishna, "Auction", 2010).
+    - Universality. Outcomes are only defined in terms of actions, here, bids, and are
+      independant of the details of the goods to be auctioned;
+    - Anonymity. The identities of the bidders play no role in the outcome and prices. *)
 
 Module auction.
 
@@ -778,7 +783,7 @@ Definition prefs := prefs.new v U v.
 
 (* Properties *)
 
-(* This definition of [no_posiive_transfer] would ony make sense with [int] prices! *)
+(* This definition of [no_positive_transfer] would ony make sense with [int] prices! *)
 
 Definition no_positive_transfer := forall i (o : mech.O a), 0 <= p o i.
 
@@ -807,6 +812,28 @@ Definition rational := forall i, individual_rational i.
 Lemma rational_if_strictly_useful (lt0u : forall i o, 0 < U i o) : rational.
 Proof. by move=> i; apply/individual_rational_if_strictly_useful/lt0u. Qed.
 
+(* Auctions must be [anonymous]. *)
+
+Definition is_winner i (o : mech.O a) :=
+  match p o i with
+  | Some _ => true
+  | _ => false
+  end.
+
+Definition price i (o : mech.O a) :=
+  match p o i with
+  | Some p => p
+  | _ => 0
+  end.
+
+Definition swap (i1 i2 : agent) := fun i => if i == i1 then i2 else if i == i2 then i1 else i.
+
+Definition anonymous := 
+  forall bs i1 i2, let o := mech.M (b a) bs in
+              let o21 := mech.M (b a) [tuple tnth bs (swap i1 i2 i) | i < n]
+              in is_winner i1 o  -> is_winner i2 o21
+                                   /\ price i1 o = price i2 o21
+                                   /\ (forall i, (i != i1 /\ i != i2) -> p o i = p o21 i).
 End Auction.
 
 (** Relational mapping between auctions. *)

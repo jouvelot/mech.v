@@ -83,6 +83,22 @@ have -> // : 0 < U' -> U' = U; last by rewrite (@leq_ltn_trans U).
 by rewrite ltnn. 
 Qed.
 
+Lemma anonmyous : auction.anonymous a.
+Proof.
+rewrite /auction.anonymous => bs i1 i2 w1.
+rewrite /auction.is_winner /= !tnth_map tnth_ord_tuple /is_winner in w1 *.  
+split.
+- rewrite !tnth_map /agent.agents !tnth_ord_tuple /auction.swap.
+  case: eqP => [-> //|ne12].
+  by rewrite eq_refl.
+- rewrite /auction.price /= /agent.agents !tnth_map !tnth_ord_tuple /is_winner /auction.swap.
+  split => [|i [nei1 nei2]].
+  case: eqP => [-> //|ne12]; first by rewrite eq_refl.
+  rewrite !tnth_map !tnth_ord_tuple. 
+  case: eqP => [/eqP|_]; first by rewrite -(negbK (i == i1)) nei1.
+  by rewrite -(negbK (i == i2)) nei2.
+Qed.
+
 End Properties.
 
 (* Print Assumptions truthful_XP. *)

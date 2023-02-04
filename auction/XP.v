@@ -92,8 +92,7 @@ split.
   case: eqP => [-> //|ne12].
   by rewrite eq_refl.
 - rewrite /auction.price /= /agent.agents !tnth_map !tnth_ord_tuple /is_winner /auction.swap.
-  split => [|i [nei1 nei2]].
-  case: eqP => [-> //|ne12]; first by rewrite eq_refl.
+  split => [|i [nei1 nei2]]; first by case: eqP => [-> //|ne12]; by rewrite eq_refl.
   rewrite !tnth_map !tnth_ord_tuple. 
   case: eqP => [/eqP|_]; first by rewrite -(negbK (i == i1)) nei1.
   by rewrite -(negbK (i == i2)) nei2.

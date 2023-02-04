@@ -87,9 +87,9 @@ Lemma anonymous_XP : auction.anonymous a.
 Proof.
 rewrite /auction.anonymous => bs i1 i2 w1.
 rewrite /auction.is_winner /= !tnth_map tnth_ord_tuple /is_winner in w1 *.  
-split; first by rewrite !tnth_map !tnth_ord_tuple apermE tpermR.
-rewrite /auction.price /= !tnth_map !tnth_ord_tuple /is_winner apermE tpermR. 
-by split => [//|i [nei1 nei2]]; last by rewrite !tnth_map !tnth_ord_tuple apermE tpermD 1?eq_sym.
+rewrite /auction.price /= !tnth_map !tnth_ord_tuple apermE tpermR.
+split=> //; split=> // i [nei1 nei2]. 
+by rewrite !tnth_map !tnth_ord_tuple apermE tpermD 1?eq_sym.
 Qed.
 
 End Properties.

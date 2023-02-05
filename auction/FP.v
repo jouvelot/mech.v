@@ -103,6 +103,20 @@ Theorem rational (bs : bids) (i : A) :
   tnth bs i = tnth vs i -> price bs i <= tnth vs i.
 Proof. by rewrite /price labelling_spec_idxa => ->. Qed.
 
+Theorem anonymous_XP : auction.anonymous a.
+Proof.
+rewrite /= /auction.anonymous /= => bs i1 i2 w1.
+rewrite /auction.is_winner /= !tnth_map tnth_ord_tuple /is_winner in w1 *.  
+rewrite /price labelling_spec_idxa in w1.  
+rewrite /price labelling_spec_idxa tnth_map tnth_ord_tuple apermE tpermR idxa_tpermR.
+split=> [//|]; split=> [|i [nei1 nei2]]. 
+- rewrite /auction.price /= /price !tnth_map !tnth_ord_tuple !labelling_spec_idxa. 
+  by rewrite !tnth_map !tnth_ord_tuple !apermE !tpermR idxa_tpermR.
+- rewrite !tnth_map !tnth_ord_tuple !labelling_spec_idxa idxa_tpermD //.
+  by rewrite tnth_map tnth_ord_tuple apermE tpermD 1?eq_sym.
+Qed.
+
+
 End Theorems.
 
 (** Non truthfulness. *)

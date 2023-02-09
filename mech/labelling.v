@@ -10,7 +10,7 @@
 
 From Coq Require Import Unicode.Utf8.
 From mathcomp Require Import all_ssreflect.
-From mathcomp.fingroup Require Import perm.
+From mathcomp.fingroup Require Import perm fingroup.
 
 From mech Require Import lib.
 
@@ -143,6 +143,16 @@ Lemma uniq_to_idxa k (o : k.-tuple 'I_n) :
   uniq o -> uniq (map_tuple idxa o).
 Proof. by move=> ouniq; rewrite map_inj_uniq //= => i1 i2 /idxa_inj. Qed.
 
+Conjecture uniq_s : forall l, injective (tnth l) -> uniq s.
+
+Lemma idxa_as_index (x0 : T) (us : uniq s) i : idxa i = index (tnth s i) s' :> nat.
+Proof.
+rewrite /idxa /ssr_have /=.
+case: sorted_diff_agent_spec_ex =>  j <-.
+rewrite -labelling_spec_idxa cancel_inv_idxa.
+by rewrite (tnth_nth x0) index_uniq // ?size_sort ?size_tuple ?ltn_ord // sort_uniq.
+Qed.
+
 Definition labelling_id : labelling := ord_tuple n.
 
 Lemma sorted_tlabel (ss : sorted r s) (tr : transitive r) : tlabel = labelling_id.
@@ -161,12 +171,37 @@ Qed.
 Lemma idxaK (ss : sorted r s) (tr : transitive r) i : idxa i = i.
 Proof.
 pose ip := (@sorted_diff_agent_spec_ex i). 
-rewrite -(projT2  ip) /idxa /ssr_have.
+rewrite -(projT2 ip) /idxa /ssr_have.
 case: sorted_diff_agent_spec_ex => j <-.
 by rewrite sorted_tlabel // ?tnth_ord_tuple.
 Qed.
 
 End Labelling.
+
+Section Tperm.
+
+Variables (n : nat) (T : eqType) (r : rel T) (s : n.+1.-tuple T).
+
+Notation idxa := (idxa r).
+
+Lemma idxa_perm (p : 'S_n.+1) i : idxa ([tuple tnth s (p i)  | i < n.+1]) i = idxa s (p i).
+Admitted.
+
+Variable (i1 i2 : 'I_n.+1).
+
+Notation "[ 'swap' s | i1 , i2 ]" := 
+  ([tuple tnth s (tperm i1 i2 i)  | i < n.+1]) (at level 0).
+
+Lemma idxa_tpermL : idxa [swap s | i1 , i2] i1 = idxa s i2. 
+Proof. by rewrite idxa_perm tpermL. Qed.
+
+Lemma idxa_tpermR : idxa [swap s | i1 , i2] i2 = idxa s i1.
+Proof. by rewrite idxa_perm tpermR. Qed.
+
+Lemma idxa_tpermD i (ne1 : i != i1) (ne2 : i != i2) : idxa [swap s | i1, i2] i = idxa s i.
+Proof. by rewrite idxa_perm tpermD 1?eq_sym. Qed.
+
+End Tperm.
 
 Section DifferOn.
 
@@ -279,9 +314,9 @@ apply: (@labelling_singleton _ _ r s); first by rewrite islab.
 exact: tlabelP.
 Qed. 
 
-Lemma sorted_lt_index : sorted r [tuple tnth s' (tnth l' j) | j < n.+1].
-Proof.
+Lemma sorted_lt_index (i0 : T) : sorted r [tuple tnth s' (tnth l' j) | j < n.+1].
 (*
+Proof.
 apply: (@path_sorted _ _ i0).
 have -> : [tuple tnth s' (tnth l' j)  | j < n.+1]
             = [tuple tnth s' (tnth l (lx j))  | j < n.+1]. 
@@ -353,7 +388,6 @@ have [/orP [ltji'|ltj1i]|/norP] := boolP ((oj < ix') || (ix < oj1)).
       rewrite eqj1i'.
 *)
 Admitted.
-
 
 Local Lemma l'_uniq' : uniq [seq val (nth ord0 l (lx j)) | j <- enum 'I_n.+1].
 Proof.

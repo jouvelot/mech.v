@@ -29,9 +29,7 @@ Implicit Types (l : labelling).
 
 Let s' := [tuple of sort r s].
 
-Definition is_labelling l := s' == [tuple of [seq tnth s i | i <- l]].
-
-Axiom labelling_inj : forall l, is_labelling l -> injective (tnth l).
+Definition is_labelling l := (s' == [tuple of [seq tnth s i | i <- l]]).
 
 Lemma exists_labelling : exists l, is_labelling l.
 Proof.
@@ -57,21 +55,66 @@ case: exists_labellingW => [lbl /eqP lblP] /=.
 by apply/forallP => j'; rewrite lblP tnth_map.
 Qed.
 
-Lemma labelling_onto l (islab : is_labelling l) i : {i' | tnth l i' == i}.
-Proof.
-apply: sigW. 
-pose p := perm (labelling_inj islab).
-have/codomP [i'->]: i \in codom p by move/(_ i): (perm_onto p); rewrite inE.
-by exists i'; rewrite permE.
-Qed.
+(* If [s] is unique, then the [labelling_singleton] axiom is, in fact, a lemma for 
+   inhabited [T]. For auctions, bids are generally supposed to be distinct; otherwise, 
+   a random choice is usually performed among winners with equal bids. *)
 
 Axiom labelling_singleton : singleton is_labelling.
+
+Lemma labelling_singleton' (x0 : T) : uniq s -> singleton is_labelling.
+Proof.
+move/uniqP => u l1 l2 /eqP eqs1 /eqP.
+rewrite eqs1 => /eqP eqs.
+apply: eq_from_tnth => j.
+apply: val_inj => /=. 
+apply: (u x0); first by rewrite size_tuple inE ltn_ord.
+- by rewrite size_tuple inE ltn_ord. 
+- rewrite -!tnth_nth.
+  move: (eqs).
+  rewrite -(tuple_of_tnth l1) -(tuple_of_tnth l2).
+  rewrite -(inj_eq val_inj) /= -!map_comp -enumT => /eqP eqt.  
+  pose f1 := (([eta tnth s] \o [eta tnth l1]) \o id).
+  pose f2 := (([eta tnth s] \o [eta tnth l2]) \o id).
+  have/(_ j) /=: forall k, f1 k = f2 k.
+    move=> k.
+    by rewrite (iffRL (eq_in_map f1 f2 (enum 'I_n))) // -deprecated_filter_index_enum map_f.
+  by rewrite !tnth_map !tnth_ord_tuple.
+Qed.
 
 Lemma uniq_labelling : projT1 exists_labellingW = tlabel.
 Proof.  
 apply: labelling_singleton; last by exact tlabelP. 
 move: exists_labellingW => [lab islab].
 exact: islab.
+Qed.
+
+(* If [s] is unique, then the [labelling_inj] axiom is, in fact, a lemma for inhabited [T]
+   (see above). *)
+
+Axiom labelling_inj : forall l, is_labelling l -> injective (tnth l).
+
+Lemma labelling_inj' (x0 : T) (u : uniq s) :
+  forall l, is_labelling l -> injective (tnth l).
+Proof.
+move=> l isl. 
+have -> : l = tlabel by apply: labelling_singleton => //; exact: tlabelP.
+move: u; rewrite -(sort_uniq r) => /(uniqP x0). 
+rewrite !size_sort !size_tuple /= => u j1 j2 eqtn.
+apply/val_inj/u; first by rewrite !inE ltn_ord.
+- by rewrite !inE ltn_ord.
+- rewrite -!tnth_nth.
+  move: labellingP; rewrite /labelling_spec => /forallP f. 
+  move: (f j1) (f j2) => /eqP -> /eqP ->.
+  by rewrite uniq_labelling eqtn.
+Qed.
+
+Lemma labelling_onto l (islab : is_labelling l) i : 
+  {i' | tnth l i' == i}.
+Proof.
+apply: sigW. 
+pose p := perm (labelling_inj islab).
+have/codomP [i'->]: i \in codom p by move/(_ i): (perm_onto p); rewrite inE.
+by exists i'; rewrite permE.
 Qed.
 
 Lemma sorted_diff_agent_spec_ex (i : 'I_n) :

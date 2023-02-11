@@ -181,7 +181,7 @@ Lemma uniq_to_idxa k (o : k.-tuple 'I_n) :
   uniq o -> uniq (map_tuple idxa o).
 Proof. by move=> ouniq; rewrite map_inj_uniq //= => i1 i2 /idxa_inj. Qed.
 
-Conjecture uniq_s : forall l, injective (tnth l) -> uniq s.
+(* Idxa of agent [i], for a uniq tuple [s], is the index of [i] in the sorted [s]. *)
 
 Lemma idxa_as_index (x0 : T) (us : uniq s) i : idxa i = index (tnth s i) s' :> nat.
 Proof.
@@ -220,15 +220,29 @@ Section Tperm.
 
 Variables (n : nat) (T : eqType) (r : rel T) (s : n.+1.-tuple T).
 
+Variable (uniq_bids : uniq s).
+
 Notation idxa := (idxa r).
+Notation x0 := (tnth s ord0).
 
-Lemma idxa_perm (p : 'S_n.+1) i : idxa ([tuple tnth s (p i)  | i < n.+1]) i = idxa s (p i).
-Admitted.
+Variable (totr : total r) (asymr : antisymmetric r) (trs : transitive r).
 
-Variable (i1 i2 : 'I_n.+1).
+Lemma idxa_perm (p : 'S_n.+1) i : idxa ([tuple tnth s (p i)  | i < n.+1]) i = idxa s (p i). 
+Proof.
+apply: val_inj => /=. 
+rewrite !(idxa_as_index r x0) /= ?uniq_bids //. 
+- rewrite tnth_map tnth_ord_tuple.
+  congr index. 
+  apply/perm_sortP/tuple_permP => //.
+  by exists p.
+- rewrite map_inj_in_uniq ?enum_uniq // => j1 j2 in1 in2 /(tuple_uniqP x0).
+  by move/(_ uniq_bids)/perm_inj.
+Qed.
 
 Notation "[ 'swap' s | i1 , i2 ]" := 
   ([tuple tnth s (tperm i1 i2 i)  | i < n.+1]) (at level 0).
+
+Variable (i1 i2 : 'I_n.+1).
 
 Lemma idxa_tpermL : idxa [swap s | i1 , i2] i1 = idxa s i2. 
 Proof. by rewrite idxa_perm tpermL. Qed.

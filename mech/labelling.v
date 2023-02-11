@@ -66,19 +66,15 @@ Proof.
 move/uniqP => u l1 l2 /eqP eqs1 /eqP.
 rewrite eqs1 => /eqP eqs.
 apply: eq_from_tnth => j.
-apply: val_inj => /=. 
-apply: (u x0); first by rewrite size_tuple inE ltn_ord.
-- by rewrite size_tuple inE ltn_ord. 
-- rewrite -!tnth_nth.
-  move: (eqs).
-  rewrite -(tuple_of_tnth l1) -(tuple_of_tnth l2).
-  rewrite -(inj_eq val_inj) /= -!map_comp -enumT => /eqP eqt.  
-  pose f1 := (([eta tnth s] \o [eta tnth l1]) \o id).
-  pose f2 := (([eta tnth s] \o [eta tnth l2]) \o id).
-  have/(_ j) /=: forall k, f1 k = f2 k.
-    move=> k.
-    by rewrite (iffRL (eq_in_map f1 f2 (enum 'I_n))) // -deprecated_filter_index_enum map_f.
-  by rewrite !tnth_map !tnth_ord_tuple.
+apply/val_inj/(u x0) => /=; rewrite ?size_tuple ?inE ?ltn_ord //.  
+rewrite -!tnth_nth -(tuple_of_tnth l1) -(tuple_of_tnth l2) in eqs *.
+rewrite -(inj_eq val_inj) /= -!map_comp -enumT in eqs. 
+pose f1 := (([eta tnth s] \o [eta tnth l1]) \o id).
+pose f2 := (([eta tnth s] \o [eta tnth l2]) \o id).
+have/(_ j) /=: forall k, f1 k = f2 k.
+  move=> k.
+  by rewrite (iffRL (eq_in_map f1 f2 (enum 'I_n))) ?mem_enum //; exact/eqP.
+by rewrite !tnth_map !tnth_ord_tuple.
 Qed.
 
 Lemma uniq_labelling : projT1 exists_labellingW = tlabel.
@@ -96,16 +92,15 @@ Axiom labelling_inj : forall l, is_labelling l -> injective (tnth l).
 Lemma labelling_inj' (x0 : T) (u : uniq s) :
   forall l, is_labelling l -> injective (tnth l).
 Proof.
-move=> l isl. 
+move=> l isl.  
 have -> : l = tlabel by apply: labelling_singleton => //; exact: tlabelP.
-move: u; rewrite -(sort_uniq r) => /(uniqP x0). 
+rewrite -(sort_uniq r) in u.
+move/(uniqP x0): u.
 rewrite !size_sort !size_tuple /= => u j1 j2 eqtn.
-apply/val_inj/u; first by rewrite !inE ltn_ord.
-- by rewrite !inE ltn_ord.
-- rewrite -!tnth_nth.
-  move: labellingP; rewrite /labelling_spec => /forallP f. 
-  move: (f j1) (f j2) => /eqP -> /eqP ->.
-  by rewrite uniq_labelling eqtn.
+apply/val_inj/u; rewrite ?inE ?ltn_ord -?tnth_nth //.
+move: labellingP; rewrite /labelling_spec => /forallP f. 
+move: (f j1) (f j2) => /eqP -> /eqP ->.
+by rewrite uniq_labelling eqtn.
 Qed.
 
 Lemma labelling_onto l (islab : is_labelling l) i : 

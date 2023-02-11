@@ -69,11 +69,10 @@ apply: eq_from_tnth => j.
 apply/val_inj/(u x0) => /=; rewrite ?size_tuple ?inE ?ltn_ord //.  
 rewrite -!tnth_nth -(tuple_of_tnth l1) -(tuple_of_tnth l2) in eqs *.
 rewrite -(inj_eq val_inj) /= -!map_comp -enumT in eqs. 
-pose f1 := (([eta tnth s] \o [eta tnth l1]) \o id).
-pose f2 := (([eta tnth s] \o [eta tnth l2]) \o id).
-have/(_ j) /=: forall k, f1 k = f2 k.
+pose tst l := (([eta tnth s] \o [eta tnth l]) \o id).
+have/(_ j) /=: forall k, tst l1 k = tst l2 k.
   move=> k.
-  by rewrite (iffRL (eq_in_map f1 f2 (enum 'I_n))) ?mem_enum //; exact/eqP.
+  by rewrite (iffRL (eq_in_map (tst l1) (tst l2) (enum 'I_n))) ?mem_enum //; exact/eqP.
 by rewrite !tnth_map !tnth_ord_tuple.
 Qed.
 
@@ -181,7 +180,7 @@ Lemma uniq_to_idxa k (o : k.-tuple 'I_n) :
   uniq o -> uniq (map_tuple idxa o).
 Proof. by move=> ouniq; rewrite map_inj_uniq //= => i1 i2 /idxa_inj. Qed.
 
-(* Idxa of agent [i], for a uniq tuple [s], is the index of [i] in the sorted [s]. *)
+(* [idxa] of agent [i], for a uniq tuple [s], is the index of [i] in the sorted [s]. *)
 
 Lemma idxa_as_index (x0 : T) (us : uniq s) i : idxa i = index (tnth s i) s' :> nat.
 Proof.

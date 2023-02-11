@@ -103,6 +103,8 @@ Theorem rational (bs : bids) (i : A) :
   tnth bs i = tnth vs i -> price bs i <= tnth vs i.
 Proof. by rewrite /price labelling_spec_idxa => ->. Qed.
 
+(** FP is anonyous, if bids are always assumed unique. *)
+
 Section Anonymous.
 
 Variable uniq_bids : forall bs : bids, uniq bs.

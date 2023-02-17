@@ -163,7 +163,6 @@ apply: labelling_differ_on_lt.
 - exact: diff.
 - exact: lt_i'_i.
 - exact: tlabelP.
-- exact: bid0.
 Qed.
 
 Lemma eq_labelling_loses : projT1 (exists_labellingW geq_bid bs') = l'.
@@ -172,8 +171,6 @@ apply: (@labelling_singleton _ _ geq_bid bs'); last by rewrite is_labelling_ilos
 move: (exists_labellingW geq_bid bs') => [lab islab]. 
 exact: islab.
 Qed.
-
-Notation lt_index := lx.
 
 Lemma leq_value_loses (s : slot) (lti's : i' < s) : 
   tnth bs a <= tnth (tsort bs') (slot_as_agent s).
@@ -245,13 +242,10 @@ apply: labelling_singleton.
   - exact: diff.
   - exact: lt_i'_i.
   - exact: tlabelP.
-  - exact: bid0.
 Qed.
 
 Lemma eq_price_bs_over : price bs a = \sum_(s < k | i < s) externality (tsort bs) s.
 Proof. by rewrite /price ifT // (@ltn_trans k'). Qed.
-
-Notation lt_index := lx.
 
 Lemma eq_price_bs'_over : 
   price bs' a = \sum_(s < k | i' < s <= i) externality (tsort bs') s + price bs a.
@@ -840,31 +834,10 @@ Qed.
 
 End Surplus.
 
-(** Rationality. *)
+Require Import String.
 
-(* Assume for now divisibility on nats, for simplicity. *)
-Hypothesis divisR : forall R, 'ctr_(what R) %| price R.
+Compute "Assumptions for VCG for Search (labelling axioms are lemmas if bids are uniq)."%string.
 
-Definition a := auction.new 
-                  (fun (o : mech.O m) i => 
-                     let r := tnth o i in
-                     if awins r then Some (price r %/ 'ctr_(what r)) else None).
+Print Assumptions truthful_VCG_for_Search_rel.
 
-Variable (bid_true_value : forall bs i, action_on bs i = true_value i).
-
-Theorem rational_VCG_for_Search : auction.rational a v. 
-Proof.
-move=> i o. 
-rewrite /auction.p /v /=. 
-case: ifP => [|//]. 
-rewrite leq_divLR ?divisR //.
-have [bs -> /= iw] : exists bs, tnth o i = Result (idxa bs i < S.k') (S.price bs i) (slot_won bs i).
-  by admit. 
-by rewrite VCG_for_Search_rational // /bid_in /value labelling_spec_idxa 
-           -/action_on bid_true_value.
-Admitted.
-
-
-(* Print Assumptions truthful_VCG_for_Search. *)
-(* Print Assumptions truthful_VCG_for_Search_rel. *)
 

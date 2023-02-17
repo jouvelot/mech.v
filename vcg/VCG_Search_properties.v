@@ -836,7 +836,7 @@ End Surplus.
 
 Require Import String.
 
-Compute "Assumptions for VCG for Search (labelling axioms are lemmas if bids are uniq)."%string.
+Compute "Assumptions for VCG for Search truthfulness (labelling axioms are lemmas if bids are uniq)."%string.
 
 Print Assumptions truthful_VCG_for_Search_rel.
 

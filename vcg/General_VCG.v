@@ -242,6 +242,6 @@ End VCG.
 
 Require Import String.
 
-Compute "Assumptions for General VCG (n''.+2 is the number of agents)"%string.
+Compute "Assumptions for General VCG truthfulness (n''.+2 is the number of agents)"%string.
 
 Print Assumptions VCG.truthful_General_VCG.

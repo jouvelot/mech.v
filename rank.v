@@ -26,6 +26,9 @@ Record ranking (b : bids):= {
 Definition differ_on (b b' : bids) (i : A):=
   forall j, i != j -> b j = b' j.
 
+Lemma differ_on_sym (b b' : bids) i : differ_on b b' i -> differ_on b' b i.
+Proof. by move=> d j neij; move: d => /(_ j neij) ->. Qed.
+
 Definition buildr (b : bids) : ranking b. Admitted.
 
 Lemma rank_stable (b b' : bids) i (h_diff : differ_on b b' i) :
@@ -34,10 +37,8 @@ Lemma rank_stable (b b' : bids) i (h_diff : differ_on b b' i) :
   forall (h_notmoved : rank r i = rank r' i) j (h_idx : rank r i != j),
      rval r j = rval r' j.
 Proof.
-Qed.
+Admitted.
 
-(** Note! This lemma needs verifying before use,
-    likely the indexes are not yet correct. *)
 Lemma rank_shift (b b' : bids)
   (r : ranking b)
   (r' : ranking b')
@@ -45,20 +46,18 @@ Lemma rank_shift (b b' : bids)
   (h_diff : differ_on b b' i) 
   (h_rank : rank r i <= rank r' i)
   :
-  (forall (j : 'I_n), (j < rank r i) || (rank r' i <= j) -> rval r j = rval r' j)
+  forall j, rval r' j = if rank r i <= j < rank r' i then rval r (inord j.+1) else rval r j.
+(*¨  (forall (j : 'I_n), (j < rank r i) || (rank r' i <= j) -> rval r j = rval r' j)
   /\ (forall (j : 'I_n), 
-      (rank r i <= j < rank r i) -> rval r (inord j.+1) = rval r' j).
+      (rank r i <= j < rank r i) -> rval r (inord j.+1) = rval r' j). *)
 Proof.
-Qed.
+Admitted.
  
 Lemma rval_def (b : bids) (r : ranking b) i : rval r (rank r i) = b i.
 Proof. by case: r => ? ? [h1 h2] /=. Qed.
 
-Lemma rval_leq (b b' : bids) (r : ranking b) (r' : ranking b')
-   (i j : 'I_n) :
-    i <= j -> rval r' j <= rval r i.
-Proof.
-Qed. 
+Lemma rval_geq (b : bids) (r : ranking b)( i j : 'I_n) : i <= j -> rval r j <= rval r i. 
+Proof. by case: r => ? ? [h1 h2] /h1. Qed.
 
 Definition U_SP (v : vals) (b : bids) (i : 'I_n) :=
   let r := buildr b in 
@@ -76,21 +75,21 @@ Proof.
 rewrite /U_SP.
 set r := buildr b.
 set r' := buildr b'.
-case: ifP => h_r2; case: ifP => h_r1.
+case: ifP => h_r2 => //; case: ifP => h_r1.
 - have h_idx: rank r i != inord 1.
     by rewrite (eqP h_r1) -(inj_eq val_inj) /= !inordK.
   have snd_eq : rval r (inord 1) = rval r' (inord 1).
     apply: (rank_stable h_diff _ h_idx) => //.
     by rewrite (eqP h_r1) (eqP h_r2).
-  by rewrite snd_eq.
-- have under_bid: v i <= rval r' (inord 1).
-    rewrite -h_truth -(rval_def r).
-    admit.
-  by rewrite leq_subLR addn0.
-- have under_bid : rval r (inord 1) <= v i.
-    admit.
-  by rewrite leq_subRL ?addn0.
-- by [].
+  by rewrite snd_eq. 
+- (* overbidding case *)
+  have -> : rval r' (inord 1) = rval r (inord 0).
+    have ltr'r: rank r' i <= rank r i by rewrite (eqP h_r2) inordK. 
+    rewrite (rank_shift (differ_on_sym h_diff) ltr'r) ifT ?inordK // (eqP h_r2) inordK //=.
+    rewrite (contraFltn _ h_r1) // leq_eqVlt ltn0 h_r1. 
+    rewrite -(inj_eq val_inj) /= inordK // in h_r1.
+    by rewrite h_r1.
+  by rewrite -h_truth -(rval_def r) leq_subCl subn0 (@rval_geq _ _ (inord 0)) // inordK.
 Qed.
 
 End RankDef.

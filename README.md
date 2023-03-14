@@ -8,7 +8,7 @@ Fixed/First/Second Price, ... and their properties.
 This is Work In Progress and should do not used for "final
 consumption".
 
-This has been tested under Coq 8.15 and mathcomp 1.13.
+This has been tested under Coq 8.15, Coq 8.16 and mathcomp 1.16.
 
 # Bibliography
 

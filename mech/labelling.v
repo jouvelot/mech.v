@@ -122,19 +122,17 @@ Qed.
  Note we could make positions and agents different, the current type
  seems a bit weird. *)
 
-Definition idxa (i : 'I_n) : 'I_n.
-by have [i' _] := sorted_diff_agent_spec_ex i; exact: i'.
-Defined.
+Definition idxa (i : 'I_n) : 'I_n := sval (sorted_diff_agent_spec_ex i).
 
 Lemma cancel_idxa : cancel idxa (tnth tlabel).
 Proof.
-rewrite /idxa /ssr_have => j.
+rewrite /idxa /sval => j.
 by case: sorted_diff_agent_spec_ex => j' <-.
 Qed.
 
 Lemma cancel_inv_idxa : cancel (tnth tlabel) idxa.
 Proof.
-rewrite /idxa /ssr_have => j'.
+rewrite /idxa => j'.
 case: sorted_diff_agent_spec_ex => j''.
 apply: labelling_inj.
 exact: tlabelP.
@@ -155,10 +153,10 @@ have <- : tlabel = projT1 exists_labellingW.
 by rewrite cancel_idxa.
 Qed.
 
-Lemma idxa_inj : injective idxa.  
+Lemma idxa_inj : injective idxa.
 Proof.
 move=> i1 i2.
-rewrite /idxa /ssr_have /=.  
+rewrite /idxa /sval.
 case: sorted_diff_agent_spec_ex => x1 <-.
 by case: sorted_diff_agent_spec_ex => x2 <- ->.
 Qed.
@@ -172,7 +170,7 @@ Lemma uniq_from_idxa k (o : k.-tuple 'I_n) (ut : uniq o) :
 Proof.
 rewrite -(map_inj_uniq idxa_inj) -map_comp. 
 have/eqP: map_tuple (idxa \o tnth tlabel) o = o.
-  apply: (@eq_from_tnth) => j.
+  apply: @eq_from_tnth => j.
   by rewrite tnth_map /= cancel_inv_idxa.
 by rewrite -(inj_eq val_inj) => /= /eqP ->.
 Qed.
@@ -185,7 +183,7 @@ Proof. by move=> ouniq; rewrite map_inj_uniq //= => i1 i2 /idxa_inj. Qed.
 
 Lemma idxa_as_index (x0 : T) (us : uniq s) i : idxa i = index (tnth s i) s' :> nat.
 Proof.
-rewrite /idxa /ssr_have /=.
+rewrite /idxa /sval.
 case: sorted_diff_agent_spec_ex =>  j <-.
 rewrite -labelling_spec_idxa cancel_inv_idxa.
 by rewrite (tnth_nth x0) index_uniq // ?size_sort ?size_tuple ?ltn_ord // sort_uniq.
@@ -195,7 +193,7 @@ Definition labelling_id : labelling := ord_tuple n.
 
 Lemma sorted_tlabel (ss : sorted r s) (tr : transitive r) : tlabel = labelling_id.
 Proof.
-have islid: is_labelling labelling_id. 
+have islid: is_labelling labelling_id.
   apply/eqP.
   apply: eq_from_tnth => j.
   rewrite tnth_mktuple.
@@ -208,8 +206,8 @@ Qed.
 
 Lemma idxaK (ss : sorted r s) (tr : transitive r) i : idxa i = i.
 Proof.
-pose ip := (@sorted_diff_agent_spec_ex i). 
-rewrite -(projT2 ip) /idxa /ssr_have.
+pose ip := @sorted_diff_agent_spec_ex i.
+rewrite -(projT2 ip) /idxa /sval.
 case: sorted_diff_agent_spec_ex => j <-.
 by rewrite sorted_tlabel // ?tnth_ord_tuple.
 Qed.
@@ -299,7 +297,9 @@ have <- : ge_labelling l = l.
   apply: eq_from_tnth => j.
   rewrite /ge_labelling /ge_index tnth_mktuple eqii'.
   case: ifP => [/eqP -> |_]; last by rewrite ifF // leqNgt andNb.
-  have -> : l = tlabel r s by apply: (@labelling_singleton _ _ r s) => //; exact: tlabelP.
+  have -> : l = tlabel r s.
+    apply: (@labelling_singleton _ _ r s) => //.
+    by exact: tlabelP. 
   by rewrite cancel_idxa.
 apply: labelling_differ_on_ge => //=.
 by rewrite leq_eqVlt eq_sym eqii' eq_refl orTb.

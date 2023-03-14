@@ -164,7 +164,7 @@ Definition tlabel_bs2 := [tuple a0; a1].
 
 Lemma idxaK_bs2 : idxa bs2 a0 = a0.
 Proof.
-rewrite /idxa /ssr_have. 
+rewrite /idxa /sval. 
 case: sorted_diff_agent_spec_ex => j. 
 have eqtlabel : tlabel bs2 = tlabel_bs2.
   apply: labelling_singleton; first by exact: tlabelP.

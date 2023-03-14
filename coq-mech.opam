@@ -1,0 +1,29 @@
+synopsis: "Mech.v"
+description:
+"""
+Mech.v library
+"""
+opam-version: "2.0"
+maintainer: "e@x80.org"
+bug-reports: "https://github.com/jouvelot/mech.v"
+homepage: "https://github.com/jouvelot/mech.v"
+dev-repo: "git+https://github.com/jouvelot/mech.v.git"
+authors: [
+  "Emilio Jesús Gallego Arias <e@x80.org>"
+  "Pierre Jouvelot"
+  "Lucas Massoni Sguerra"
+]
+license: "LGPL-2.1-or-later"
+doc: "https://jouvelot.github.io/mech.v/"
+
+depends: [
+  "coq"          { >= "8.15.0" }
+  "dune"         { >= "3.5.0"  }
+
+  "coq-mathcomp-algebra"  { >= "1.16"  }
+  "coq-mathcomp-fingroup" { >= "1.16"  }
+  "coq-mathcomp-finmap"   { >= "1.5.1" }
+]
+
+build: [ [ "dune" "build" "-p" name "-j" jobs ] ]
+run-test: [ [ "dune" "runtest" "-p" name "-j" jobs ] ]

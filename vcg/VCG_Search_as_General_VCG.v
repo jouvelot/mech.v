@@ -85,7 +85,7 @@ Defined.
 Lemma slot_as_agent_inj : injective slot_as_agent.
 Proof.
 move=> s1 s2.
-rewrite /slot_as_agent /ssr_have => /eqP. 
+rewrite /slot_as_agent => /eqP. 
 rewrite -(inj_eq val_inj) /= => /eqP.
 exact: val_inj.
 Qed.
@@ -1736,4 +1736,4 @@ Qed.
 End VCGforSearchPrice.
 
 (* Check eq_instance_VCG_price. *)
-(* Print Assumptions eq_instance_VCG_price. *)
+Print Assumptions eq_instance_VCG_price. 

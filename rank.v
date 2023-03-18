@@ -4,10 +4,12 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Variable (n' : nat).
-Let n := n'.+2.
-
-Definition A := 'I_n.
+Lemma ltn_perm_iota n l (p : perm_eq l (iota 0 n.+1)) m : nth 0 l m < n.+1. 
+Proof.
+have [ltms|] := boolP (m < size l); last by rewrite -leqNgt => lesm; rewrite nth_default.  
+move: (perm_mem p) (@mem_nth _ 0 _ _ ltms) => ->.
+by rewrite mem_iota add0n => /andP [].
+Qed.
 
 Section RankImpl.
 
@@ -23,13 +25,6 @@ Notation i0 := ord0.
 Notation t0 := (tnth s ord0).
 
 Let si := zip_tuple s (ord_tuple n.+1).
-
-Local Lemma tnth_si_inj : injective (tnth si).
-Proof.
-move=> ti1 ti2.
-rewrite !(tnth_nth (t0, i0)) !nth_zip ?size_enum_ord ?size_tuple //.
-by case=> []; rewrite !nth_ord_enum. 
-Qed.
 
 Let ri := 
       [rel si1 si2 : T * 'I_n.+1 | r si1.1 si2.1 && ((si1.1 == si2.1) ==> (si1.2 <= si2.2))].
@@ -75,71 +70,54 @@ Qed.
 
 Let si' := sort ri si.
 
-Let is_rank (rank : A -> nat) (rval : nat -> T) :=
-  (forall (i j : 'I_n.+1), i <= j -> r (rval i) (rval j))
+Let is_rank (rank : A -> 'I_n.+1) (rval : 'I_n.+1 -> T) :=
+  (forall (i j : A), i <= j -> r (rval i) (rval j))
   /\ (forall i : 'I_n.+1, rval (rank i) = tnth s i).
 
-Lemma slice (T' : eqType) (t0 : T') (t : seq T') (j : nat) : 
-  j < size t -> t = (take j t) ++ [:: nth t0 t j] ++ drop j.+1 t.
+Local Lemma ltn_pred2k k l (p : perm_eq l (iota 0 n.+1)) :
+  find [pred t | t.2 == k] [seq nth (t0, i0) si i | i <- l] < size l.
 Proof.
-move=> ltjs.
-apply: (@eq_from_nth _ t0) => [|/= k ltks].
-- rewrite !size_cat size_take /= size_drop ltjs.
-  by rewrite addnA addn1 subnKC.
-- rewrite !nth_cat size_take ltjs.
-  have [ltkj|] := boolP (k < j); first by rewrite nth_take.
-  rewrite -leqNgt leq_eqVlt => /orP [/eqP <-|] => [|ltjk]; first by rewrite subnn.
-  by rewrite -(@ltn_predK 0 (k - j)) /= ?nth_drop ?addSnnS ?prednK ?subnKC ?subn_gt0 // ltnW.
-Qed.
-
-Lemma ltn_perm l : perm_eq l (iota 0 n.+1) -> forall m, nth 0 l m < n.+1. 
-Proof.
-move=> p m.
-have [ltms|] := boolP (m < size l). 
-- move: (perm_mem p) (@mem_nth _ 0 _ _ ltms) => ->.
-  by rewrite mem_iota add0n => /andP [].
-- rewrite -leqNgt => lesm. 
-  by rewrite nth_default.  
-Qed.
-
-Lemma find_zip t k (alln1 : forall j, j \in t -> j < n.+1) : 
-  find [pred x | x.2 == k] [seq nth (t0, i0) si i | i <- t] = find [pred x | x == val k] t. 
-Proof.
-elim: t alln1 => [//=|x t IH alln1 /=].
-rewrite nth_zip /= -?(inj_eq val_inj) /= ?nth_enum_ord ?alln1 ?mem_head // ?IH //
-  ?size_tuple ?cardE ?size_enum_ord // => q qint.
-by rewrite alln1 // inE qint orbT.
-Qed.
-
-Lemma nth_si (k : 'I_n.+1) : nth (t0, i0) si k = (tnth s k, k).
-Proof.
-by rewrite [in RHS](tnth_nth t0) nth_zip ?nth_ord_enum 
+have kinl: val k \in l by rewrite (perm_mem p) mem_iota add0n ltn_ord. 
+have nth_si : nth (t0, i0) si k = (tnth s k, k).
+  by rewrite [in RHS](tnth_nth t0) nth_zip ?nth_ord_enum 
            1?(tnth_nth t0) ?size_enum_ord ?size_tuple.
+set l' := (X in find _ X); set t2k := [pred t | t.2 == k].   
+have // : find t2k l' < size l.
+  have -> : size l = size l' by rewrite size_map. 
+  rewrite -has_find /=.  
+  apply/(has_nthP (t0, i0)). 
+  exists (index (tnth s k, k) l') => /=; first by rewrite index_mem -nth_si map_f.
+  by rewrite nth_index //= -nth_si map_f.  
 Qed.
 
-Lemma is_rank_zip : 
-  is_rank (fun (i : A) => find [pred t | t.2 == i] si')
-          (fun (r : nat) => (nth (t0, i0) si' r).1).
-Proof.
+Definition zip_rank : A -> 'I_n.+1.
+have zip_rank_bnd (i : A) : find [pred t | t.2 == i] si' < n.+1. 
+  rewrite /si' /=; have [l p ->] := perm_iota_sort ri (t0, i0) si. 
+  rewrite size_tuple in p.   
+  by rewrite (@leq_trans (size l)) ?ltn_pred2k // (perm_size p) size_iota.
+exact: (fun (i : A) => Ordinal (zip_rank_bnd i)).
+Defined.
+
+Definition zip_rval := (fun (r : 'I_n.+1) => (nth (t0, i0) si' r).1).
+
+Lemma is_rank_zip : is_rank zip_rank zip_rval.
+Proof. 
+rewrite /zip_rank /zip_rval /=.
 have szsn1 : size s = size (enum 'I_n.+1) by rewrite size_tuple ?cardE size_enum_ord.
-split=> [i j leij|k].  
+split=> [i j leij|k].   
 - have ssi' : sorted ri si' by rewrite sort_sorted //; exact: total_ri.
   move: (sorted_leq_nth transitive_ri reflexive_ri (t0, i0) ssi' i j).
-  by rewrite ?inE ?size_tuple ?ltn_ord // => /(_ erefl erefl leij) /= /andP [].   
-- rewrite /si'; have [l p ->] := perm_iota_sort ri (t0, i0) si. 
+  by rewrite ?inE ?size_tuple ?ltn_ord // => /(_ erefl erefl leij) /= /andP [].    
+- rewrite /si' /=; have [l p ->] := perm_iota_sort ri (t0, i0) si.   
+  have kinl: val k \in l. 
+    by rewrite (perm_mem p) mem_iota add0n size_zip size_tuple /= size_enum_ord minnn.
   rewrite size_tuple in p.   
-  have kinl: val k \in l by rewrite (perm_mem p) mem_iota add0n ltn_ord.
-  set l' := (X in find _ X); set t2k := [pred t | t.2 == k]. 
-  have ltfinds : find t2k l' < size l.
-    have -> : size l = size l' by rewrite size_map. 
-    rewrite -has_find /=.  
-    apply/(has_nthP (t0, i0)). 
-    exists (index (tnth s k, k) l') => /=; first by rewrite index_mem -nth_si map_f.
-    by rewrite nth_index //= -nth_si map_f. 
+  set l' := (X in find _ X); set t2k := [pred t | t.2 == k].  
+  have ltfinds : find t2k l' < size l by rewrite ltn_pred2k.
   rewrite (nth_map 0) /=; last by exact: ltfinds.
   rewrite nth_zip ?[RHS](tnth_nth t0) //=. 
   have nthfindl' : nth 0 l (find t2k l') = (nth (t0, i0) l' (find t2k l')).2.
-    by rewrite (nth_map 0) ?nth_zip /= ?nth_enum_ord //  ltn_perm.
+    by rewrite (nth_map 0) ?nth_zip /= ?nth_enum_ord //  ltn_perm_iota.
   rewrite nthfindl'.  
   set ikl' := (find t2k l'); pose ikl := index (val k) l.   
   have eqnths : nth 0 l ikl' = nth 0 l ikl.
@@ -148,8 +126,15 @@ split=> [i j leij|k].
     rewrite -has_find => /(has_nthP (t0, i0)) [j ltjs]. 
     rewrite size_map in ltjs.
     rewrite nthfindl' (nth_map 0) // nth_zip /= -?(inj_eq val_inj) //=.
-    rewrite (nth_map 0) // nth_zip /= ?nth_enum_ord ?ltn_perm //.
-    rewrite find_zip // => [nthljk|q /(nthP 0) [? _ <-]]; last by rewrite ltn_perm.
+    rewrite (nth_map 0) // nth_zip /= ?nth_enum_ord ?ltn_perm_iota //. 
+    have find_zip t (alln1 : forall j, j \in t -> j < n.+1) : 
+      find [pred x | x.2 == k] [seq nth (t0, i0) si i | i <- t] = 
+        find [pred x | x == val k] t. 
+      elim: t alln1 => [//=|x t IH alln1 /=].
+      rewrite nth_zip /= -?(inj_eq val_inj) /= ?nth_enum_ord ?alln1 ?mem_head // ?IH //
+              ?size_tuple ?cardE ?size_enum_ord // => q qint.
+      by rewrite alln1 // inE qint orbT.
+    rewrite find_zip // => [nthljk|q /(nthP 0) [? _ <-]]; last by rewrite ltn_perm_iota.
     have -> : (find [pred x | x == val k] l) = j; last by exact/eqP.
        case: findP => [/hasPn /(_ (nth 0 l j)) /=|q ltql pre post]; 
          first by rewrite nthljk mem_nth // => /(_ erefl).
@@ -162,6 +147,11 @@ Qed.
 
 End RankImpl.
 
+Variable (n' : nat).
+Let n := n'.+2.
+
+Definition A := 'I_n.
+
 Definition bids := A -> nat.
 Definition vals := A -> nat.
 
@@ -171,11 +161,10 @@ Definition is_rank (b : bids) (rank : A -> 'I_n) (rval : 'I_n -> nat) :=
   (forall (i j : 'I_n), i <= j -> rval j <= rval i)
   /\ (forall i : 'I_n, rval (rank i) = b i).
 
-Record ranking (b : bids):= {
+Record ranking (b : bids):= Ranking {  
     rank : A -> 'I_n;
     rval : 'I_n -> nat;
-    _ : is_rank b rank rval
-}.
+    _ : is_rank b rank rval }.
 
 Lemma rval_def (b : bids) (r : ranking b) i : rval r (rank r i) = b i.
 Proof. by case: r => ? ? [h1 h2] /=. Qed.
@@ -189,7 +178,16 @@ Definition differ_on (b b' : bids) (i : A):= forall j, i != j -> b j = b' j.
 Lemma differ_on_sym (b b' : bids) i : differ_on b b' i -> differ_on b' b i.
 Proof. by move=> d j neij; move: d => /(_ j neij) ->. Qed.
 
-Definition buildr (b : bids) : ranking b. Admitted.
+Definition buildr (b : bids) : ranking b.
+have tr: transitive geq by move=> i j k /= ? ?; exact: (@leq_trans i).
+have rr: reflexive geq. by move=> /= ?. 
+have totr : total geq by move=> i j /=; exact: leq_total.
+have ar : antisymmetric geq by move=> i j /=;rewrite -eqn_leq => /eqP ->. 
+pose tb := mktuple b.
+have/Ranking //: is_rank b (zip_rank geq tb) (zip_rval geq tb).
+  move: (is_rank_zip tb tr rr totr ar) => /= [rk rv].
+  by split=> // => i; rewrite -(tnth_mktuple b).
+Defined.
 
 Lemma rank_stable (b b' : bids) i (h_diff : differ_on b b' i) :
   let r := buildr b in

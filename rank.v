@@ -104,6 +104,13 @@ Lemma is_rank_zip : is_rank zip_rank zip_rval.
 Proof. 
 rewrite /zip_rank /zip_rval /=.
 have szsn1 : size s = size (enum 'I_n.+1) by rewrite size_tuple ?cardE size_enum_ord.
+have find_zip t (alln1 : forall j, j \in t -> j < n.+1) k : 
+  find [pred x | x.2 == k] [seq nth (t0, i0) si i | i <- t] = 
+    find [pred x | x == val k] t. 
+  elim: t alln1 => [//=|x t IH alln1 /=].
+  rewrite nth_zip /= -?(inj_eq val_inj) /= ?nth_enum_ord ?alln1 ?mem_head // ?IH //
+          ?size_tuple ?cardE ?size_enum_ord // => q qint.
+  by rewrite alln1 // inE qint orbT.
 split=> [i j leij|k].   
 - have ssi' : sorted ri si' by rewrite sort_sorted //; exact: total_ri.
   move: (sorted_leq_nth transitive_ri reflexive_ri (t0, i0) ssi' i j).
@@ -126,14 +133,7 @@ split=> [i j leij|k].
     rewrite -has_find => /(has_nthP (t0, i0)) [j ltjs]. 
     rewrite size_map in ltjs.
     rewrite nthfindl' (nth_map 0) // nth_zip /= -?(inj_eq val_inj) //=.
-    rewrite (nth_map 0) // nth_zip /= ?nth_enum_ord ?ltn_perm_iota //. 
-    have find_zip t (alln1 : forall j, j \in t -> j < n.+1) : 
-      find [pred x | x.2 == k] [seq nth (t0, i0) si i | i <- t] = 
-        find [pred x | x == val k] t. 
-      elim: t alln1 => [//=|x t IH alln1 /=].
-      rewrite nth_zip /= -?(inj_eq val_inj) /= ?nth_enum_ord ?alln1 ?mem_head // ?IH //
-              ?size_tuple ?cardE ?size_enum_ord // => q qint.
-      by rewrite alln1 // inE qint orbT.
+    rewrite (nth_map 0) // nth_zip /= ?nth_enum_ord ?ltn_perm_iota //.  
     rewrite find_zip // => [nthljk|q /(nthP 0) [? _ <-]]; last by rewrite ltn_perm_iota.
     have -> : (find [pred x | x == val k] l) = j; last by exact/eqP.
        case: findP => [/hasPn /(_ (nth 0 l j)) /=|q ltql pre post]; 

@@ -39,17 +39,7 @@ Admitted.
 Section Utils.
 
 Lemma subnKK n m p : m <= n -> p <= n -> (n - m == n - p) = (m == p). 
-Proof.
-wlog: m p / m <= p. 
-  move : (@leq_total m p) => /orP [lemp f lemn lepn|lepm f lemn lepn]; first by exact: f. 
-  by move: (@f p m); rewrite eq_sym => ->. 
-elim: n m p => [m p // _|n IH m p lemp]; first by rewrite !leqn0 => /eqP -> /eqP ->.
-rewrite leq_eqVlt => /orP [/eqP ->|ltmn1].
-- rewrite leq_eqVlt => /orP [/eqP ->|ltpn1]; first by rewrite !eq_refl.
-  by rewrite ltn_eqF ?gtn_eqF // subnn subn_gt0.
-- rewrite leq_eqVlt => /orP [/eqP ->|ltpn1]; last by rewrite !subSn ?eqSS ?IH // ltnW.
-  by rewrite subSn ?subnn -1?ltnS //gtn_eqF // ltn_eqF.
-Qed.
+Proof. by move=> lemn lepn; rewrite !eqn_leq !leq_sub2lE // -!eqn_leq eq_sym. Qed.
 
 Lemma f_surj n (T : eqType) (t : n.-tuple T)
   (f : 'I_n -> T) (injf : injective f) (fint : forall i : 'I_n, f i \in t) g :

@@ -71,7 +71,7 @@ Section Count.
 Variable (T : eqType).
 
 Lemma gt_count_rem(s s' : seq T) x : 
-  count [pred x0 | x0 \notin s'] s <= count [pred x0 | x0 \notin s'] (rem x s) + 1. 
+  count [pred x' | x' \notin s'] s <= count [pred x' | x' \notin s'] (rem x s) + 1. 
 Proof.
 have [xis|nxis] := boolP (x \in s); last by rewrite rem_id // addn1. 
 rewrite count_rem xis andTb /=.
@@ -102,7 +102,7 @@ rewrite !inE => /orP [/eqP eqxa|xias].
 Qed.
 
 Lemma count_remR (s s' : seq T) x (u : uniq s) (xis : x \in s) :
-  count [pred x0 | x0 \notin x :: s'] s = count [pred x0 | x0 \notin s'] (rem x s).
+  count [pred x' | x' \notin x :: s'] s = count [pred x' | x' \notin s'] (rem x s).
 Proof. 
 rewrite count_rem /= xis andTb.
 have [nxis' /=|] := boolP (x \notin s');
@@ -114,7 +114,7 @@ by apply: contraNN => /eqP ->.
 Qed.  
 
 Lemma count_remL (s s' : seq T) x : 
-  x \notin s -> count [pred x0 | x0 \notin rem x s'] s = count [pred x0 | x0 \notin s'] s.
+  x \notin s -> count [pred x' | x' \notin rem x s'] s = count [pred x' | x' \notin s'] s.
 Proof.
 move=> nxis.
 apply: eq_in_count => i iis /=. 
@@ -128,8 +128,7 @@ by rewrite iis in nxis.
 Qed.
 
 Lemma count_cons : forall (s s' : seq T) x' (u : uniq s),
-    size s' < size s -> 
-    (count [pred x | x \notin s'] s).-1 <= count [pred x | x \notin x' :: s'] s.
+    size s' < size s -> (count [pred x | x \notin s'] s).-1 <= count [pred x | x \notin x' :: s'] s.
 Proof.
 elim=> [s x' //= us sz|x s IH s' x' /= /andP [xns u] sz].
 have [nexx'|eqxx'] := boolP (x != x'). 

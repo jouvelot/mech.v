@@ -558,14 +558,14 @@ Qed.
 Check truthful_SD.
 Print Assumptions truthful_SD.
 
-(* SD as a matching mechanism. *)
+(* SD as a matching mechanism.
 
 Definition set_items := [set i in all_items].
 
 Lemma no_g0' : g0 \notin set_items. 
 Proof. by rewrite in_set no_g0. Qed.
 
-Definition oO' : matching.order G := matching.Order (@tr _ oO) (ir oO) (to oO).
+Definition oO' : order G := matching.Order (@tr _ oO) (ir oO) (to oO).
 
 Let O' := matching.pref set_items n.
 
@@ -622,3 +622,4 @@ move: (matching.utility_is_order_compatible no_g0' ltUU s'av'') => /=.
 case: (o (vs a)) => go tro iro too /=.
 Admitted.
 
+*)

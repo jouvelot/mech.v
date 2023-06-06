@@ -51,7 +51,7 @@ Notation last_agent := (@agent.last n').
 Notation agent_succ := (@agent.succ n').
 Notation agent_pred := (@agent.pred n).
 
-Definition agents := agent.agents n.
+Definition agents := agent.agents n.+1.
 
 (* [k] slots to allocate. *)
 
@@ -85,7 +85,7 @@ Defined.
 Lemma slot_as_agent_inj : injective slot_as_agent.
 Proof.
 move=> s1 s2.
-rewrite /slot_as_agent => /eqP. 
+rewrite /slot_as_agent /ssr_have => /eqP. 
 rewrite -(inj_eq val_inj) /= => /eqP.
 exact: val_inj.
 Qed.
@@ -120,14 +120,26 @@ Definition bids := n.-tuple bid.
 
 Let geq_bid := @geq_bid p'.
 
-(* Bids need to be sorted in the VCG for Search algorithm. *)
+Notation tr := (@transitive_geq_bid p').
+Notation totr := (@total_geq_bid p').
+Notation ar := (@anti_geq_bid p').
+Notation rr := (@reflexive_geq_bid p').
 
-Let idxa : bids -> A -> A := idxa geq_bid.
+Notation labelling_spec_idxa bs := (@labelling_spec_idxa _ _ _ bs tr rr totr ar).
+Notation tlabel bs := (@tlabel n' _ geq_bid bs tr rr totr ar). 
+Notation tlabelP bs := (@tlabelP n' _ geq_bid bs tr rr totr ar). 
+Notation idxa_inj bs := (@idxa_inj _ _ geq_bid bs tr rr totr ar). 
+Notation labelling_inj bs := (@labelling_inj _ _ geq_bid bs (tlabel bs)).  
+Notation cancel_inv_idxa bs := (@cancel_inv_idxa _ _ geq_bid bs tr rr totr ar).
+Notation uniq_to_idxa bs u := (@uniq_to_idxa _ _ geq_bid bs tr rr totr ar _ _ u). 
+Notation uniq_from_idxa bs u := (@uniq_from_idxa _ _ geq_bid bs tr rr totr ar _ _ u). 
 
 Notation tsort := (tsort geq_bid).
-Notation tlabel := (tlabel geq_bid).
+Notation idxa bs i := (@idxa n' _ geq_bid bs tr rr totr ar i). 
 
-Let labelling := @labelling n.
+(* Bids need to be sorted in the VCG for Search algorithm. *)
+ 
+Let labelling := @labelling n'.
 
 Lemma tsortK (bs : bids) (sortedbs : sorted_bids bs) : tsort bs = bs.
 Proof. 
@@ -137,7 +149,7 @@ Qed.
  
 Lemma idxaK (bs : bids) (sortedbs : sorted_bids bs) j : idxa bs j = j.
 Proof.
-apply: labelling.idxaK; last by exact: transitive_geq_bid.
+apply: labelling.idxaK. 
 exact/sorted_bids_sorted.
 Qed.
 
@@ -209,8 +221,8 @@ Proof. by move=> x y /eqP; rewrite (tnth_uniq (inord 0)) ?ouniq // => /eqP. Qed.
 Lemma uniq_map_o (bs : bids) (o : O) : uniq (map_tuple (tnth (tlabel bs)) o).
 Proof.
 rewrite map_inj_uniq => [|s1 s2 eq12]; first by exact: (ouniq o).
-apply: (@labelling_inj _ _ geq_bid bs (tlabel bs)) => //.
-exact: tlabelP.
+apply: (labelling_inj bs) => //.
+exact: (tlabelP bs).
 Qed.
 
 (* Slot of an agent in an outcome. *)
@@ -268,7 +280,7 @@ case: tnthP => [[w' hw']|]; last first.
     by apply/tnthP; rewrite -labelling_in.
 - case: sig_eqW => s' p' /=. 
   rewrite !tnth_map in hw' p'.
-  rewrite p' /idxa cancel_inv_idxa in p.
+  rewrite p' (cancel_inv_idxa bs) in p.
   exact: (@o_injective o).
 Qed.
 
@@ -310,8 +322,8 @@ Definition t_oStar := [tuple 'a* s | s < k].
 Lemma oStar_uniq : uniq t_oStar.
 Proof.
 rewrite map_inj_uniq => [|s1 s2 eq12]; first by rewrite val_ord_tuple enum_uniq.
-apply/slot_as_agent_inj/(@labelling_inj _ _ geq_bid bs (tlabel bs)) => //.
-exact: tlabelP.
+apply/slot_as_agent_inj/(labelling_inj bs) => //.
+exact: (tlabelP bs).
 Qed.
 
 Definition oStar := Outcome oStar_uniq.
@@ -335,23 +347,23 @@ Lemma le_ioStar_io (o : O) (sorted_o : sorted_o o) :
   forall (s : slot), 'idxa ('a* s) <= 'idxa (tnth o s).
 Proof.
 case.
-elim=> [lt0k //=|s IH lts1k]; first by rewrite /idxa cancel_inv_idxa /slot_as_agent.
+elim=> [lt0k //=|s IH lts1k]; first by rewrite (cancel_inv_idxa bs) /slot_as_agent.
 have lt_s_k: s < k by rewrite (@ltn_trans (S s)). 
 set s' := Ordinal lt_s_k; set s'1 := Ordinal lts1k. 
 have: idxa bs (tnth o s') < idxa bs (tnth o s'1). 
   move: (@sorted_o s' s'1 (leqnSn s')).
   rewrite leq_eqVlt => /orP [/eqP /=|//].
-  move/val_inj/idxa_inj/o_injective => /eqP.
+  move/val_inj/(idxa_inj bs)/o_injective => /eqP.
   by rewrite -(inj_eq val_inj) /= -[X in X == _]addn0 -addn1 eqn_add2l.
 move: (IH lt_s_k).
-rewrite /idxa !cancel_inv_idxa /slot_as_agent /=.
+rewrite !(cancel_inv_idxa bs) /slot_as_agent /=.
 exact: leq_ltn_trans.
 Qed.
 
 Lemma leq_bid (i1 i2 : A) : 'idxa i1 <= 'idxa i2 -> 'bid_i2 <= 'bid_i1.
 Proof.
 move=> lti1I2.
-rewrite -(labelling_spec_idxa geq_bid) -[X in _ <= val X](labelling_spec_idxa geq_bid).
+rewrite -(labelling_spec_idxa bs) -[X in _ <= val X](labelling_spec_idxa bs).
 rewrite (tnth_nth ord0) [X in _ <= val X](tnth_nth ord0). 
 apply: (sorted_leq_nth (@transitive_geq_bid p.-1)) => //; first by exact: reflexive_geq_bid.
 - apply/(@sorted_bids_sorted p' _).
@@ -371,7 +383,7 @@ rewrite !cancel_slot ifT; last by exact: mem_tnth.
 by rewrite !leq_mul2r /oStar /= /t_oStar tnth_map tnth_ord_tuple leq_bid ?orbT // le_ioStar_io.
 Qed.
 
-Definition idxas o := Outcome (uniq_to_idxa geq_bid bs (ouniq o)).
+Definition idxas o := Outcome (uniq_to_idxa bs (ouniq o)).
 
 Lemma itperm_id o s : o = Outcome (it_aperm_uniq s s (ouniq o)).
 Proof. apply: val_inj => /=; rewrite apermE permE; exact: tuple_tperm_id. Qed.
@@ -410,21 +422,19 @@ rewrite addnA [X in _ <= X]addnA leq_add //; last first.
   by move/ltnW/sorted_ctrs: ltx1x2.
 Qed.
 
-Notation uniq_from_idxa := (uniq_from_idxa geq_bid bs).
-
 Lemma le_welfare_o_oStar (o : O) : welfare o <= max_welfare.
 Proof.
 suff {o}: forall xs o,
     let xo := uswap (idxas o) xs in
     let uxo := ububble_uniq (ouniq (idxas o)) xs in
-    xo.1 -> welfare o <= welfare (Outcome (uniq_from_idxa uxo)).
+    xo.1 -> welfare o <= welfare (Outcome (uniq_from_idxa bs uxo)).
   move: (uniq_bubble_sort_spec (ouniq (idxas o))) => [xs] [bx sortedxo] /(_ xs o bx).
   set mo := (X in _ <= welfare X) => ltwo.
   have/le_welfare_sorted_o_oStar : sorted_o mo.   
     move=> s1 s2.
     rewrite leq_eqVlt => /orP [/eqP/val_inj -> //| lt12]. 
     move: (sortedxo s1 s2 lt12) => {sortedxo}.
-    by rewrite !tnth_map /idxa !cancel_inv_idxa => /ltnW.
+    by rewrite !tnth_map !(cancel_inv_idxa bs) => /ltnW.
   exact: leq_trans. 
 elim=> [o _ //=|x xs IH o /= /andP [bi xoi]].
 - rewrite eq_leq //.
@@ -434,7 +444,7 @@ elim=> [o _ //=|x xs IH o /= /andP [bi xoi]].
   apply: eq_from_tnth => s'.
   by rewrite !tnth_map cancel_idxa.
 - pose uxoi := ububble_uniq (ouniq (idxas o)) xs.
-  pose ouxoi := Outcome (uniq_from_idxa uxoi).
+  pose ouxoi := Outcome (uniq_from_idxa bs uxoi).
   move: (@le_transposed_welfare x ouxoi) => /=. 
   rewrite !cancel_inv_map_idxa => /(_ bi) /=.  
   move: (IH o xoi) => le1 le2.
@@ -467,7 +477,7 @@ move: (@elimT _ _ (tnthP (oStar bs) j) jino).
 case: tnthP => pj _ /=.
 case: sig_eqW => sj //=.
 rewrite tnth_mktuple => -> /=.
-by rewrite /idxa cancel_inv_idxa inord_val.
+by rewrite (cancel_inv_idxa bs) inord_val.
 have //: exists s, j = tnth (oStar bs) s.
   exists (inord (idxa bs j)).
   rewrite tnth_mktuple.
@@ -497,7 +507,7 @@ rewrite tnth_map tnth_ord_tuple.
 have -> : slot_as_agent ij = inord ij. 
   apply: val_inj => /=. 
   by rewrite inordK // (ltn_trans (ltn_ord ij) lt_k_n).
-by rewrite /idxa cancel_inv_idxa inordK ?ltn_ord // (ltn_trans (ltn_ord ij) lt_k_n).
+by rewrite (cancel_inv_idxa bs) inordK ?ltn_ord // (ltn_trans (ltn_ord ij) lt_k_n).
 Qed.
 
 Lemma mem_oStar_equiv j : idxa bs j < k <-> j \in oStar bs.
@@ -540,7 +550,7 @@ Definition sorted_o := uniq_up_sorted_tuple.
 Lemma eq_oStar_iota : OStar.oStar bs = oStar.
 Proof.
 apply: val_inj => /=.
-rewrite /OStar.t_oStar /t_oStar sorted_tlabel; last by exact: transitive_geq_bid. 
+rewrite /OStar.t_oStar /t_oStar sorted_tlabel. 
 - apply: eq_from_tnth => s.
   rewrite /labelling_id !tnth_map tnth_ord_tuple.
   exact: val_inj.
@@ -771,7 +781,7 @@ Proof. exact: sorted_bs0. Qed.
 
 Hypothesis uniq_oStar : singleton (max_bidSum_spec bs).
 
-Definition labelling_id : labelling := labelling.labelling_id n.
+Definition labelling_id : labelling := labelling.labelling_id n'.
 
 Definition ls : labelling := labelling_id.
 
@@ -1650,10 +1660,10 @@ Qed.
 Lemma instance_perm_biddings : perm_eq (instance_biddings bs') (instance_biddings bs). 
 Proof.
 apply/tuple_permP.
-exists (perm (labelling_inj (@tlabelP _ _ geq_bid bs))).
+exists (perm (@labelling.labelling_inj _ _ _ _ _ (tlabelP bs))).
 rewrite -[X in _ = _ X](@eq_from_tnth _ _ (instance_biddings bs')) // => j.
 rewrite !tnth_mktuple.
-by apply/ffunP => o'; rewrite -relabelled_bidding permE -{1}(@cancel_inv_idxa _ _ geq_bid bs j).
+by apply/ffunP => o'; rewrite -relabelled_bidding permE -{1}(cancel_inv_idxa bs j).
 Qed.  
 
 Definition instance_vcg_price := @G.price [finType of O] o0 i (instance_biddings bs).
@@ -1687,7 +1697,7 @@ have: forall o, G.bidSum (biddings bs) o <= G.bidSum (biddings bs) (OStar.oStar 
   exact: (p o' erefl).
 rewrite /instance_bidSum /instance_biddings /instance_bidding. 
 rewrite /biddings /bidding /t_bidding /bid_in.
-pose uo := Outcome (@uniq_from_idxa _ _ geq_bid bs _ o (ouniq o)).
+pose uo := Outcome (uniq_from_idxa bs (ouniq o)).
 rewrite /OStar.oStar /OStar.t_oStar /G.bidSum => /(_ uo).
 under eq_bigr do rewrite tnth_map ffunE /= tnth_ord_tuple. 
 under [X in _ <= X -> _]eq_bigr=> j do rewrite tnth_map ffunE /= tnth_ord_tuple. 
@@ -1702,13 +1712,13 @@ have -> : s1 = s2.
   apply: eq_bigr => j _.
   rewrite tnth_map ffunE -labelling_in tnth_ord_tuple.
   case: ifP => jino //.
-  by rewrite labelling_spec_idxa relabel_slot. 
+  by rewrite (labelling_spec_idxa bs) relabel_slot. 
 set s'1 := (X in _ <= X -> _) => les'. 
 rewrite (@leq_trans s'1) // eq_leq // => {les'}.
 apply: eq_bigr => j _.
 rewrite tnth_map ffunE labelling_in tnth_ord_tuple eqlabiota.
 case: ifP => jino //.
-by rewrite labelling_spec_idxa -eqlabiota relabel_slot // labelling_in eqlabiota.
+by rewrite (labelling_spec_idxa bs) -eqlabiota relabel_slot // labelling_in eqlabiota.
 Qed.
 
 Lemma eq_instance_vcg_price : instance_vcg_price' = instance_vcg_price.
@@ -1735,5 +1745,5 @@ Qed.
 
 End VCGforSearchPrice.
 
-(* Check eq_instance_VCG_price. *)
+Check eq_instance_VCG_price. 
 Print Assumptions eq_instance_VCG_price. 

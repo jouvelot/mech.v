@@ -52,7 +52,12 @@ Definition bids := n.-tuple bid.
 Let geq_bid := @geq_bid p'.
 
 Notation tsort := (tsort geq_bid).
-Notation idxa := (idxa geq_bid).
+Notation idxa bs i := (@idxa n' _ geq_bid bs
+                             (@transitive_geq_bid p')
+                             (@reflexive_geq_bid p') 
+                             (@total_geq_bid p')
+                             (@anti_geq_bid p')
+                             i).
 
 Section Algorithm.
 
@@ -73,6 +78,12 @@ End Algorithm.
 
 (** GSP is rational if one bids one's true value `v`. *)
 
+Notation labelling_spec_idxa := 
+  (@labelling_spec_idxa _ _ _ _ 
+                        (@transitive_geq_bid p')
+                        (@reflexive_geq_bid p')
+                        (@total_geq_bid p')
+                        (@anti_geq_bid p')).
 Variable v : A -> bid.
 
 Theorem rational (bs : bids) (i : A) (i_wins : is_winner  bs i) : 
@@ -83,7 +94,7 @@ have tsorted_bids_sorted: sorted_bids (tsort bs).
   apply/sorted_bids_sorted.
   apply: sort_sorted.
   exact: total_geq_bid.
-rewrite /price -(labelling_spec_idxa geq_bid bs i).
+rewrite /price -(labelling_spec_idxa i).
 case s0: ('ctr_ (slot_won bs i) == ord0); first by move: s0 => /eqP -> /=; rewrite !muln0.
 by rewrite leq_pmul2r ?lt0n ?negbT // tsorted_bids_sorted // le_ord_succ.
 Qed.
@@ -112,8 +123,19 @@ Definition a_p' := 10.
 Notation bid := (bid a_p').
 
 Notation tsort := (tsort (@geq_bid a_p')).
-Notation tlabel := (tlabel (@geq_bid a_p')).
-Notation idxa := (idxa (@geq_bid a_p')).
+Notation tlabel bs := (@tlabel a_n' _ (@geq_bid a_p') bs
+                             (@transitive_geq_bid a_p')
+                             (@reflexive_geq_bid a_p') 
+                             (@total_geq_bid a_p')
+                             (@anti_geq_bid a_p')).
+Notation idxa bs i := (@idxa a_n' _ (@geq_bid a_p') bs
+                             (@transitive_geq_bid a_p')
+                             (@reflexive_geq_bid a_p') 
+                             (@total_geq_bid a_p')
+                             (@anti_geq_bid a_p')
+                             i).
+
+Notation sub_ord := (@sub_ord 10).
 
 (* ctrs = 10, 5, 0 *)
 Definition cs : ctrs a_k' a_q' := map_tuple sub_ord [tuple 0; 5; 10].  
@@ -130,12 +152,28 @@ Definition bs2 : bids a_n' a_p' := cons_tuple (sub_ord 2) (behead_tuple bs1).
 Definition tlabel_bs2 := [tuple a1; a0; a2].
 
 Lemma idxaK_bs2 : idxa bs2 a0 = a1.
-Proof.
-rewrite /idxa. 
+Proof. 
+rewrite /labelling.idxa. 
 case: sorted_diff_agent_spec_ex => j.
 have eqtlabel : tlabel bs2 = tlabel_bs2.
   apply: labelling_singleton; first by exact: tlabelP.
-  by rewrite /is_labelling -(inj_eq val_inj). 
+  apply/andP; split.
+  - apply/eqP.
+    apply: val_inj => /=. 
+    set r := (X in sort X).
+    have -> //=: sort r [:: sub_ord 2; sub_ord 1; sub_ord 4] = [:: sub_ord 1; sub_ord 2; sub_ord 4].
+      by rewrite sortE.
+  - rewrite /is_labelling -(inj_eq val_inj) /a_n' /=.
+    have -> // : enum 'I_3 = [:: a0; a1; a2].
+      apply: (@eq_from_nth _ a0)=> [/=|k ltks]; first by rewrite size_enum_ord /n /a_n'. 
+      rewrite /n /a_n' /= in ltks *.
+      case: k ltks => k'.
+      - by have -> : nth a0 (enum 'I_3) 0 = a0 by apply: val_inj => /=; rewrite nth_enum_ord.
+      - case: k' => //= k''.
+        - by have -> : nth a0 (enum 'I_3) 1 = a1 by apply: val_inj => /=; rewrite nth_enum_ord.
+        - case: k'' => //= k'''.
+          - by have -> //: nth a0 (enum 'I_3) 2 = a2 by apply: val_inj => /=; rewrite nth_enum_ord.
+          - by rewrite size_enum_ord /n.
 rewrite (_ : a0 = tnth tlabel_bs2 a1) // -eqtlabel. 
 apply: labelling_inj.
 exact: tlabelP.
@@ -150,14 +188,14 @@ Definition m : mech.type n :=
                                     (is_winner bs a, (price cs bs a, slot_won k' bs a)))
                              (agent.agents n)).
 
-Let p : prefs.type m :=
+Definition pr : prefs.type m :=
   prefs.new (tnth vs) 
             (fun i (o : mech.O m) => 
                let: (w, (p, s)) := tnth o i in
                if w then tnth vs i * tnth cs s - p else 0)
             (tnth vs).
 
-Lemma not_truthful_GSP : not (truthful p).
+Lemma not_truthful_GSP : not (truthful pr).
 Proof.
 apply: not_truthful.
 exists a0. exists bs1. exists bs2.
@@ -170,11 +208,10 @@ have diff: differ_on bs1 bs2 a0.
 split => //.
 split => /=; first by congr sub_ord.
 rewrite !tnth_map !tnth_ord_tuple /is_winner /= /price /slot_won.
-rewrite idxaK //= ?idxaK_bs2 //=.
-exact: transitive_geq_bid.
+by rewrite idxaK //= ?idxaK_bs2.
 Qed.
 
 End NotTruthfulness.
 
-(* Check not_truthful_GSP. *)
-(* Print Assumptions not_truthful_GSP. *)
+Check not_truthful_GSP. 
+Print Assumptions not_truthful_GSP.

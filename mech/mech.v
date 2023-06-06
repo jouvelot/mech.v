@@ -589,7 +589,7 @@ Section Sorted.
 
 Variable (n : nat) (A : eqType).
 
-Variable m : @mech.type A n.
+Variable m : @mech.type A n.+1.
 
 Notation O := (mech.O m).
 
@@ -600,15 +600,18 @@ Notation U := (prefs.U p).
 
 Variable M_perm_ind : forall Pi bs,  m (ptuple Pi bs) = m bs.
 
-Variable (bs bs' : n.-tuple A) (i : 'I_n).
+Variable (bs bs' : n.+1.-tuple A) (i : 'I_n.+1).
 
-Variable (s : @agent.type n -> A).
+Variable (s : @agent.type n.+1 -> A).
 
 Variable leq_act : rel A.
 
-Definition idx := idxa leq_act bs i.
+Variable (tr : transitive leq_act) (totr : total leq_act) 
+         (rr : reflexive leq_act) (ar : antisymmetric leq_act).
 
-Let sorting_fun := tnth (tlabel leq_act bs).
+Definition idx := idxa bs tr rr totr ar i.
+
+Let sorting_fun := tnth (tlabel bs tr rr totr ar).
 
 Lemma sorting_inj: injective sorting_fun.
 Proof. apply: labelling_inj. exact: tlabelP. Qed.
@@ -617,8 +620,8 @@ Let Pi := perm sorting_inj.
 
 Import GroupScope.
 
-Definition Pm := @mech.new A n O (m \o (ptuple Pi)).  
-Definition Pp := @prefs.new A n Pm (v \o Pi) (U \o Pi) s.
+Definition Pm := @mech.new A n.+1 O (m \o (ptuple Pi)).  
+Definition Pp := @prefs.new A n.+1 Pm (v \o Pi) (U \o Pi) s.
 
 Lemma truthful_sorted :
   truthful' Pp (tsort leq_act bs) (ptuple Pi bs') idx -> truthful' p bs bs' i.
@@ -630,7 +633,7 @@ have -> : idx = Pi^-1 i.
 have -> : tsort leq_act bs = ptuple Pi bs; last by rewrite truthful_permP.
   apply: eq_from_tnth => j. 
   rewrite tnth_map tnth_ord_tuple permE /sorting_fun. 
-  move: (labellingP leq_act bs) => /forallP /(_ j) /eqP ->. 
+  move: (@labellingP _ _ leq_act bs tr rr totr ar) => /forallP /(_ j) /eqP ->.
   congr (tnth _ (tnth _ _)); last exact: uniq_labelling.
 Qed.
 

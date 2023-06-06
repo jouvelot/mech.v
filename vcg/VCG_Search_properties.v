@@ -44,9 +44,16 @@ Module G := VCG.
 Let k' := S.k'.
 Let p' := S.p'.
 Let geq_bid := @geq_bid p'.
-Let idxa : bids -> A -> A := idxa geq_bid.
 
-Hypothesis uniq_oStar : forall bs, singleton (max_bidSum_spec bs).
+Notation lt_labelling a bs bs' l := (@lt_labelling _ _ geq_bid a bs bs' tr rr totr ar l).
+Notation ge_labelling a bs bs' l := (@ge_labelling _ _ geq_bid a bs bs' tr rr totr ar l).
+Notation labelling_differ_on_eq a bs bs' := 
+  (@labelling_differ_on_eq _ _ geq_bid a bs bs' tr rr totr ar).
+Notation is_labelling bs l := (@is_labelling _ _ geq_bid bs l).  
+Notation labellingP bs := (@labellingP _ _ geq_bid bs tr rr totr ar). 
+Notation exists_labellingW bs := (@exists_labellingW _ _ geq_bid bs tr rr totr ar).
+
+Variable uniq_oStar : forall bs, singleton (max_bidSum_spec bs).
 
 (** No positive transfer. *)
 
@@ -107,9 +114,6 @@ Section TruthfulnessCases.
 
 Let labelling := @labelling n.
 
-Notation is_labelling := (is_labelling geq_bid).
-Notation labelling_spec_idxa := (labelling_spec_idxa geq_bid).
-
 Lemma antimonotone_sorted (bs : bids) : 
   antimonotone (λ s : slot, tnth (tsort bs) (slot_as_agent s)).
 Proof.
@@ -132,13 +136,13 @@ Variable (bid_true_value : action_on bs a = true_value a).
 Lemma rational (awins : i < k') : price bs a <= value bs a.
 Proof. 
 apply: VCG_for_Search_rational => //.
-by rewrite /bid_in /value -bid_true_value labelling_spec_idxa.
+by rewrite /bid_in /value -bid_true_value (labelling_spec_idxa bs).
 Qed.
 
 Definition l := tlabel bs.
 
 Lemma l_inj : injective (tnth l).
-Proof. exact: labelling_inj (tlabelP geq_bid bs). Qed.
+Proof. apply: (labelling_inj bs). exact: (tlabelP bs). Qed.
 
 Lemma cancel_a : a = tnth l i. 
 Proof. by rewrite cancel_idxa. Qed.
@@ -150,25 +154,21 @@ Variable (iloses : is_winner bs a = false) (iwins' : is_winner bs' a).
 Lemma lt_i'_i : i' < i.
 Proof. by rewrite (@leq_trans k') // leqNgt negbT. Qed.
 
-Let l' := lt_labelling geq_bid a bs bs' l.
+Let l' := lt_labelling a bs bs' l.
 
 Lemma is_labelling_iloses : is_labelling bs' l'.
 Proof. 
 rewrite /l' /geq_bid.
 apply: labelling_differ_on_lt.
-- exact: transitive_geq_bid.
-- exact: reflexive_geq_bid.
-- exact: total_geq_bid.
-- exact: antisymmetric_geq_bid.
 - exact: diff.
-- exact: lt_i'_i.
-- exact: tlabelP.
+- exact: lt_i'_i. 
+- exact: (tlabelP bs).
 Qed.
 
-Lemma eq_labelling_loses : projT1 (exists_labellingW geq_bid bs') = l'.
+Lemma eq_labelling_loses : projT1 (exists_labellingW bs') = l'.
 Proof.
 apply: (@labelling_singleton _ _ geq_bid bs'); last by rewrite is_labelling_iloses. 
-move: (exists_labellingW geq_bid bs') => [lab islab]. 
+move: (exists_labellingW bs') => [lab islab]. 
 exact: islab.
 Qed.
 
@@ -180,19 +180,19 @@ move: iloses; rewrite /is_winner => /negbT lek'i.
 apply: (@contraR _ _ _ lek'i).
 rewrite -ltnNge.
 set sa := slot_as_agent s. 
-move: (labellingP geq_bid bs') => /forallP /(_ sa)/eqP ->.  
+move: (labellingP bs') => /forallP /(_ sa)/eqP ->.  
 rewrite eq_labelling_loses.
 have nea: tnth l' sa != a. 
   apply: (@contraTneq _ _ _ _ _ lti's).
   have <- : tnth l' i' = a by rewrite tnth_mktuple /lt_index //= eq_refl cancel_idxa.
-  move/(labelling_inj is_labelling_iloses)/eqP.
+  move/(@labelling.labelling_inj _ _ geq_bid bs' l' is_labelling_iloses)/eqP.
   rewrite -(inj_eq val_inj) /= => /eqP ->.
   by rewrite ltnn.
 rewrite d // -(labelling_spec_idxa bs a) -?(labelling_spec_idxa bs (tnth l' sa)). 
 have -> : tnth l' sa = tnth l (agent_pred sa).
     rewrite tnth_mktuple /lt_index ifF; last by apply: gtn_eqF.
     by rewrite lti's andTb (@leq_trans k') //= ?leq_ord // leqNgt.
-rewrite /l !cancel_inv_idxa => leis.
+rewrite /l !(cancel_inv_idxa bs) => leis.
 have ltis1: i < agent_pred sa.
   apply: (@contraLR _ _ _ leis).
   rewrite -!ltnNge !ltnS.
@@ -227,21 +227,17 @@ Section Overbid.
 
 Variable lt_i'_i : i' < i. 
 
-Let l' := lt_labelling geq_bid a bs bs' l.
+Let l' := lt_labelling a bs bs' l.
 
-Lemma eq_labelling_over : projT1 (exists_labellingW geq_bid bs') = l'.
+Lemma eq_labelling_over : projT1 (exists_labellingW bs') = l'.
 Proof.
 apply: labelling_singleton.
-- move: (exists_labellingW geq_bid bs') => [lab islab]. 
+- move: (exists_labellingW bs') => [lab islab]. 
   exact: islab.
 - apply: labelling_differ_on_lt. 
-  - exact: transitive_geq_bid.
-  - exact: reflexive_geq_bid.
-  - exact: total_geq_bid.
-  - exact: antisymmetric_geq_bid.
   - exact: diff.
   - exact: lt_i'_i.
-  - exact: tlabelP.
+  - exact: (tlabelP bs).
 Qed.
 
 Lemma eq_price_bs_over : price bs a = \sum_(s < k | i < s) externality (tsort bs) s.
@@ -256,10 +252,10 @@ rewrite (split_sum_ord lt_i'_i).
 congr (_ + _).
 apply: eq_bigr => s ltis.
 set j := slot_as_agent s. 
-move: (labellingP geq_bid bs') => /forallP /(_ j) /eqP ->. 
+move: (labellingP bs') => /forallP /(_ j) /eqP ->. 
 rewrite eq_labelling_over. 
-move: (labellingP geq_bid bs) => /forallP /(_ j) /eqP ->. 
-rewrite uniq_labelling /l' /lt_labelling tnth_mktuple /lt_index.
+move: (labellingP bs) => /forallP /(_ j) /eqP ->. 
+rewrite uniq_labelling /l' tnth_mktuple /lt_index.
 rewrite ifF; last by rewrite -(inj_eq val_inj) /=; apply: gtn_eqF; rewrite (@ltn_trans i).
 rewrite ifF; last by rewrite [X in _ && X = _]leqNgt ltis /= andbF.
 move: diff; rewrite /differ_on /action_on => d.
@@ -300,14 +296,14 @@ have lti'mk'1 : i' + m < k'.+1 by rewrite (@leq_trans i) // (@leq_trans k') // l
 have lti'm1k'1 : i' + m.+1 < k'.+1.
   by rewrite addnS; move: (ltn_trans lti'mi iw); rewrite -(@ltn_add2r 1) !addn1.
 set j := slot_as_agent (inord (i' + m.+1)).
-move: (labellingP geq_bid bs') => /forallP /(_ j) /eqP ->. 
+move: (labellingP bs') => /forallP /(_ j) /eqP ->. 
 rewrite eq_labelling_over tnth_mktuple /lt_index.
 rewrite ifF; last by apply: gtn_eqF => /=; rewrite inordK // -[X in X <= _]addn0 ltn_add2l.
 rewrite ifT; last by rewrite /j /= inordK // -[X in X < _ <= _]addn0 ltn_add2l //= addnS.
 move: diff; rewrite /differ_on /action_on => d.
 rewrite d // cancel_a.
-move: (labellingP geq_bid bs) => /forallP /(_ i) /eqP. 
-move: (labellingP geq_bid bs) => /forallP /(_ (ord_pred j)) /eqP. 
+move: (labellingP bs) => /forallP /(_ i) /eqP. 
+move: (labellingP bs) => /forallP /(_ (ord_pred j)) /eqP. 
 rewrite !uniq_labelling => <- <-.
 apply: sorted_bids_sorted => /=.
 rewrite inordK // addnS /= ltnW // cancel_a -/i.
@@ -344,20 +340,16 @@ Section Underbid.
 
 Variable lt_i_i' : i < i'. 
 
-Let l' := ge_labelling geq_bid a bs bs' l.
+Let l' := ge_labelling a bs bs' l.
 
-Lemma eq_labelling_under : projT1 (exists_labellingW geq_bid bs') = l'. 
+Lemma eq_labelling_under : projT1 (exists_labellingW bs') = l'. 
 Proof.
 apply: labelling_singleton.
-move: (exists_labellingW geq_bid bs') => [lab islab]; first exact: islab.
+move: (exists_labellingW bs') => [lab islab]; first exact: islab.
 apply: labelling_differ_on_ge. 
-- exact: transitive_geq_bid.
-- exact: reflexive_geq_bid.
-- exact: total_geq_bid.
-- exact: antisymmetric_geq_bid.
 - exact: diff.
 - by rewrite ltnW.
-- exact: tlabelP.
+- exact: (tlabelP bs).
 Qed.
 
 Lemma eq_price_bs'_under : price bs' a = \sum_(s < k | i' < s) externality (tsort bs) s.
@@ -366,9 +358,9 @@ rewrite /price ifT; last by rewrite (@ltn_trans k').
 apply: eq_bigr => s lti's.
 rewrite /externality.
 set j := slot_as_agent s.
-move: (labellingP geq_bid bs') => /forallP /(_ j) /eqP ->. 
+move: (labellingP bs') => /forallP /(_ j) /eqP ->. 
 rewrite eq_labelling_under. 
-move: (labellingP geq_bid bs) => /forallP /(_ j) /eqP ->. 
+move: (labellingP bs) => /forallP /(_ j) /eqP ->. 
 rewrite uniq_labelling tnth_mktuple /ge_index.
 rewrite ifF; last by rewrite -(inj_eq val_inj) /=; apply: gtn_eqF.
 rewrite ifF; last by rewrite ltnNge (ltnW lti's) //= andbF.
@@ -413,7 +405,7 @@ Qed.
 Lemma geq_value_under m (ltmi'i : i + m <= i') :
   tnth (tsort bs) (slot_as_agent (inord (i + m))) <= true_value a.
 Proof.
-rewrite -bid_true_value /action_on -[X in _ <= nat_of_ord X]labelling_spec_idxa. 
+rewrite -bid_true_value /action_on -[X in _ <= nat_of_ord X](labelling_spec_idxa bs).
 apply: sorted_bids_sorted.
 have -> : val (slot_as_agent (inord (i + m))) = i + m; last by exact: leq_addr.
   by rewrite /= inordK // (@leq_ltn_trans i') // (@ltn_trans k').
@@ -455,18 +447,14 @@ Variable eq_i_i' : i' = i.
 
 Let l' := l.
 
-Lemma eq_labellling_stable : projT1 (exists_labellingW geq_bid bs') = l'.
+Lemma eq_labellling_stable : projT1 (exists_labellingW bs') = l'.
 Proof.
 apply: (@labelling_singleton _ _ geq_bid bs').
-move: (exists_labellingW geq_bid bs') => [lab islab] //.
-apply: labelling_differ_on_eq. 
-- exact: transitive_geq_bid.
-- exact: reflexive_geq_bid.
-- exact: total_geq_bid.
-- exact: antisymmetric_geq_bid.
+move: (exists_labellingW bs') => [lab islab] //.
+apply: (labelling_differ_on_eq a bs bs').
 - exact: diff.
 - exact: eq_i_i'.
-- exact: tlabelP.
+- exact: (tlabelP bs).
 Qed.
 
 Lemma truthful_stable : utility bs' a <= utility bs a.
@@ -482,12 +470,13 @@ rewrite (@eq_big _ _ _ _ _ (fun s : slot => i < s) (fun s : slot => i' < s)
   first by rewrite eq_i_i'.
 congr (_ * _). 
 set sa := slot_as_agent s.
-move: (labellingP geq_bid bs') => /forallP /(_ sa) /eqP ->.
+move: (labellingP bs') => /forallP /(_ sa) /eqP ->.
 rewrite eq_labellling_stable.
-move: (labellingP geq_bid bs) => /forallP /(_ sa) /eqP ->.
+move: (labellingP bs) => /forallP /(_ sa) /eqP ->.
 rewrite uniq_labelling /l' d // cancel_a -/i.
-apply: (@contraTneq _ _ _ _ _ ltis) => /(labelling_inj (tlabelP geq_bid bs)) => <- /=.
+apply: (@contraTneq _ _ _ _ _ ltis) => /(labelling_inj bs) => <- /=.
 by rewrite ltnn.
+exact: (tlabelP bs).
 Qed.
 
 End Stable.
@@ -630,20 +619,20 @@ pose h := (fun o => Outcome (uniq_map_o bs o)).
 pose F := (fun o => \sum_(j0 < n | j0 != j) tnth bs1 j0 o).
 rewrite [in RHS](@reindex_inj _ _ _ _ h _ F) /= => [|o1 o2 h12]; last first.
   apply: val_inj => /=. 
-  apply: (inj_map_tuple (labelling_inj (tlabelP geq_bid bs))).
+  apply: (inj_map_tuple (labelling_inj bs (tlabelP bs))).
   by move/eqP: h12; rewrite -(inj_eq val_inj) => /eqP.
 apply: eq_bigr => o _.
 apply: eq_bigr => j' _.
 rewrite /instance_biddings /instance_bidding /t_bidding tnth_map ffunE !tnth_ord_tuple.
 move: (Ri1 j' (h o)); rewrite /action_on => ->.
-rewrite /bid_in labelling_spec_idxa.
+rewrite /bid_in (labelling_spec_idxa bs).
 case: ifP => j'ino; first by rewrite relabel_slot.  
 have -> : slot_of j' (h o) = S.last_slot; last by rewrite S.last_ctr_eq0 /= muln0.
   rewrite /slot_of.
   case: tnthP => p //.
   case: sig_eqW => s /= eqj'. 
   apply: (@contraFeq _ _ _ _ _ j'ino) => _.
-  by apply/tnthP; exists s; rewrite eqj' tnth_map /S.idxa cancel_inv_idxa.
+  by apply/tnthP; exists s; rewrite eqj' tnth_map (cancel_inv_idxa bs).
 Qed.
 
 Local Lemma mem_oStar j (ltj'k : idxa bs j < k) : idxa bs j \in oStar. 
@@ -662,7 +651,7 @@ rewrite eq_instance_vcg_oStar_oStar; last by exact: uniq_oStar.
 rewrite !tnth_mktuple !ffunE /instance_biddings /instance_bidding /t_bidding. 
 move: (Ri1 j' (G.oStar o'01 bs1)); rewrite /action_on => ->. 
 case: ifP => j'ino.
-- rewrite /bid_in labelling_spec_idxa relabel_slot //. 
+- rewrite /bid_in (labelling_spec_idxa bs) relabel_slot //. 
   congr (_ * 'ctr_ (slot_of _ _)). 
   apply: eq_from_tnth => s /=.
   rewrite eq_GoStar // /OStar.t_oStar !tnth_map.
@@ -819,7 +808,7 @@ Proof.
 rewrite eq_surplus /OStar.max_welfare /OStar.welfare /bidding /t_bidding /OStar.oStar /=.
 under [RHS]eq_bigr => s _.
   rewrite ffunE /= mem_tnth /bid_in all_ctrs_are_1 muln1 /OStar.t_oStar tnth_map.
-  rewrite -(labelling_spec_idxa geq_bid) cancel_inv_idxa tnth_ord_tuple.
+  rewrite -(labelling_spec_idxa bs) (cancel_inv_idxa bs) tnth_ord_tuple.
   over.
 have -> : \sum_(s < k) tnth [tuple of sort geq_bid bs] (slot_as_agent s) =
          \sum_(0 <= s < k) tnth [tuple of sort geq_bid bs] (inord s). 
@@ -827,17 +816,15 @@ have -> : \sum_(s < k) tnth [tuple of sort geq_bid bs] (slot_as_agent s) =
   have -> // : inord s = slot_as_agent s.
     by apply: val_inj => /=; rewrite inordK // (@ltn_trans k) // S.lt_k_n.
 rewrite /k a_single_slot_is_auctionned big_nat1 /iw. 
-rewrite -(cancel_inv_idxa geq_bid bs (inord 0)) labelling_spec_idxa tv /=.
+rewrite -(cancel_inv_idxa bs (inord 0)) (labelling_spec_idxa bs) tv /=.
 congr (v (tnth _ _)).
 by apply: val_inj => /=; rewrite inordK.
 Qed.
 
 End Surplus.
 
-Require Import String.
-
-Compute "Assumptions for VCG for Search truthfulness (labelling axioms are lemmas if bids are uniq)."%string.
-
+Check truthful_VCG_for_Search_rel.
 Print Assumptions truthful_VCG_for_Search_rel.
+
 
 

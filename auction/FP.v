@@ -39,8 +39,22 @@ Definition bids := n.-tuple bid.
 
 Let geq_bid := @geq_bid p'.
 
+Notation tr := (@transitive_geq_bid p').
+Notation totr := (@total_geq_bid p').
+Notation ar := (@anti_geq_bid p').
+Notation rr := (@reflexive_geq_bid p').
+
+Notation labelling_spec_idxa bs := (@labelling_spec_idxa _ _ _ bs tr rr totr ar).
+Notation tlabel bs := (@tlabel n' _ geq_bid bs tr rr totr ar). 
+Notation tlabelP bs := (@tlabelP n' _ geq_bid bs tr rr totr ar). 
+Notation idxa_inj bs := (@idxa_inj _ _ geq_bid bs tr rr totr ar). 
+Notation labelling_inj bs := (@labelling_inj _ _ geq_bid bs (tlabel bs)).  
+Notation cancel_inv_idxa bs := (@cancel_inv_idxa _ _ geq_bid bs tr rr totr ar).
+Notation uniq_to_idxa bs u := (@uniq_to_idxa _ _ geq_bid bs tr rr totr ar _ _ u). 
+Notation uniq_from_idxa bs u := (@uniq_from_idxa _ _ geq_bid bs tr rr totr ar _ _ u). 
+
 Notation tsort := (tsort geq_bid).
-Notation idxa := (idxa geq_bid).
+Notation idxa bs i := (@idxa n' _ geq_bid bs tr rr totr ar i). 
 
 Section Algorithm.
 
@@ -92,8 +106,8 @@ Lemma zero_utility (bs : bids) (i : A) (i_wins : is_winner bs i) :
   tnth bs i = tnth vs i -> U i (m bs) = 0.
 Proof.
 move=> tv.
-rewrite /U /prefs.U /= /auction.U /auction.p /= tnth_map ifT -?tv; 
-  first by rewrite /price labelling_spec_idxa subnn.
+rewrite /U /prefs.U /= /auction.U /auction.p /= tnth_map ifT -?tv.
+rewrite /price labelling_spec_idxa ?subnn //=.
 by move: i_wins => /=; rewrite /is_winner tnth_ord_tuple.
 Qed.
 
@@ -110,18 +124,28 @@ Section Anonymous.
 Theorem anonymous_XP (uniq_bids : forall bs : bids, uniq bs) : 
   auction.anonymous a.
 Proof.
-have tot : total (geq_bid (n:=a_p')) by exact: total_geq_bid.
-have anti : antisymmetric (geq_bid (n:=a_p')) by exact: anti_geq_bid.
-have trans: transitive (geq_bid (n:=a_p')) by exact: transitive_geq_bid.
-rewrite /= /auction.anonymous /= => bs i1 i2 w1.
-rewrite /auction.is_winner /= !tnth_map tnth_ord_tuple /is_winner in w1 *.  
-rewrite /price !labelling_spec_idxa in w1 *.  
-rewrite tnth_map tnth_ord_tuple apermE tpermR idxa_tpermR ?uniq_bids //. 
-split=> [//|]; split=> [|i [nei1 nei2]]. 
-- rewrite /auction.price /= /price !tnth_map !tnth_ord_tuple !labelling_spec_idxa. 
+move=> bs i1 i2 /= w1.
+rewrite /auction.is_winner /auction.price /price /= in w1.
+rewrite !tnth_map !tnth_ord_tuple /is_winner /price in w1.
+rewrite (labelling_spec_idxa bs) in w1.
+split=> [//|]. 
+- rewrite /auction.is_winner /auction.price /price /=.
+  rewrite !tnth_map !tnth_ord_tuple /is_winner /price.
+  set abs := (X in idxa X). 
+  rewrite (labelling_spec_idxa abs).
   by rewrite !tnth_map !tnth_ord_tuple !apermE !tpermR idxa_tpermR // ?uniq_bids.
-- rewrite !tnth_map !tnth_ord_tuple !labelling_spec_idxa idxa_tpermD // ?uniq_bids //.
-  by rewrite tnth_map tnth_ord_tuple apermE tpermD 1?eq_sym // ?uniq_bids.
+- split.
+- rewrite /auction.is_winner /auction.price /price /=.
+  rewrite !tnth_map !tnth_ord_tuple /is_winner /price.
+  rewrite (labelling_spec_idxa bs).
+  set abs := (X in idxa X _ _ _ _ i2). 
+  rewrite (labelling_spec_idxa abs).
+  by rewrite !tnth_map !tnth_ord_tuple !apermE !tpermR idxa_tpermR // ?uniq_bids.
+- move=> i [n1 n2].
+- rewrite !tnth_map !tnth_ord_tuple /is_winner idxa_tpermD // ?uniq_bids //.
+  rewrite /price.
+  rewrite (labelling_spec_idxa [tuple tnth bs (aperm i0 (tperm i1 i2))  | i0 < n]).
+  by rewrite (labelling_spec_idxa bs) !tnth_map apermE !tnth_ord_tuple tpermD 1?eq_sym.
 Qed.
 
 End Anonymous.
@@ -144,10 +168,16 @@ Definition a1 : A := agent_succ a0.
 (* Range of bids *)
 Definition a_p' := 10.
 
+Notation tr := (@transitive_geq_bid a_p').
+Notation totr := (@total_geq_bid a_p').
+Notation ar := (@anti_geq_bid a_p').
+Notation rr := (@reflexive_geq_bid a_p').
+
 Notation bid := (bid a_p').
-Notation geq_bid := (@geq_bid a_p').
-Notation tlabel := (tlabel geq_bid).
-Notation idxa := (idxa geq_bid).
+Notation geq_bid := (@geq_bid a_p'). 
+Notation tlabel bs := (@tlabel a_n' _ geq_bid bs tr rr totr ar).
+Notation idxa bs i := (@idxa a_n' _ geq_bid bs tr rr totr ar i).
+Notation labelling_spec_idxa :=  (@labelling_spec_idxa _ _ _ _ tr totr ar).
 
 Notation bids := (bids a_n' a_p').
 
@@ -164,11 +194,13 @@ Definition tlabel_bs2 := [tuple a0; a1].
 
 Lemma idxaK_bs2 : idxa bs2 a0 = a0.
 Proof.
-rewrite /idxa /sval. 
+rewrite /labelling.idxa /ssr_have. 
 case: sorted_diff_agent_spec_ex => j. 
 have eqtlabel : tlabel bs2 = tlabel_bs2.
-  apply: labelling_singleton; first by exact: tlabelP.
-  by rewrite /is_labelling -(inj_eq val_inj). 
+  rewrite sorted_tlabel => //=.
+  - apply: val_inj => /=.
+    apply: (inj_map val_inj) => /=.
+    by rewrite val_enum_ord /a_n'.
 rewrite [in RHS](_ : a0 = tnth tlabel_bs2 a0) // -eqtlabel. 
 apply: labelling_inj. 
 exact: tlabelP.
@@ -200,10 +232,9 @@ split => //.
 split => //=.
 rewrite /auction.U /auction.p //= !tnth_map !tnth_ord_tuple /is_winner /= /price. 
 rewrite idxaK //= ?idxaK_bs2 //=.
-exact: transitive_geq_bid.
 Qed.
 
 End NotTruthfulness.
 
-(* Check not_truthful_FP. *)
-(* Print Assumptions not_truthful_FP. *)
+Check not_truthful_FP.
+Print Assumptions not_truthful_FP.

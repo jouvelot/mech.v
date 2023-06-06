@@ -139,12 +139,10 @@ Lemma sorted_over_bids : sorted_bids over_bids.
 Proof.
 move=> j1 j2 lej1j2.
 rewrite !tnth_map !tnth_ord_tuple.
-move: diff.
-rewrite /differ_on /action_on => d.
-- have [] := boolP (j1 == i0) => [/eqP eqj10|].
-  - have [] := boolP (j2 == i0) => /eqP eqj20.
-    by rewrite eqj10 eqj20.
-  - by rewrite eqj10 -iwins cancel_idxa  max_first.
+move: diff; rewrite /differ_on /action_on => d. 
+have [] := boolP (j1 == i0) => [/eqP eqj10|].
+- have [] := boolP (j2 == i0) => /eqP eqj20; first by rewrite eqj10 eqj20.
+  by rewrite eqj10 -iwins cancel_idxa max_first.
 - rewrite -lt0n => lt0j1. 
   have inva : a = tnth l i by rewrite cancel_idxa. 
   have netnth (j : A) : 
@@ -154,8 +152,7 @@ rewrite /differ_on /action_on => d.
     apply: labelling_inj.
     exact: (tlabelP bs).
   rewrite !d /l' -?bs_uniq_labelling ?inva.
-  move: (labellingP bs) => /forallP /(_ j2) /eqP <-.
-  move: (labellingP bs) => /forallP /(_ j1) /eqP <-. 
+  move: (labellingP bs) (labellingP bs) => /forallP /(_ j2) /eqP <- /forallP /(_ j1) /eqP <-. 
   exact: tsorted_bids_sorted.  
   by have/netnth: j1 != i by rewrite iwins -(inj_eq val_inj) /= -lt0n.
   by have/netnth: j2 != i by rewrite neq_ltn [X in _ || X](@leq_trans j1) // iwins ?orbT.
@@ -313,64 +310,10 @@ Proof. exact: labelling_inj (tlabelP bs). Qed.
 Lemma cancel_a : a = tnth l (idxa bs a). 
 Proof. by rewrite cancel_idxa. Qed.
 
-Let under_index (j' : A) := if j' == i0 then 
-                             i
-                           else if 0 < j' <= i then 
-                                  ord_pred j'
-                                else 
-                                  j'.
+Let under_index (j' : A) := if j' == i0 then i else if 0 < j' <= i then agent_pred j' else j'.
 Let l' := [tuple tnth l (under_index j) | j < n].
 
 Definition under_bids := [tuple tnth bs' (tnth l' j) | j < n].
-
-Lemma sorted_under_bids : sorted_bids under_bids. 
-Proof.
-move=> j1 j2 lej1j2.
-move: diff; rewrite /differ_on /action_on => d.
-rewrite !tnth_map !tnth_ord_tuple.
-have relabpred (j : A) (lt0j : 0 < j) (leji : j <= i) : 
-  tnth bs' (tnth l (agent_pred j)) =  tnth (tsort bs) (agent_pred j). 
-  move: (labellingP bs) => /forallP /(_ (agent_pred j)) /eqP.  
-  rewrite d ?[X in _ != X]cancel_a.
-  rewrite uniq_labelling => <- //.
-  have: agent_pred j != i.
-    rewrite neq_ltn. apply/orP. left=> //=. 
-    by rewrite (@leq_trans j) // ltn_predL.
-  by apply: contra => /eqP /l_inj /eqP.
-have relab (j : A) (ltij : i < j): tnth bs' (tnth l j) =  tnth (tsort bs) j.
-  move: (labellingP bs) => /forallP /(_ j) /eqP. 
-  rewrite d ?[X in _ != X]cancel_a. 
-  rewrite uniq_labelling => <- //.
-  have: j != i by rewrite neq_ltn ltij orbT.
-  by apply: contra => /eqP /l_inj /eqP. 
-- have [] := boolP (j1 == i0) => eqj10 //.
-  have [] := boolP (j2 == i0) => eqj20; first by rewrite /under_index !ifT.
-  rewrite -lt0n in eqj20.
-  - have [] := boolP (j2 <= i) => ltj2i.
-    rewrite /under_index ifF ?ifT ?max_first // ?ltj2i ?eqj20 //=;
-            last by rewrite (@negbTE (j2 == i0)) // -lt0n.
-    by rewrite -cancel_a.
-  - rewrite /under_index ifF; last by rewrite (@negbTE (j2 == i0)) // -lt0n.
-    by rewrite ifF ?ifT ?max_first // ?eqj20 ?andTb ?(negbTE ltj2i) // -cancel_a.
-- have [] := boolP (j1 <= i) => ltj1i.
-  rewrite /under_index (@ifF _ (j1 == i0)); last by exact: negbTE.
-  rewrite -lt0n in eqj10.
-  rewrite (@ifT _ (i0 < j1 <= i)); last by rewrite eqj10 ltj1i.
-  - have [] := boolP (j2 == i0) => [/eqP|] eqj20; first by rewrite eqj20 leqNgt eqj10 in lej1j2.
-  - rewrite -lt0n in eqj20.
-    - have [] := boolP (j2 <= i) => ltj2i.
-      rewrite !ifT //; last by rewrite eqj20.  
-      by rewrite !relabpred // tsorted_bids_sorted //= -!subn1 leq_sub2r.
-    - rewrite andbF relabpred // relab // ?ltnNge //. 
-      by rewrite tsorted_bids_sorted //= (@leq_trans j1) // leq_pred.
-- rewrite /under_index (@ifF _ (j1 == i0)); last by exact: negbTE.
-  rewrite (@ifF _ (i0 < j1 <= i)); last by rewrite lt0n eqj10 (negbTE ltj1i).
-  - have [] := boolP (j2 == i0) => [/eqP|] eqj20.
-    by rewrite eqj20 leqNgt lt0n eqj10 in lej1j2.
-  - have [] := boolP (j2 <= i) => ltj2i.  
-    by rewrite leqNgt (@leq_ltn_trans i) ?ltnNge in lej1j2.
-  - by rewrite andbF !relab ?ltnNge // tsorted_bids_sorted.
-Qed.
 
 Lemma ord_pred_enum j (ltj : j < n') :
   ord_pred (nth ord0 (enum 'I_n) (j.+1)) = nth ord0 (enum 'I_n) j. 
@@ -385,8 +328,7 @@ Qed.
 Lemma stable_sorted  (x1 x2 : 'I_n) :
   let: a1 := tnth l x1 in
   let: a2 := tnth l x2 in
-  x1 <= x2 ->
-  (tnth bs a2 <= tnth bs a1)  && ((tnth bs a1 <= tnth bs a2) ==> (a1 <= a2)).
+  x1 <= x2 -> (tnth bs a2 <= tnth bs a1)  && ((tnth bs a1 <= tnth bs a2) ==> (a1 <= a2)).
 Proof.
 move=> x1x2.
 have l21' : (tnth bs (tnth l x2) <= tnth bs (tnth l x1)).
@@ -619,6 +561,15 @@ rewrite [RHS](@nth_map _ i0); last by rewrite size_enum_ord.
 by rewrite permE tnth_map tnth_ord_tuple.
 Qed.
 
+Lemma sorted_under_bids : sorted_bids under_bids. 
+Proof.
+move=> j1 j2 le12. 
+move: (sorted_leq_nth (ri_lex_tr tr) (@ri_lex_rr _ _ _ _ rr) ord0 sorted_under_lex j1 j2).
+rewrite !inE size_tuple /geq_bid /= !tnth_map.
+move=> /(_ (ltn_ord j1) (ltn_ord j2) le12) /= /andP [].
+by rewrite ?(nth_map ord0) -?enumT ?tnth_ord_tuple ?nth_ord_enum ?size_enum_ord ?ltn_ord.
+Qed.
+
 Lemma is_under_labelling : labelling_of bs' = l'.
 Proof.
 have sorted: sorted_bids under_bids by exact: sorted_under_bids.
@@ -654,7 +605,7 @@ have -> : projT1 (@exists_labellingW _ _ geq_bid bs' tr rr totr ar) = l'.
   by rewrite -is_under_labelling (tlabelP bs').
 rewrite /l' tnth_map tnth_ord_tuple bs_uniq_labelling.
 rewrite /under_index ifT /=; last by rewrite lt0n.
-have -> : (ord_pred i1) = i0 by exact: val_inj.
+have -> : (agent_pred i1) = i0 by exact: val_inj.
 apply: diff.
 have -> : a = tnth l i by rewrite cancel_idxa.
 have: i0 != i by rewrite eq_sym.

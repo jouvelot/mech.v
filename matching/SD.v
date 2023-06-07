@@ -28,14 +28,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(* Present in newer versions of mathcomp *)
-Lemma leq_sub2lE (m n p : nat) : n <= m -> (m - p <= m - n) = (n <= p).
-Admitted.
-
-Lemma find_predT : forall T (s : seq T), find xpredT s = 0. 
-Admitted.
-(* End newer versions *)
-
 Section Utils.
 
 Lemma subnKK n m p : m <= n -> p <= n -> (n - m == n - p) = (m == p). 
@@ -557,69 +549,3 @@ Qed.
 
 Check truthful_SD.
 Print Assumptions truthful_SD.
-
-(* SD as a matching mechanism.
-
-Definition set_items := [set i in all_items].
-
-Lemma no_g0' : g0 \notin set_items. 
-Proof. by rewrite in_set no_g0. Qed.
-
-Definition oO' : order G := matching.Order (@tr _ oO) (ir oO) (to oO).
-
-Let O' := matching.pref set_items n.
-
-Notation A' := O'.
-
-Definition itemsO' (ps' : n.-tuple A') :=
-  map_tuple (fun i : agent => 
-               (wins_alloc i (best_item g0 \o (fun j => (matching.items (tnth ps' (inord j)))))).1) 
-            (agent.agents n).
-
-Variable AofA' : forall (ps' : n.-tuple A'), n.-tuple A. 
-Variable A'ofA : forall (ps : n.-tuple A), n.-tuple A'.
-
-Lemma all_items_in_set (ps' : n.-tuple A') (i : agent) : 
-  tnth (itemsO' ps') i \in set_items. 
-Proof.
-rewrite tnth_map tnth_ord_tuple in_set.
-move: (wins_in_items uniq_all_items no_g0 (fun i => tnth (AofA' ps') (inord i)) i).
-rewrite /wins.
-Admitted.
-
-Lemma ordered_oO' ps' : @matching.index_ordered G n oO' (itemsO' ps').
-Proof. 
-rewrite /matching.index_ordered => i1 i2 /andP [lt12 sz]. 
-rewrite size_tuple in sz. 
-have l1n : i1 < n by rewrite (@ltn_trans i2). 
-move: (@ordered_oO (AofA' ps') (Ordinal l1n) (Ordinal sz)) => /(_ lt12) /=.
-rewrite /itemsO' !tnth_map /wins /=.
-Admitted.
-
-Variable uniq_itemsO' : forall ps', uniq (itemsO' ps').
-
-Definition perfO' (ps' : n.-tuple A') := 
-  matching.Pref (uniq_itemsO' ps') (all_items_in_set ps') (@ordered_oO' ps').
-
-Let m' := mech.new perfO'.
-
-Let g' (o' : mech.O m') (i : agent.type n) := Some (tnth (matching.items o') i).
-
-Let m'' : @matching.type n G set_items n := matching.new g'.
-
-Let v'' : agent.type n -> matching.pref set_items n :=
-      fun i => matching.Pref (uniq_itemsO' (A'ofA (mktuple vs)))
-                          (all_items_in_set (A'ofA (mktuple vs)))
-                          (@ordered_oO' (A'ofA (mktuple vs))).
-
-Lemma is_U_order_compatible a (s s' : mech.O m'') : 
-    matching.U v'' a s' < matching.U v'' a s -> 
-    gt (o (vs a)) (tnth (matching.items s) a) (tnth (matching.items s') a).
-Proof.
-move=> ltUU.
-have s'av'' : tnth (matching.items s') a \in matching.items (v'' a) by admit.
-move: (matching.utility_is_order_compatible no_g0' ltUU s'av'') => /=.
-case: (o (vs a)) => go tro iro too /=.
-Admitted.
-
-*)

@@ -84,9 +84,8 @@ Defined.
 
 Lemma slot_as_agent_inj : injective slot_as_agent.
 Proof.
-move=> s1 s2.
-rewrite /slot_as_agent /ssr_have => /eqP. 
-rewrite -(inj_eq val_inj) /= => /eqP.
+move=> s1 s2 /eqP.
+rewrite /slot_as_agent /sval -(inj_eq val_inj) /= => /eqP.
 exact: val_inj.
 Qed.
 
@@ -367,8 +366,7 @@ rewrite -(labelling_spec_idxa bs) -[X in _ <= val X](labelling_spec_idxa bs).
 rewrite (tnth_nth ord0) [X in _ <= val X](tnth_nth ord0). 
 apply: (sorted_leq_nth (@transitive_geq_bid p.-1)) => //; first by exact: reflexive_geq_bid.
 - apply/(@sorted_bids_sorted p' _).
-  rewrite /tsort sorted_bids_sorted sort_sorted //. 
-  exact: total_geq_bid.
+  by rewrite /tsort sorted_bids_sorted sort_sorted.
 - rewrite inE size_sort size_tuple ltn_ord //.
   by rewrite inE size_sort size_tuple ltn_ord.
 Qed.
@@ -443,8 +441,7 @@ elim=> [o _ //=|x xs IH o /= /andP [bi xoi]].
   congr (t_bidding _ _ _).
   apply: eq_from_tnth => s'.
   by rewrite !tnth_map cancel_idxa.
-- pose uxoi := ububble_uniq (ouniq (idxas o)) xs.
-  pose ouxoi := Outcome (uniq_from_idxa bs uxoi).
+- pose uxoi := ububble_uniq (ouniq (idxas o)) xs; pose ouxoi := Outcome (uniq_from_idxa bs uxoi).
   move: (@le_transposed_welfare x ouxoi) => /=. 
   rewrite !cancel_inv_map_idxa => /(_ bi) /=.  
   move: (IH o xoi) => le1 le2.
@@ -526,7 +523,7 @@ Section OStarSorted.
 
 Variable (bs : bids).
 
-Hypothesis sorted_bs : sorted_bids bs.
+Variable (sorted_bs : sorted_bids bs).
 
 Definition t_oStar := [tuple widen_ord le_k_n j | j < k].
 
@@ -674,7 +671,7 @@ Qed.
 Conjecture uniq_max_bidSum : uniq bs -> singleton max_bidSum_spec.
 Hypothesis uniq_oStar : singleton max_bidSum_spec.
 
-Hypothesis sorted_bs : sorted_bids bs.
+Variable sorted_bs : sorted_bids bs.
 
 Definition bid_ctr_slot s := 'bid_(slot_as_agent s) * 'ctr_s.
 Definition bid_ctr_agent j := 'bid_j * 'ctr_(slot_of j oStar).
@@ -767,7 +764,7 @@ Variable (i : A).
 
 Variable (bs0 : bids).
 
-Hypothesis sorted_bs0 : sorted_bids bs0.
+Variable sorted_bs0 : sorted_bids bs0.
 
 Notation not_in_oStar_inv := (not_in_oStar_inv sorted_bs0).
 Notation mem_oStar_inv := (mem_oStar_inv sorted_bs0).
@@ -991,7 +988,7 @@ Definition welfare_without_i'' := G.welfare_without_i'' i (biddings bs).
 
 Section Loses.
 
-Hypothesis not_i_in_oStar : i \in oStar = false.
+Variable not_i_in_oStar : i \in oStar = false.
 
 (* Welfare with i. *)
 
@@ -1117,7 +1114,7 @@ End Loses.
 
 Section Wins.
 
-Hypothesis i_in_oStar : i \in oStar.
+Variable i_in_oStar : i \in oStar.
 
 Definition sOi : slot := slot_of i oStar.
 
@@ -1615,13 +1612,13 @@ Section VCGforSearchPrice.
 
 (** VCG for Search price as an instance of General VCG (for unsorted bids). *)
 
-Hypothesis uniq_oStar : forall bs, singleton (max_bidSum_spec bs).
-
 Variable (bs : bids) (i : A).
 
 Let bs' := tsort bs.
 Let i' := idxa bs i.
 Let l' := tlabel bs.
+
+Hypothesis uniq_oStar : singleton (max_bidSum_spec bs').
 
 Lemma sorted_bids_sorted : sorted_bids bs'.
 Proof. by apply/sorted_bids_sorted/sort_sorted/total_geq_bid. Qed.
@@ -1684,7 +1681,7 @@ have mkES o :
   apply: (ExtremumSpec pT) => [o' _].
   move: (ge o' pT).
   by rewrite !(G.perm_bidSum instance_perm_biddings) sorted_relabelled_biddings.
-apply: (@uniq_oStar bs'); first by exact: mkES.
+apply: uniq_oStar; first by exact: mkES.
 exact: mkES.
 Qed.
 

@@ -175,13 +175,13 @@ Defined.
 
 Lemma cancel_idxa : cancel idxa (tnth tlabel).
 Proof.
-rewrite /idxa /ssr_have => j.
+rewrite /idxa /sval => j.
 by case: sorted_diff_agent_spec_ex => j' <-.
 Qed.
 
 Lemma cancel_inv_idxa : cancel (tnth tlabel) idxa.
 Proof.
-rewrite /idxa /ssr_have => j'.
+rewrite /idxa /sval => j'.
 case: sorted_diff_agent_spec_ex => j''.
 apply: labelling_inj.
 exact: tlabelP.
@@ -221,7 +221,7 @@ Qed.
 Lemma idxa_inj : injective idxa.  
 Proof.
 move=> i1 i2.
-rewrite /idxa /ssr_have /=.  
+rewrite /idxa /sval /=.  
 case: sorted_diff_agent_spec_ex => x1 <-.
 by case: sorted_diff_agent_spec_ex => x2 <- ->.
 Qed.
@@ -265,7 +265,7 @@ Qed.
 Lemma idxaK (ss : sorted r s) i : idxa i = i.
 Proof.
 pose ip := (@sorted_diff_agent_spec_ex i). 
-rewrite -(projT2 ip) /idxa /ssr_have.
+rewrite -(projT2 ip) /idxa /sval.
 case: sorted_diff_agent_spec_ex => j <-.
 by rewrite sorted_tlabel // ?tnth_ord_tuple.
 Qed.

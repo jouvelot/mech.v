@@ -53,8 +53,6 @@ Notation is_labelling bs l := (@is_labelling _ _ geq_bid bs l).
 Notation labellingP bs := (@labellingP _ _ geq_bid bs tr rr totr ar). 
 Notation exists_labellingW bs := (@exists_labellingW _ _ geq_bid bs tr rr totr ar).
 
-Variable uniq_oStar : forall bs, singleton (max_bidSum_spec bs).
-
 (** No positive transfer. *)
 
 Section No_positive_transfer.
@@ -79,6 +77,8 @@ Definition value := true_value a * 'ctr_(slot_won bs a).
 Notation bs' := (tsort bs). 
 Notation i := (idxa bs a).
 
+Variable uniq_oStar : singleton (max_bidSum_spec bs').
+
 Variable (awins : i < S.k').
 
 Variable (value_is_bid : bid_in bs' i (slot_won bs a) = value).
@@ -88,7 +88,7 @@ Proof.
 rewrite /bidding ffunE /t_bidding -/(VCG_oStar bs').
 have sortedbs': sorted_bids bs' by exact: sorted_bids_sorted.
 move: (oStar_extremum bs'); rewrite eq_oStar_iota // => ox.
-move: (@uniq_oStar bs' (VCG_oStar bs') oStar) => /(_  (VCG_oStar_extremum bs') ox) ->. 
+move: (@uniq_oStar (VCG_oStar bs') oStar) => /(_  (VCG_oStar_extremum bs') ox) ->. 
 rewrite ifT; last by rewrite (mem_oStar sortedbs') // ltnW. 
 rewrite -value_is_bid.
 by rewrite (@slot_in_oStar bs') // ?wonE // (mem_oStar sortedbs') // ltnW.
@@ -99,8 +99,8 @@ Definition utility := value - price bs a.
 (* 0 <= utility *)
 Theorem VCG_for_Search_rational : price bs a  <= value.
 Proof.
-rewrite (eq_instance_VCG_price uniq_oStar). 
-move: (eq_instance_vcg_price uniq_oStar bs a).
+rewrite (@eq_instance_VCG_price _ _ uniq_oStar). 
+move: (@eq_instance_vcg_price bs a uniq_oStar).
 rewrite /instance_vcg_price => <-.
 move: (@G.rational _ o0 i (biddings bs') (tnth (biddings bs') i) erefl).
 by rewrite -bidding_value ?tnth_mktuple // /instance_vcg_price' // sorted_relabelled_biddings.
@@ -126,6 +126,8 @@ apply=> //; last by rewrite inE size_tuple ltn_ord.
 Qed.
 
 Variable (bs bs' : bids) (a : A) (diff : differ_on bs bs' a).
+
+Variable uniq_oStar : singleton (max_bidSum_spec (tsort bs)).
 
 Local Definition i := idxa bs a.
 
@@ -516,12 +518,14 @@ Definition p : prefs.type m :=
                                   if awins r then v a * 'ctr_(what r) - price r else 0)
             v.
 
+Hypothesis uniq_oStar : forall bs, singleton (max_bidSum_spec bs).
+
 Theorem truthful_VCG_for_Search : truthful p.
 Proof.  
 move=> bs bs' a d tv /=. 
 rewrite !tnth_map !tnth_ord_tuple /=. 
 case: ifP => iw' //.
-case: ifP => iw; first by exact: truthful_i_wins.
+case: ifP => iw; first by rewrite truthful_i_wins.
 by rewrite leqn0 subn_eq0 (@truthful_i_loses bs).
 Qed.
 
@@ -567,12 +571,15 @@ Proof. by []. Qed.
 
 Variable (bs1 : n.-tuple A1) (bs : n.-tuple A).
 
+Hypothesis uniq_oStar : singleton (max_bidSum_spec (tsort bs)).
+Hypothesis uniq_oStar_unsorted : singleton (max_bidSum_spec bs).
+
 Variable (Ri1 : Ri Ra bs1 bs).
 
 Lemma eq_GoStar : G.oStar o'01 bs1 = OStar.oStar bs.
 Proof.
 move: Ri1; rewrite /Ri /Ra /action_on => R'i1.
-rewrite -(uniq_oStar (VCG_oStar_extremum bs) (oStar_extremum bs)) /VCG_oStar.
+rewrite -(uniq_oStar_unsorted (VCG_oStar_extremum bs) (oStar_extremum bs)) /VCG_oStar.
 congr G.oStar.
 apply: eq_from_tnth => s. 
 rewrite tnth_map.
@@ -669,7 +676,7 @@ move=> j /=.
 rewrite !tnth_map /= /is_winner !tnth_ord_tuple.   
 split=> [|ltjk']; first exact: idxa_wins_as_slot.
 split; first exact: slot_won_as_slot_of.
-rewrite eq_instance_VCG_price 1?(@ltn_trans k') //; last by exact: uniq_oStar.
+rewrite eq_instance_VCG_price 1?(@ltn_trans k') //. 
 by rewrite /instance_vcg_price /VCG.price eq_welfares_i eq_welfares.
 Qed.
 
@@ -688,19 +695,19 @@ Qed.
 
 End Relational.
 
-Theorem truthful_VCG_for_Search_rel : truthful p.
+
+
+Theorem truthful_VCG_for_Search_rel (uniq_oStar : forall bs, singleton (max_bidSum_spec bs)) : 
+  truthful p.
 Proof.  
-apply: (@MP n A1 A m1 m Ra fR p1 p fRP fRvP Ro MR RelFP).
+have MR' : ∀ (bs1 : n.-tuple A1) (bs : n.-tuple A), Ri Ra bs1 bs → Ro (m1 bs1) (m bs). 
+  move=> bs1 bs ri.
+  exact: MR.
+apply: (@MP n A1 A m1 m Ra fR p1 p fRP fRvP Ro MR' RelFP).
 exact: G.truthful_General_VCG.
 Qed.
 
 Section Sumn.
-
-Lemma set_nthE T (s : seq T) x0 n x :
-  set_nth x0 s n x = if n < size s
-    then take n s ++ x :: drop n.+1 s
-    else s ++ ncons (n - size s) x0 [:: x].
-Admitted.
 
 Lemma sumn_nconsE (s : seq nat) x0 n : sumn (ncons n x0 s) = n * x0 + sumn s.
 Proof.

@@ -82,7 +82,7 @@ Local Open Scope ring_scope.
 Import GRing.Theory Num.Theory.
 
 Lemma ler_swap [R : numDomainType] (x y z t : R) (h : x - y <= z - t) : t - y <= z - x.
-Proof. by rewrite ler_subr_addl addrA [X in X - y <= _]addrC -addrA -ler_subr_addl in h. Qed.
+Proof. by rewrite lerBrDl addrA [X in X - y <= _]addrC -addrA -lerBrDl in h. Qed.
 
 Close Scope ring_scope.
 

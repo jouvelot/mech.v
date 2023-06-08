@@ -285,6 +285,16 @@ Qed.
 
 End SlotOf.
 
+Lemma after_last_slot a bs : k' <= idxa bs a -> 'ctr_(slot_won bs a) = ctr0.
+Proof.
+move=> lek'i.
+apply: val_inj => /=. 
+rewrite (tnth_nth ord0) /=.
+move: lek'i last_ctr_eq0 => /minn_idPr ->.
+rewrite (@tnth_nth _ _ ord0) => /eqP. 
+by rewrite -(inj_eq val_inj) /= => /eqP.
+Qed.
+
 (** VCG-for-Search-specific bidding function for General VCG. *)
 
 Section Biddings.

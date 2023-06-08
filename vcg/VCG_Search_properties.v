@@ -112,8 +112,6 @@ End Rationality.
 
 Section TruthfulnessCases.
 
-Let labelling := @labelling n.
-
 Lemma antimonotone_sorted (bs : bids) : 
   antimonotone (λ s : slot, tnth (tsort bs) (slot_as_agent s)).
 Proof.
@@ -125,12 +123,13 @@ apply=> //; last by rewrite inE size_tuple ltn_ord.
 - by rewrite inE size_tuple ltn_ord.
 Qed.
 
-Variable (bs bs' : bids) (a : A) (diff : differ_on bs bs' a).
+Variable (bs bs' : bids) (a : A).
 
 Variable uniq_oStar : singleton (max_bidSum_spec (tsort bs)).
 
-Local Definition i := idxa bs a.
+Variable (diff : differ_on bs bs' a).
 
+Local Definition i := idxa bs a.
 Local Definition i' := idxa bs' a.
 
 Variable (bid_true_value : action_on bs a = true_value a).
@@ -211,8 +210,11 @@ set sw := slot_won bs' a.
 have -> : val ('ctr_sw) = 'ctr_sw - 'ctr_last_slot by rewrite S.last_ctr_eq0 /= subn0.
 have mini' : minn i' k' = i' by rewrite /minn ifT.
 have ltsw : sw < k' by rewrite /sw /slot_won /= mini'.
-have -> //:   'ctr_sw - 'ctr_last_slot = \sum_(s < k | sw < s) ('ctr_(slot_pred s) - 'ctr_s). 
-  rewrite (eq_bigl (fun s : slot => sw < s <= (last_ord k'))) => [|s]; last by rewrite leq_ord andbT.
+have -> //:   'ctr_sw - 'ctr_last_slot = \sum_(s < k | sw < s) ('ctr_(slot_pred s) - 'ctr_s).  
+  under eq_bigl=> s.
+    have -> : (sw < s) = (sw < s <= (last_ord k')).
+      by rewrite leq_ord andbT.
+    over.
   by rewrite sum_diffs // => x y; exact: S.sorted_ctrs.
 rewrite big_distrr /= /price /externality (ltn_trans _ (ltnSn k')) //. 
 rewrite mini' leq_sum // => s lti's.
@@ -492,9 +494,21 @@ Qed.
 
 End iWins.
 
+Theorem truthful_VCG_for_Search_dir : utility bs' a <= utility bs a.
+Proof.  
+rewrite /utility. 
+have [] := boolP (is_winner bs' a) => [iw'|]. 
+- rewrite /is_winner in iw'.
+  have [] := boolP(is_winner bs a) => iw //; first by rewrite truthful_i_wins.
+  rewrite (@leq_trans 0) // leqn0 subn_eq0 truthful_i_loses //.
+  exact: negbTE.
+- rewrite /is_winner -leqNgt /value => lek'i'.
+  by rewrite after_last_slot // muln0.
+Qed.
+
 End TruthfulnessCases.
 
-(** Direct proof of truthfulness. *)
+(** Direct proof of truthfulness using mech.v. *)
 
 Section Truthfulness.
 
@@ -695,8 +709,6 @@ Qed.
 
 End Relational.
 
-
-
 Theorem truthful_VCG_for_Search_rel (uniq_oStar : forall bs, singleton (max_bidSum_spec bs)) : 
   truthful p.
 Proof.  
@@ -830,8 +842,12 @@ Qed.
 
 End Surplus.
 
+Check truthful_VCG_for_Search_dir.
+Print Assumptions truthful_VCG_for_Search_dir.
+
 Check truthful_VCG_for_Search_rel.
 Print Assumptions truthful_VCG_for_Search_rel.
+
 
 
 

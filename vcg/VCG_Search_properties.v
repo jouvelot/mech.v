@@ -125,7 +125,7 @@ Qed.
 
 Variable (bs bs' : bids) (a : A).
 
-Variable uniq_oStar : singleton (max_bidSum_spec (tsort bs)).
+Variable uniq_oStar : singleton (max_bidSum_spec (tsort bs)). 
 
 Variable (diff : differ_on bs bs' a).
 
@@ -518,7 +518,7 @@ Structure R := Result {awins : bool;
 
 Definition A := bid.
 
-Definition O : Type := n.-tuple R.
+Definition O : Type := n.-tuple R. 
 
 Definition m := 
   mech.new (fun bs => map_tuple (fun a => Result (is_winner bs a) (S.price bs a) (slot_won bs a))
@@ -532,11 +532,9 @@ Definition p : prefs.type m :=
                                   if awins r then v a * 'ctr_(what r) - price r else 0)
             v.
 
-Hypothesis uniq_oStar : forall bs, singleton (max_bidSum_spec bs).
-
-Theorem truthful_VCG_for_Search : truthful p.
-Proof.  
-move=> bs bs' a d tv /=. 
+Theorem truthful_VCG_for_Search (u : forall bs, singleton (max_bidSum_spec bs)) : truthful p. 
+Proof.   
+move=> bs bs' a d tv /=.  
 rewrite !tnth_map !tnth_ord_tuple /=. 
 case: ifP => iw' //.
 case: ifP => iw; first by rewrite truthful_i_wins.
@@ -544,6 +542,41 @@ by rewrite leqn0 subn_eq0 (@truthful_i_loses bs).
 Qed.
 
 End Truthfulness.
+
+Notation P := (fun bs => singleton (max_bidSum_spec (tsort bs))).
+
+Structure pR := pResult {
+                    pr : R;
+                    bs : n.-tuple A;
+                    pP : P bs}.
+
+Definition pO : Type := n.-tuple pR. 
+
+Definition pm :=
+  @pmech.new A _ P pO
+    (fun bs pP => map_tuple (fun a => let r := Result (is_winner bs a) (S.price bs a) (slot_won bs a) in
+                                @pResult r bs pP)
+                 (agent.agents n)).
+
+Definition pp : pprefs.type pm :=
+  @pprefs.new _ _ P pm v 
+    (fun a (o : pmech.O pm) => let r := pr (tnth o a) in
+                            if awins r then v a * 'ctr_(what r) - price r else 0)
+            v.
+
+Theorem ptruthful_VCG_for_Search : forall (bs bs' : n.-tuple bid)
+                                     (a : ordinal_eqType n)
+                                     (d : differ_on bs bs' a)
+                                     (tv : action_on bs a = prefs.v p a)
+                                     (p : P bs) (p' : P bs'),
+  pprefs.U pp a (pm bs' p') <= pprefs.U pp a (pm bs p).
+Proof.   
+move=> bs bs' a d tv p p' /=.  
+rewrite !tnth_map !tnth_ord_tuple /=. 
+case: ifP => iw' //.
+case: ifP => iw; first by rewrite truthful_i_wins.
+by rewrite leqn0 subn_eq0 (@truthful_i_loses bs).
+Qed.
 
 (** Relational proof of truthfulness, using General VCG. *)
 
@@ -585,8 +618,9 @@ Proof. by []. Qed.
 
 Variable (bs1 : n.-tuple A1) (bs : n.-tuple A).
 
-Hypothesis uniq_oStar : singleton (max_bidSum_spec (tsort bs)).
-Hypothesis uniq_oStar_unsorted : singleton (max_bidSum_spec bs).
+Variable uniq_oStar : singleton (max_bidSum_spec (tsort bs)).
+
+Variable uniq_oStar_unsorted : singleton (max_bidSum_spec bs).
 
 Variable (Ri1 : Ri Ra bs1 bs).
 
@@ -841,6 +875,9 @@ by apply: val_inj => /=; rewrite inordK.
 Qed.
 
 End Surplus.
+
+Check ptruthful_VCG_for_Search.
+Print Assumptions ptruthful_VCG_for_Search.
 
 Check truthful_VCG_for_Search_dir.
 Print Assumptions truthful_VCG_for_Search_dir.

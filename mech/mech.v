@@ -62,6 +62,26 @@ End Agent.
 
 End agent.
 
+(** Partial mechanism, for a given domain [A] of actions, also called "messages", of [n] 
+    agents. The provided actions [t] are constrained by [P]. *) 
+
+Module pmech.
+
+Section Pmech.
+
+Record type {A : Type} (n : nat) (P : n.-tuple A -> Prop) := 
+    new {
+        O : Type;            (* domain of outcomes *)
+        M : forall (t : n.-tuple A) (p : P t), O;  
+        (* social outcome for the agents' parametrized actions *)
+      }.
+ 
+End Pmech.
+
+End pmech.
+
+Coercion pmech.M : pmech.type >-> Funclass.
+
 (** Mechanism, for a given domain [A] of actions, also called "messages", of [n] agents *) 
 
 Module mech.
@@ -76,9 +96,45 @@ Record type {A : Type} (n : nat) :=
  
 End Mech.
 
+(* A mechanism is a special case of a partial mechanism. *)
+
+Variable (A : Type) (n : nat) (m : @type A n).
+
+Notation P := (fun t : n.-tuple A => true).
+
+Definition pm := pmech.new (fun t (p : P t) => M m t).
+
+Lemma is_pmech t : M m t = pm t is_true_true.
+Proof. by []. Qed.
+
 End mech.
 
 Coercion mech.M : mech.type >-> Funclass.
+
+(** Maps of agents' preferences, also called "profiles", for a given mechanism [m]. *)
+
+Module pprefs.
+
+Section Pprefs.
+
+Variable (A : Type) (n : nat) (P : n.-tuple A -> Prop).
+
+Definition pmech : Type := @pmech.type A n P.
+
+Notation agent := (agent.type n).
+Notation strategy := (agent -> A).
+
+Record type (pm : pmech) :=
+  new {
+      v : strategy;                 (* "true value" strategy, mapping each agent private true 
+                                       value, or "type", to an action/message *)
+      U : agent -> pmech.O pm -> nat;   (* utility *)
+      s : strategy                  (* strategy used in [m] *)
+    }. 
+
+End Pprefs.
+
+End pprefs.
 
 (** Maps of agents' preferences, also called "profiles", for a given mechanism [m]. *)
 
@@ -95,10 +151,10 @@ Notation strategy := (agent -> A).
 
 Record type (m : mech) :=
   new {
-      v : strategy;               (* "true value" strategy, mapping each agent private true 
-                                     value, or "type", to an action/message *)
+      v : strategy;                 (* "true value" strategy, mapping each agent private true 
+                                       value, or "type", to an action/message *)
       U : agent -> mech.O m -> nat;   (* utility *)
-      s : strategy                (* strategy used in [m] *)
+      s : strategy                  (* strategy used in [m] *)
     }. 
 
 End Prefs.

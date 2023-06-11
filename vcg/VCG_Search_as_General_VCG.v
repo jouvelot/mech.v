@@ -678,8 +678,39 @@ move: (OStar.le_welfare_o_oStar bs o).
 by rewrite /OStar.max_welfare /OStar.welfare -bidSum_slot valid_bidSum.
 Qed.
 
+(*
+Proof by contradiction that uniq bs -> singleton max_bidSum_spec.
+
+Assume bs is uniq and there exist o*1 and o*2, two distinct outcomes that are extremums 
+for bidSum.
+
+An extremum is always bid-sorted (otherwise, just swapping two unsorted bidders would 
+increase bidSum, since ctrs are sorted.
+
+Build o1' as follows.
+
+i := 0
+O := o*1
+
+loop
+
+  if bs[O[i]] == bs[o*[2]] then 
+    continue
+
+  if bs[O[i]] < bs[o*2[i]] then
+    if o*2[i] is in O then 
+      forall i <= j < k - 1 while O[j] != o*2[i], then O[j + 1] = O[j].
+      
+    O[i] := o*2[i]
+
+If O == o*1, then o*1 == o*2, a contradiction
+
+Otherwise, bidSum o*1 < bidSum O, a contradiction.
+
+*)
 Conjecture uniq_max_bidSum : uniq bs -> singleton max_bidSum_spec.
-Hypothesis uniq_oStar : singleton max_bidSum_spec.
+
+Variable uniq_oStar : singleton max_bidSum_spec.
 
 Variable sorted_bs : sorted_bids bs.
 
@@ -786,7 +817,7 @@ Notation "'bid_ j" := (tnth bs j) (at level 10).
 Lemma sorted_bs : sorted_bids bs.
 Proof. exact: sorted_bs0. Qed.
 
-Hypothesis uniq_oStar : singleton (max_bidSum_spec bs).
+Variable uniq_oStar : singleton (max_bidSum_spec bs).
 
 Definition labelling_id : labelling := labelling.labelling_id n'.
 
@@ -1628,7 +1659,7 @@ Let bs' := tsort bs.
 Let i' := idxa bs i.
 Let l' := tlabel bs.
 
-Hypothesis uniq_oStar : singleton (max_bidSum_spec bs').
+Variable uniq_oStar : singleton (max_bidSum_spec bs').
 
 Lemma sorted_bids_sorted : sorted_bids bs'.
 Proof. by apply/sorted_bids_sorted/sort_sorted/total_geq_bid. Qed.

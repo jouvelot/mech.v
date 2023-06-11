@@ -213,9 +213,7 @@ Qed.
 
 Definition max_bidSum_spec := (@extremum_spec [eqType of nat] geq O predT (bidSum bs)).
 
-Hypothesis uniq_oStar : singleton max_bidSum_spec.
-
-Lemma eq_oStar : oStar o0 bs = oStar o0 bs'.
+Lemma eq_oStar (uniq_oStar : singleton max_bidSum_spec) : oStar o0 bs = oStar o0 bs'.
 Proof.
 apply: uniq_oStar; first by exact: arg_maxnP.
 rewrite /max_bidSum_spec.
@@ -226,9 +224,10 @@ have max_oStar (o : O) : predT o → geq (bidSum bs (oStar o0 bs')) (bidSum bs o
 exact: ExtremumSpec.
 Qed.
 
-Lemma relabelled_price : @price O o0 i' bs' = @price O o0 i bs.
+Lemma relabelled_price (uniq_oStar : singleton max_bidSum_spec) : 
+  @price O o0 i' bs' = @price O o0 i bs.
 Proof.
-congr (_ - _); last by rewrite /welfare_with_i eq_oStar perm_bidSum_i.
+congr (_ - _); last by rewrite /welfare_with_i eq_oStar // perm_bidSum_i.
 rewrite /welfare_without_i. 
 apply/eqP; rewrite eqn_leq. 
 apply/andP. 

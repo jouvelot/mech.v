@@ -508,7 +508,8 @@ Qed.
 
 End TruthfulnessCases.
 
-(** Direct proof of truthfulness using mech.v. *)
+(** Direct proof of truthfulness using mech.v, assuming that all bids admit one optimal
+    solution to max of bidsum. *)
 
 Section Truthfulness.
 
@@ -543,36 +544,38 @@ Qed.
 
 End Truthfulness.
 
+(* Partial truthfulness on bids that, when sorted, admit only one optimal solution to 
+   max of bidSum (P), conjectured to be bids that are unique. *)
+
 Notation P := (fun bs => singleton (max_bidSum_spec (tsort bs))).
 
 Structure pR := pResult {
                     pr : R;
                     bs : n.-tuple A;
-                    pP : P bs}.
+                    pP : P bs
+                  }.
 
 Definition pO : Type := n.-tuple pR. 
 
-Definition pm :=
-  @pmech.new A _ P pO
-    (fun bs pP => map_tuple (fun a => let r := Result (is_winner bs a) (S.price bs a) (slot_won bs a) in
-                                @pResult r bs pP)
+Definition pm : pmech.type P :=
+  pmech.new (fun bs pP =>
+               map_tuple 
+                 (fun a => pResult (Result (is_winner bs a) (S.price bs a) (slot_won bs a)) pP)
                  (agent.agents n)).
 
 Definition pp : pprefs.type pm :=
-  @pprefs.new _ _ P pm v 
-    (fun a (o : pmech.O pm) => let r := pr (tnth o a) in
-                            if awins r then v a * 'ctr_(what r) - price r else 0)
-            v.
+  @pprefs.new _ _ _ pm v 
+    (fun a o => let r := pr (tnth o a) in if awins r then v a * 'ctr_(what r) - price r else 0)
+    v.
 
-Theorem ptruthful_VCG_for_Search : forall (bs bs' : n.-tuple bid)
-                                     (a : ordinal_eqType n)
-                                     (d : differ_on bs bs' a)
-                                     (tv : action_on bs a = prefs.v p a)
-                                     (p : P bs) (p' : P bs'),
-  pprefs.U pp a (pm bs' p') <= pprefs.U pp a (pm bs p).
+Theorem ptruthful_VCG_for_Search (bs bs' : n.-tuple bid)
+  (a : 'I_n)
+  (d : differ_on bs bs' a)
+  (tv : action_on bs a = prefs.v p a) :
+  forall p p', pprefs.U pp a (pm bs' p') <= pprefs.U pp a (pm bs p).
 Proof.   
-move=> bs bs' a d tv p p' /=.  
-rewrite !tnth_map !tnth_ord_tuple /=. 
+move=> p p'.
+rewrite /= !tnth_map !tnth_ord_tuple /=. 
 case: ifP => iw' //.
 case: ifP => iw; first by rewrite truthful_i_wins.
 by rewrite leqn0 subn_eq0 (@truthful_i_loses bs).

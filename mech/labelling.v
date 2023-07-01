@@ -204,15 +204,22 @@ Qed.
 
 Definition t0 := locked (tnth s ord0).
 
+Lemma sorted_lex_tlabel: sorted ri_lex tlabel.
+Proof. by move: tlabelP => /andP [_ /eqP ->]; rewrite sort_sorted //; exact: ri_lex_tot. Qed.
+
+Lemma tnth_mon_idxa j1 j2 : idxa j1 <= idxa j2 -> r (tnth s j1) (tnth s j2).
+Proof.
+move=> j1j2.
+move: (@sorted_leq_nth _ _ ri_lex_tr ri_lex_rr ord0 tlabel sorted_lex_tlabel (idxa j1) (idxa j2)).
+rewrite !inE size_tuple !ltn_ord => /(_ erefl erefl j1j2). 
+by rewrite -!tnth_nth !cancel_idxa /ri_lex /= => /andP [].
+Qed.
+
 Lemma idxa_eq_mon (i j : 'I_n.+1) :
   tnth s i = tnth s j -> idxa i <= idxa j -> i <= j.
 Proof.
-move=> sisj ixij. 
-have sl0: sorted ri_lex tlabel.
-  move: tlabelP => /andP [_ /eqP ->].
-  rewrite sort_sorted //.
-  exact: ri_lex_tot.
-move: (@sorted_leq_nth _ _ ri_lex_tr ri_lex_rr ord0 tlabel sl0 (idxa i) (idxa j)).
+move=> sisj ixij.  
+move: (@sorted_leq_nth _ _ ri_lex_tr ri_lex_rr ord0 tlabel sorted_lex_tlabel (idxa i) (idxa j)).
 rewrite !inE size_tuple !ltn_ord => /(_ erefl erefl ixij). 
 rewrite -!tnth_nth !cancel_idxa.
 by rewrite /ri_lex /= sisj rr implyTb.

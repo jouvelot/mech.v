@@ -198,6 +198,10 @@ rewrite -(inj_eq val_inj) /= -!subn1 -(eqn_add2r 1) -!addnABC // ?subnn ?addn0 =
 exact: ord_inj.
 Qed.
 
+Lemma ord_pred_enum n j (ltj : j < n) :
+  ord_pred (nth ord0 (enum 'I_n.+1) (j.+1)) = nth ord0 (enum 'I_n.+1) j. 
+Proof. by apply: val_inj => /=; rewrite !nth_enum_ord //= (ltn_trans ltj). Qed.
+
 Lemma ord_predK i m p (bound : i + m.+1 < p.+1) : 
   ord_pred (@inord p (i + m.+1)) = inord (i + m).
 Proof.

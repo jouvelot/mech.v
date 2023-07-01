@@ -313,17 +313,13 @@ Proof. by rewrite cancel_idxa. Qed.
 Let under_index (j' : A) := if j' == i0 then i else if 0 < j' <= i then agent_pred j' else j'.
 Let l' := [tuple tnth l (under_index j) | j < n].
 
-Definition under_bids := [tuple tnth bs' (tnth l' j) | j < n].
-
-Lemma ord_pred_enum j (ltj : j < n') :
-  ord_pred (nth ord0 (enum 'I_n) (j.+1)) = nth ord0 (enum 'I_n) j. 
-Proof. by apply: val_inj => /=; rewrite !nth_enum_ord //= (ltn_trans ltj). Qed.
-
-Lemma mon_tnth (b : bids) j1 j2 : idxa b j1 <= idxa b j2 -> tnth b j2 <= tnth b j1.
+Lemma l'_lt_labelling : l' = lt_labelling a bs bs' tr rr totr ar l.
 Proof.
-rewrite -(labelling_spec_idxa b j1) -(labelling_spec_idxa b j2).
-exact: tsorted_bids_sorted.
+apply/eq_from_tnth => j.
+by rewrite !tnth_map !tnth_ord_tuple /lt_index -/i' iwins'.
 Qed.
+
+Definition under_bids := [tuple tnth bs' (tnth l' j) | j < n].
 
 Lemma stable_sorted  (x1 x2 : 'I_n) :
   let: a1 := tnth l x1 in
@@ -331,10 +327,10 @@ Lemma stable_sorted  (x1 x2 : 'I_n) :
   x1 <= x2 -> (tnth bs a2 <= tnth bs a1)  && ((tnth bs a1 <= tnth bs a2) ==> (a1 <= a2)).
 Proof.
 move=> x1x2.
-have l21' : (tnth bs (tnth l x2) <= tnth bs (tnth l x1)).
-  by rewrite mon_tnth // !cancel_inv_idxa ?(ltnW i1i2). 
-rewrite !(@mon_tnth _ (tnth l x1) (tnth l x2)) ?cancel_inv_idxa // 
-        ?nth_enum_ord ?(ltnW i1i2) // ?andTb.
+have mon b j1 j2 : idxa b j1 <= idxa b j2 -> tnth b j2 <= tnth b j1 by move/tnth_mon_idxa. 
+have l21' : (tnth bs (tnth l x2) <= tnth bs (tnth l x1)). 
+  by rewrite mon // !cancel_inv_idxa ?(ltnW i1i2). 
+rewrite !(mon _ (tnth l x1) (tnth l x2)) ?cancel_inv_idxa // ?nth_enum_ord ?(ltnW i1i2) // ?andTb.
 apply/implyP => l12.
 have/(idxa_eq_mon bs) -> //: tnth bs (tnth l x1) = tnth bs(tnth l x2).
   by apply/val_inj/eqP => /=; rewrite eqn_leq l21' l12. 

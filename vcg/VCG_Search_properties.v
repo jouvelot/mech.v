@@ -555,8 +555,6 @@ Structure pR := pResult {
                     pP : P bs
                   }.
 
-Definition pO : Type := n.-tuple pR. 
-
 Definition pm : pmech.type P :=
   pmech.new (fun bs pP =>
                map_tuple 
@@ -564,17 +562,18 @@ Definition pm : pmech.type P :=
                  (agent.agents n)).
 
 Definition pp : pprefs.type pm :=
-  @pprefs.new _ _ _ pm v 
+  @pprefs.new _ _ _ pm
+    v 
     (fun a o => let r := pr (tnth o a) in if awins r then v a * 'ctr_(what r) - price r else 0)
     v.
 
-Theorem ptruthful_VCG_for_Search (bs bs' : n.-tuple bid)
+Theorem ptruthful_VCG_for_Search (bs bs' : n.-tuple bid) 
   (a : 'I_n)
   (d : differ_on bs bs' a)
-  (tv : action_on bs a = prefs.v p a) :
-  forall p p', pprefs.U pp a (pm bs' p') <= pprefs.U pp a (pm bs p).
+  (tv : action_on bs a = pprefs.v pp a) :
+  forall (pP : P bs) (pP' : P bs'), pprefs.U pp a (pm bs' pP') <= pprefs.U pp a (pm bs pP).
 Proof.   
-move=> p p'.
+move=> pP pP'.
 rewrite /= !tnth_map !tnth_ord_tuple /=. 
 case: ifP => iw' //.
 case: ifP => iw; first by rewrite truthful_i_wins.

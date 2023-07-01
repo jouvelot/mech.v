@@ -63,7 +63,7 @@ Section Count.
 Variable (T : eqType).
 
 Lemma gt_count_rem(s s' : seq T) x : 
-  count [pred x' | x' \notin s'] s <= count [pred x' | x' \notin s'] (rem x s) + 1. 
+  count [predC s'] s <= count [predC s'] (rem x s) + 1. 
 Proof.
 have [xis|nxis] := boolP (x \in s); last by rewrite rem_id // addn1. 
 rewrite count_rem xis andTb /=.
@@ -72,7 +72,7 @@ by rewrite -addnBn leq_addr.
 Qed.
 
 Lemma count_not_in (s s' : seq T) x :
-  x \notin s -> count [pred x' | x' \notin x :: s'] s = count [pred x' | x' \notin s'] s. 
+  x \notin s -> count [predC x :: s'] s = count [predC s'] s. 
 Proof.
 move=> nxis.
 apply: eq_in_count => i iis /=.
@@ -81,8 +81,7 @@ by rewrite (@contraNN _ _ _ nxis) // => /eqP ->.
 Qed.
 
 Lemma count_uniq_cons (s s' : seq T) x (u : uniq s) :
-  x \in s -> x \notin s' ->
-  count [pred x' | x' \notin s'] s = count [pred x' | x' \notin x :: s'] s + 1.
+  x \in s -> x \notin s' -> count [predC s'] s = count [predC x :: s'] s + 1.
 Proof. 
 move=> xis nxis'.
 elim: s u xis => [//=|a s IH /= /andP [nais u]].  
@@ -94,7 +93,7 @@ rewrite !inE => /orP [/eqP eqxa|xias].
 Qed.
 
 Lemma count_remR (s s' : seq T) x (u : uniq s) (xis : x \in s) :
-  count [pred x' | x' \notin x :: s'] s = count [pred x' | x' \notin s'] (rem x s).
+  count [predC x :: s'] s = count [predC s'] (rem x s).
 Proof. 
 rewrite count_rem /= xis andTb.
 have [nxis' /=|] := boolP (x \notin s');
@@ -106,7 +105,7 @@ by apply: contraNN => /eqP ->.
 Qed.  
 
 Lemma count_remL (s s' : seq T) x : 
-  x \notin s -> count [pred x' | x' \notin rem x s'] s = count [pred x' | x' \notin s'] s.
+  x \notin s -> count [predC rem x s'] s = count [predC s'] s.
 Proof.
 move=> nxis.
 apply: eq_in_count => i iis /=. 
@@ -120,14 +119,14 @@ by rewrite iis in nxis.
 Qed.
 
 Lemma count_cons : forall (s s' : seq T) x' (u : uniq s),
-    size s' < size s -> (count [pred x | x \notin s'] s).-1 <= count [pred x | x \notin x' :: s'] s.
+    size s' < size s -> (count [predC s'] s).-1 <= count [predC x' :: s'] s.
 Proof.
 elim=> [s x' //= us sz|x s IH s' x' /= /andP [xns u] sz].
 have [nexx'|eqxx'] := boolP (x != x'). 
 - have -> //=: (x \notin x' :: s') = (x \notin s') by rewrite !inE -(@negbK (x == x')) nexx'.
   have [xns' /=| /= nxns'] := boolP (x \in s'). 
   - rewrite !add0n.   
-    pose f (s' : seq T) := count [pred x0 | x0 \notin s'] s.
+    pose f (s' : seq T) := count [predC s'] s.
     have -> // : (f (rem x s')).-1 <= f (x' :: (rem x s')) -> (f s').-1 <= f (x' :: s'). 
       have -> : x' :: rem x s' = rem x (x' :: s'). 
         by rewrite rem_cons -(@negbK (x' == x)) eq_sym nexx'.  
@@ -144,7 +143,7 @@ have [nexx'|eqxx'] := boolP (x != x').
 Qed.
 
 Lemma count_not_in_uniq (s s' : seq T) : 
-    uniq s -> size s' < size s -> size s - size s' <= count [pred x | x \notin s'] s.
+    uniq s -> size s' < size s -> size s - size s' <= count [predC s'] s.
 Proof.
 elim: s' s => [s /=|x' s' IH' /= s us sz]; first by rewrite subn0 count_predT.  
 rewrite subnS (@leq_trans (count [pred x | x \notin s'] s).-1) //;
@@ -153,7 +152,7 @@ by rewrite count_cons // (leq_ltn_trans _ sz).
 Qed.
 
 Lemma find_not_in_uniq (s s' : seq T) :
-  uniq s -> size s' < size s -> find [pred x | x \notin s'] s < size s.
+  uniq s -> size s' < size s -> find [predC s'] s < size s. 
 Proof.
 move=> u sz.
 rewrite -has_find /= has_count.
@@ -226,7 +225,7 @@ Fixpoint wins_alloc (a : nat) b : G * seq G :=
             (g, g :: l)
   end.
 
-Definition best_item (s : seq G) (l : seq G) : G := nth g0 s (find [pred g | g \notin l] s).
+Definition best_item (s : seq G) (l : seq G) : G := nth g0 s (find [predC l] s).
 
 Notation b := (best_item \o ps).
 

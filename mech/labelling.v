@@ -165,6 +165,13 @@ Proof.
 by have [i' H] := labelling_onto tlabelP i; exists i'; apply/eqP.
 Qed.
 
+Lemma perm_labelling (l : labelling) : 
+  is_labelling l -> perm_eq [seq tnth l j | j <- enum 'I_n.+1] (enum 'I_n.+1).
+Proof. 
+move=> /andP [_ /eqP ->].
+by rewrite map_tnth_enum perm_sort perm_refl.
+Qed.
+
 (** [idxa bs i] returns the position of an agent relative to its bid.
  Note we could make positions and agents different, the current type
  seems a bit weird. *)

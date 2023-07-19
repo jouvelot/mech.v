@@ -63,7 +63,7 @@ Notation tlabelP bs := (@tlabelP n' _ geq_bid bs tr rr totr ar).
 Notation idxa_eq_mon bs := (@idxa_eq_mon _ _ geq_bid bs tr rr totr ar). 
 Notation idxa_inj bs := (@idxa_inj _ _ geq_bid bs tr rr totr ar).
 
-Notation ri bs := [rel i1 i2 | tnth bs i2 <= tnth bs i1].
+Notation ri bs := [rel i1 i2 | tnth bs i2 <= tnth bs i1]. 
 Notation ri_lex bs := [rel i1 i2 | ri bs i1 i2 && (ri bs i2 i1 ==> (i1 <= i2))].
 
 Notation tsort := (tsort geq_bid).
@@ -83,33 +83,19 @@ Definition price : nat := tnth bs (agent_succ i').
 
 End Algorithm.
 
-Lemma sorted_lex_lex (b : bids) : sorted (ri_lex b) (sort (ri_lex b) (enum 'I_n)).
+Lemma sorted_lex_lex (bs : bids) : sorted (ri_lex bs) (sort (ri_lex bs) (enum 'I_n)). 
 Proof.
-apply: sort_sorted.
-move: (@ri_lex_tot _ _ geq_bid b) => /=.
-apply.
-exact: leqnn.
-by move=> x y; rewrite leq_total.
+rewrite sort_sorted // => x y. 
+rewrite (@ri_lex_tot _ _ geq_bid bs) //; first by exact: rr.
+exact: totr.
 Qed.
 
-Lemma perm_labelling b (lab : labelling n') : 
-  is_labelling b lab -> perm_eq [seq tnth lab j | j <- enum 'I_n] (enum 'I_n).
-Proof. 
-move=> /andP [_ /eqP ->].
-by rewrite map_tnth_enum perm_sort perm_refl.
-Qed.
+Lemma tsorted_bids_sorted (bs : bids) : sorted_bids (tsort bs).
+Proof. by rewrite sorted_bids_sorted sort_sorted. Qed.
 
 Section Prices.
 
-Definition labelling_of (bs : bids) : labelling _ := 
-  xchoose (@exists_labelling _ _ geq_bid bs tr rr totr ar).
-
-Lemma tsorted_bids_sorted (bs : bids) : sorted_bids (tsort bs).
-Proof.
-apply/sorted_bids_sorted.
-apply: sort_sorted.
-exact: total_geq_bid.
-Qed.
+Definition labelling_of (bs : bids) : labelling _ := tlabel bs.
 
 Section BothWin.
 
@@ -521,8 +507,7 @@ Qed.
 Lemma perm_under_l : perm_eq [seq tnth l (ux j) | j <- enum 'I_n] (enum 'I_n). 
 Proof.
 rewrite (@perm_trans _ [seq tnth l j | j <- enum 'I_n]) //;
-        last by rewrite (@perm_labelling bs) //; exact: (tlabelP bs).
-pose f k := ux k.
+        last by rewrite (@perm_labelling _ _ geq_bid bs) //; exact: (tlabelP bs).
 under (@eq_map _ _ _ (tnth l)) => k. 
   by rewrite /under_index -?enumT // -!(fun_if (tnth l)).
 rewrite (perm_map_inj (idxa_inj bs)) // -!map_comp /comp.

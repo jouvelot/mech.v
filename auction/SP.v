@@ -810,14 +810,14 @@ case: ifP => [/eqP iw|neiw].
   rewrite eqix'0 (@eq_winning_price wolf b' i) // => [|j neji]. 
   - by rewrite tsorted_bids_sorted // iw.
   - by rewrite /action_on !tnth_map !tnth_ord_tuple ifF // (negbTE neji).
-- rewrite eqix'0 -tv leqn0 subn_eq0 (@eq_losing_price wolf b' i) ?negbT //; last first. 
-  - by rewrite tuple_of_tnth in neiw.
-  - rewrite /differ_on /action_on => j.
-    by rewrite !tnth_map !tnth_ord_tuple -{2}(negbK (j == i)) => ->.
+- rewrite eqix'0 -tv leqn0 subn_eq0 (@eq_losing_price wolf b' i) ?negbT //; 
+                    last by rewrite tuple_of_tnth in neiw.
   - have -> : tnth (tsort wolf) i0 = tnth (tsort bs) i0. 
       rewrite sort_wolf (tnth_nth bid0) /=. 
       by rewrite -[in RHS](cancel_inv_idxa bs i0) (labelling_spec_idxa bs) -tv.
     by rewrite -(labelling_spec_idxa bs) // tsorted_bids_sorted.
+  - rewrite /differ_on /action_on => j.
+    by rewrite !tnth_map !tnth_ord_tuple -{2}(negbK (j == i)) => ->.
 Qed.
 
 End Wolf.

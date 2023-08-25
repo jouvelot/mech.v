@@ -83,11 +83,27 @@ rewrite leq_eqVlt => /orP [/eqP xy|xy].
     by rewrite orbT orTb.
 Qed.      
 
-Let l0 := [tuple of sort ri_lex (ord_tuple n.+1)].
+Let l_lex := [tuple of sort ri_lex (ord_tuple n.+1)].
 
 Let s' := [tuple of sort r s]. 
 
-Definition is_labelling l := (s' == [tuple of [seq tnth s i | i <- l]]) && (l == l0).
+Theorem sorted_lex_labelling : s' = [tuple of [seq tnth s i | i <- l_lex]].
+Proof.
+apply/val_inj => /=.
+apply: (@sorted_eq _ r). 
+- exact: tr.
+- exact: ar.
+- exact: sort_sorted.
+- rewrite sorted_map. 
+  have srx : subrel ri_lex (relpre [eta tnth s] r) by move=> x y /andP [].
+  move: (@sub_sorted _ ri_lex ri srx) => /(_ (sort ri_lex (enum 'I_n.+1))) -> //. 
+  rewrite sort_sorted //. 
+  exact: ri_lex_tot. 
+rewrite (@perm_trans _ s) ?perm_sort ?perm_refl //.
+by rewrite -map_tnth_enum perm_map // perm_sym perm_sort perm_refl.
+Qed.
+
+Definition is_labelling l := (s' == [tuple of [seq tnth s i | i <- l]]) && (l == l_lex).
 
 (* Labelling specs. *)
 
@@ -108,22 +124,10 @@ by rewrite !inE !size_tuple => /(_ (ltn_ord x) (ltn_ord y) eqnth).
 Qed.
 
 Lemma exists_labelling : exists l, is_labelling l.
-Proof. 
-exists l0. 
-rewrite /is_labelling eq_refl -(inj_eq val_inj) /= andbT.
-apply/eqP.
-apply: (@sorted_eq _ r). 
-- exact: tr.
-- exact: ar.
-- exact: sort_sorted.
-- rewrite sorted_map. 
-  have srx : subrel ri_lex (relpre [eta tnth s] r) by move=> x y /andP [].
-  move: (@sub_sorted _ ri_lex ri srx) => /(_ (sort ri_lex (enum 'I_n.+1))) -> //. 
-  rewrite sort_sorted //. 
-  exact: ri_lex_tot.
-rewrite (@perm_trans _ s) ?perm_sort ?perm_refl //.
-by rewrite -map_tnth_enum perm_map // perm_sym perm_sort perm_refl.
-Qed.
+Proof. by exists l_lex; rewrite /is_labelling sorted_lex_labelling !eq_refl. Qed.
+
+Lemma is_labelling_lex : s' = [tuple of [seq tnth s i | i <- l_lex]].
+Proof. by have [l] := exists_labelling => /andP [/eqP eqs /eqP <-]. Qed.
 
 (* Constructive version *)
 Lemma exists_labellingW : { l : n.+1.-tuple 'I_n.+1 | is_labelling l}.
@@ -135,8 +139,7 @@ Definition tlabel : labelling := xchoose exists_labelling.
 Lemma tlabelP : is_labelling tlabel.
 Proof. exact: xchooseP exists_labelling. Qed.
 
-Definition labelling_spec l : bool :=
-  [forall j' : 'I_n.+1, tnth s' j' == tnth s (tnth l j')].
+Definition labelling_spec l : bool := [forall j' : 'I_n.+1, tnth s' j' == tnth s (tnth l j')].
 
 Lemma labellingP : labelling_spec (projT1 exists_labellingW).
 Proof.
@@ -286,6 +289,83 @@ Qed.
 
 End Labelling.
 
+Section Update.
+
+Variables (n : nat) (T : eqType) (r : rel T). 
+
+Variable tr : transitive r.
+Variable rr : reflexive r.
+Variable totr : total r.
+Variable ar : antisymmetric r.
+
+Variable (i : 'I_n.+1) (s s' : n.+1.-tuple T).
+
+Variable (differ_on : forall j, j != i -> tnth s' j = tnth s j).
+
+Notation idxa s := (@idxa _ _ r s tr rr totr ar).
+Notation ix := (idxa s i).
+Notation ix' := (idxa s' i).
+
+Lemma stable j :
+  let: jx := idxa s j in 
+  (jx < minn ix ix') || (maxn ix ix' < jx) -> idxa s' j = jx.
+Admitted.
+
+Definition ord_shift inc := if inc then (@ord_succ n) else (@ord_pred n.+1).
+
+Lemma shift j (jx' : 'I_n.+1) (lo hi : 'I_n.+1) (ge : bool):
+  let: jx := idxa s j in 
+  ord_shift ge jx' = jx -> minn lo hi < jx' + ge <= maxn lo hi -> idxa s' j = jx'.
+Admitted.
+
+Section Lt.
+
+Variable (ix'x : ix' < ix).
+
+Lemma maxx : maxn ix ix' = val ix.
+Proof. by apply/maxn_idPl; rewrite ltnW. Qed.
+
+Lemma minx' : minn ix ix' = val ix'.
+Proof. by apply/minn_idPr; rewrite ltnW. Qed.
+
+Lemma lt_stable j : let: jx := idxa s j in (jx < ix') || (ix < jx) -> idxa s' j = jx.
+Proof. by rewrite -maxx -{1}minx'; exact: stable. Qed.
+
+Lemma lt_shift j (jx' : 'I_n.+1) : 
+  let: jx := idxa s j in 
+  ord_pred jx' = jx -> ix' < jx' <= ix -> idxa s' j = jx'.
+Proof.
+move: (@shift j jx' ix' ix false).
+by rewrite /ord_shift addn0 maxnC maxx minnC minx'.
+Qed.
+
+End Lt.
+
+Section Ge.
+
+Variable (ixx' : ix <= ix').
+
+Lemma maxx' : maxn ix ix' = val ix'.
+Proof. by apply/maxn_idPr. Qed.
+
+Lemma minx : minn ix ix' = val ix.
+Proof. by apply/minn_idPl. Qed.
+
+Lemma ge_stable j : let: jx := idxa s j in (jx < ix) || (ix' < jx) -> idxa s' j = jx. 
+Proof. by rewrite -maxx' -{1}minx; exact: stable. Qed.
+
+Lemma ge_shift j (jx' : 'I_n.+1) : 
+  let: jx := idxa s j in 
+  ord_succ jx' = jx -> ix <= jx' < ix' -> idxa s' j = jx'.
+Proof.
+move: (@shift j jx' ix ix' true).
+by rewrite /ord_shift /= addn1 maxx' minx ltnS.
+Qed.
+
+End Ge.
+
+End Update.
+
 Section DifferOn.
 
 Variables (n : nat) (T : eqType) (r : rel T) (i : 'I_n.+1) (s s' : n.+1.-tuple T).
@@ -297,42 +377,117 @@ Variable ar : antisymmetric r.
 
 Variable (differ_on : forall j, j != i -> tnth s' j = tnth s j).
 
-Notation ix := (@idxa _ _ r s tr rr totr ar i).
-Notation ix' := (@idxa _ _ r s' tr rr totr ar i).
+Notation idxa s := (@idxa _ _ r s tr rr totr ar).
+Notation tlabel s := (@tlabel _ _ r s tr rr totr ar).
 
-Definition lt_index j := if j == ix' then ix else if ix' < j <= ix then ord_pred j else j.
+Variable (l : labelling n) (isl : is_labelling r s l). 
 
-Definition lt_labelling l : labelling n := [tuple tnth l (lt_index j) | j < n.+1].
+Notation ix := (idxa s i).
+Notation ix' := (idxa s' i).
 
-Lemma labelling_differ_on_lt l :
-  ix' < ix -> is_labelling r s l -> is_labelling r s' (lt_labelling l).
+Section Lt.
+
+Variable (ix'x : ix' < ix).
+
+Lemma lt_stable_pre j (pre : idxa s j < ix') : idxa s' j = idxa s j.
+Proof. by rewrite (lt_stable differ_on ix'x) // pre. Qed.
+
+Lemma lt_stable_post j (post : ix < idxa s j) : idxa s' j = idxa s j.
+Proof. by rewrite( lt_stable differ_on) // post orbT. Qed.
+
+Definition lt_index jx := if jx == ix' then ix else if ix' < jx <= ix then ord_pred jx else jx.
+
+Definition lt_labelling : labelling n := [tuple tnth l (lt_index jx) | jx < n.+1].
+
+Lemma labelling_differ_on_lt : is_labelling r s' lt_labelling.
 Proof.
-Admitted.
+move: isl => /andP [/eqP eqs /eqP]. 
+rewrite /lt_labelling.
+set ri := (X in sort X) => ->. 
+rewrite /is_labelling andb_idl => [|/eqP ->]; last by rewrite sorted_lex_labelling. 
+set ri' := (X in _ == [tuple of sort X _]). 
+apply/eqP/eq_from_tnth => jx. 
+rewrite /lt_labelling /lt_index tnth_map tnth_ord_tuple.
+have -> : [tuple of sort ri (ord_tuple n.+1)] = tlabel s.
+  apply: (@labelling_singleton _ _ r s); last by exact: tlabelP. 
+  have := isl.
+  by rewrite /is_labelling eqs !eq_refl andTb andbT => /eqP ->.
+have -> : [tuple of sort ri' (ord_tuple n.+1)] = tlabel s'.
+  apply: (@labelling_singleton _ _ r s'); last by exact: tlabelP.
+  by rewrite /is_labelling eq_refl andbT is_labelling_lex.
+have [/eqP ->|] := boolP (jx == ix'); first by rewrite !cancel_idxa. 
+have [j smx]: exists j, idxa s j = jx by exists (tnth (tlabel s) jx); rewrite cancel_inv_idxa. 
+rewrite neq_ltn => /orP [ljx'|lx'j].  
+- rewrite ifF; last by rewrite ltnNge (ltnW ljx').  
+  by rewrite -smx -[in RHS]lt_stable_pre ?cancel_idxa // smx. 
+- rewrite lx'j andTb; case: ifP => [jxix|]; last first.
+  - move=> b; have {b} ixjx: ix < jx by rewrite ltnNge; apply/negPf.
+    by rewrite -smx -[in RHS]lt_stable_post ?cancel_idxa // smx.
+  - have [pj smpx]: exists j, ord_pred jx = idxa s j.
+      by exists (tnth (tlabel s) (ord_pred jx)); rewrite cancel_inv_idxa.
+    by rewrite smpx -(lt_shift differ_on ix'x smpx) ?cancel_idxa // lx'j jxix. 
+Qed.
+
+End Lt.
+
+Section Ge.
+
+Variable (ix'x : ix <= ix').
+
+Lemma ge_stable_pre j (pre : idxa s j < ix) : idxa s' j = idxa s j.
+Proof. by rewrite (ge_stable differ_on ix'x) // pre. Qed.
+
+Lemma ge_stable_post j (post : ix' < idxa s j) : idxa s' j = idxa s j.
+Proof. by rewrite( ge_stable differ_on) // post orbT. Qed.
 
 Definition ge_index j := 
   if j == ix' then ix else if ix <= j < ix' then ord_succ j else j.
 
 Definition ge_labelling l : labelling n := [tuple tnth l (ge_index j) | j < n.+1].
 
-Lemma labelling_differ_on_ge l :
-  ix <= ix' -> is_labelling r s l -> is_labelling r s' (ge_labelling l).
+Lemma labelling_differ_on_ge : is_labelling r s' (ge_labelling l).
 Proof.
-Admitted.
+move: isl => /andP [/eqP eqs /eqP]. 
+rewrite /lt_labelling.
+set ri := (X in sort X) => ->. 
+rewrite /is_labelling andb_idl => [|/eqP ->]; last by rewrite sorted_lex_labelling. 
+set ri' := (X in _ == [tuple of sort X _]). 
+apply/eqP/eq_from_tnth => jx. 
+rewrite /ge_labelling /ge_index tnth_map tnth_ord_tuple.
+have -> : [tuple of sort ri (ord_tuple n.+1)] = tlabel s.
+  apply: (@labelling_singleton _ _ r s); last by exact: tlabelP. 
+  have := isl.
+  by rewrite /is_labelling eqs !eq_refl andTb andbT => /eqP ->.
+have -> : [tuple of sort ri' (ord_tuple n.+1)] = tlabel s'.
+  apply: (@labelling_singleton _ _ r s'); last by exact: tlabelP.
+  by rewrite /is_labelling eq_refl andbT is_labelling_lex.
+have [/eqP ->|] := boolP (jx == ix'); first by rewrite !cancel_idxa. 
+have [j smx]: exists j, idxa s j = jx by exists (tnth (tlabel s) jx); rewrite cancel_inv_idxa. 
+rewrite neq_ltn => /orP [ljx'|lx'j]; last first.
+- rewrite ifF; last by rewrite ltnNge (@leq_eqVlt ix') lx'j orbT andbF. 
+  by rewrite -smx -[in RHS]ge_stable_post?cancel_idxa // smx. 
+- rewrite ljx' andbT; case: ifP => [jxix|]; last first.
+  - move=> b; have {b} ixjx: jx < ix by rewrite ltnNge; apply/negPf.
+    by rewrite -smx -[in RHS]ge_stable_pre ?cancel_idxa // smx.
+  - have [pj smpx]: exists j, ord_succ jx = idxa s j.
+      by exists (tnth (tlabel s) (ord_succ jx)); rewrite cancel_inv_idxa.
+    by rewrite smpx -(ge_shift differ_on ix'x smpx) ?cancel_idxa // ljx' jxix. 
+Qed.
 
-Lemma labelling_differ_on_eq l :
-  ix' = ix -> is_labelling r s l -> is_labelling r s' l.
+Lemma labelling_differ_on_eq :
+  ix' = ix -> is_labelling r s' l.
 Proof.
-move=> eqii' isl. 
+move=> eqii'.
 have <- : ge_labelling l = l.
   apply: eq_from_tnth => j.
   rewrite /ge_labelling /ge_index tnth_mktuple eqii'.
   case: ifP => [/eqP -> |_]; last by rewrite ifF // leqNgt andNb.
-  have -> : l = tlabel s tr rr totr ar 
-    by apply: (@labelling_singleton _ _ r s) => //; exact: tlabelP.
+  have -> : l = tlabel s by apply: (@labelling_singleton _ _ r s) => //; exact: tlabelP.
   by rewrite cancel_idxa.
-apply: labelling_differ_on_ge => //=.
-by rewrite leq_eqVlt eq_sym eqii' eq_refl orTb.
+exact: labelling_differ_on_ge.
 Qed.
+
+End Ge.
 
 End DifferOn.
 

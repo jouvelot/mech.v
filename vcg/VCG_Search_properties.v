@@ -162,8 +162,8 @@ Proof.
 rewrite /l' /geq_bid.
 apply: labelling_differ_on_lt.
 - exact: diff.
-- exact: lt_i'_i. 
 - exact: (tlabelP bs).
+- exact: lt_i'_i. 
 Qed.
 
 Lemma eq_labelling_loses : projT1 (exists_labellingW bs') = l'.
@@ -240,8 +240,8 @@ apply: labelling_singleton.
   exact: islab.
 - apply: labelling_differ_on_lt. 
   - exact: diff.
-  - exact: lt_i'_i.
   - exact: (tlabelP bs).
+  - exact: lt_i'_i.
 Qed.
 
 Lemma eq_price_bs_over : price bs a = \sum_(s < k | i < s) externality (tsort bs) s.
@@ -352,8 +352,8 @@ apply: labelling_singleton.
 move: (exists_labellingW bs') => [lab islab]; first exact: islab.
 apply: labelling_differ_on_ge. 
 - exact: diff.
-- by rewrite ltnW.
 - exact: (tlabelP bs).
+- by rewrite ltnW.
 Qed.
 
 Lemma eq_price_bs'_under : price bs' a = \sum_(s < k | i' < s) externality (tsort bs) s.
@@ -457,8 +457,9 @@ apply: (@labelling_singleton _ _ geq_bid bs').
 move: (exists_labellingW bs') => [lab islab] //.
 apply: (labelling_differ_on_eq a bs bs').
 - exact: diff.
-- exact: eq_i_i'.
 - exact: (tlabelP bs).
+- by move: eq_i_i'; rewrite /i' leq_eqVlt => ->; rewrite eq_refl.
+- exact: eq_i_i'.
 Qed.
 
 Lemma truthful_stable : utility bs' a <= utility bs a.

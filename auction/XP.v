@@ -94,5 +94,5 @@ Qed.
 
 End Properties.
 
-Print Assumptions truthful_XP.
 Check truthful_XP.
+Print Assumptions truthful_XP.

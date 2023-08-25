@@ -214,6 +214,14 @@ Qed.
 
 Definition t0 := locked (tnth s ord0).
 
+Lemma idxa_as_index (u : uniq s) i : idxa i = index (tnth s i) s' :> nat.
+Proof.
+rewrite /sval.
+case: (sorted_diff_agent_spec_ex i) =>  j <-.
+rewrite -labelling_spec_idxa cancel_inv_idxa.
+by rewrite (tnth_nth t0) index_uniq // ?size_sort ?size_tuple ?ltn_ord // sort_uniq.
+Qed.
+
 Lemma sorted_lex_tlabel: sorted ri_lex tlabel.
 Proof. by move: tlabelP => /andP [_ /eqP ->]; rewrite sort_sorted //; exact: ri_lex_tot. Qed.
 
@@ -500,15 +508,6 @@ Notation idxa s i := (@idxa _ _ r s tr rr totr ar i).
 
 Notation ss p := ([tuple tnth s (p i)  | i < n.+1]).
 
-Lemma idxa_as_index (s' : n.+1.-tuple T) (u' : uniq s') i : 
-  idxa s' i = index (tnth s' i) (sort r s') :> nat.
-Proof.
-rewrite /sval.
-case: (@sorted_diff_agent_spec_ex _ _ r s' tr rr totr ar i) =>  j <-.
-rewrite -(@labelling_spec_idxa _ _ r) cancel_inv_idxa.
-by rewrite (tnth_nth x0) index_uniq // ?size_sort ?size_tuple ?ltn_ord // sort_uniq.
-Qed.
-
 Lemma us (p : 'S_n.+1) : uniq (ss p).
 Proof.
 rewrite map_inj_uniq /= ?enum_uniq // => j1 j2 /eqP. 
@@ -519,7 +518,7 @@ Qed.
 Lemma idxa_perm (p : 'S_n.+1) i : idxa (ss p) i = idxa s (p i).
 Proof.
 apply: val_inj => /=. 
-rewrite (@idxa_as_index (ss p) (us p)) (@idxa_as_index s u).
+rewrite (idxa_as_index tr rr totr ar (us p)) (idxa_as_index tr rr totr ar u).
 rewrite tnth_map tnth_ord_tuple.
 congr index. 
 apply/perm_sortP/tuple_permP => //.
@@ -539,6 +538,3 @@ Lemma idxa_tpermD i (ne1 : i != i1) (ne2 : i != i2) :
 Proof. by rewrite idxa_perm tpermD 1?eq_sym. Qed. 
 
 End Tperm.
-
-
-

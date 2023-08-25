@@ -311,11 +311,10 @@ Lemma stable j :
   (jx < minn ix ix') || (maxn ix ix' < jx) -> idxa s' j = jx.
 Admitted.
 
-Definition ord_shift inc := if inc then (@ord_succ n) else (@ord_pred n.+1).
-
 Lemma shift j (jx' : 'I_n.+1) (lo hi : 'I_n.+1) (ge : bool):
   let: jx := idxa s j in 
-  ord_shift ge jx' = jx -> minn lo hi < jx' + ge <= maxn lo hi -> idxa s' j = jx'.
+  let: ord_shift := if ge then (@ord_succ n) else (@ord_pred n.+1) in
+  ord_shift jx' = jx -> lo < jx' + ge <= hi -> idxa s' j = jx'.
 Admitted.
 
 Section Lt.
@@ -329,15 +328,12 @@ Lemma minx' : minn ix ix' = val ix'.
 Proof. by apply/minn_idPr; rewrite ltnW. Qed.
 
 Lemma lt_stable j : let: jx := idxa s j in (jx < ix') || (ix < jx) -> idxa s' j = jx.
-Proof. by rewrite -maxx -{1}minx'; exact: stable. Qed.
+ Proof. by rewrite -maxx -{1}minx'; exact: stable. Qed.
 
 Lemma lt_shift j (jx' : 'I_n.+1) : 
   let: jx := idxa s j in 
   ord_pred jx' = jx -> ix' < jx' <= ix -> idxa s' j = jx'.
-Proof.
-move: (@shift j jx' ix' ix false).
-by rewrite /ord_shift addn0 maxnC maxx minnC minx'.
-Qed.
+Proof. by move: (@shift j jx' ix' ix false); rewrite addn0. Qed.
 
 End Lt.
 
@@ -357,10 +353,7 @@ Proof. by rewrite -maxx' -{1}minx; exact: stable. Qed.
 Lemma ge_shift j (jx' : 'I_n.+1) : 
   let: jx := idxa s j in 
   ord_succ jx' = jx -> ix <= jx' < ix' -> idxa s' j = jx'.
-Proof.
-move: (@shift j jx' ix ix' true).
-by rewrite /ord_shift /= addn1 maxx' minx ltnS.
-Qed.
+Proof. by move: (@shift j jx' ix ix' true); rewrite /= addn1.  Qed.
 
 End Ge.
 
@@ -425,7 +418,7 @@ rewrite neq_ltn => /orP [ljx'|lx'j].
     by rewrite -smx -[in RHS]lt_stable_post ?cancel_idxa // smx.
   - have [pj smpx]: exists j, ord_pred jx = idxa s j.
       by exists (tnth (tlabel s) (ord_pred jx)); rewrite cancel_inv_idxa.
-    by rewrite smpx -(lt_shift differ_on ix'x smpx) ?cancel_idxa // lx'j jxix. 
+    by rewrite smpx -(lt_shift differ_on smpx) ?cancel_idxa // lx'j jxix. 
 Qed.
 
 End Lt.
@@ -471,7 +464,7 @@ rewrite neq_ltn => /orP [ljx'|lx'j]; last first.
     by rewrite -smx -[in RHS]ge_stable_pre ?cancel_idxa // smx.
   - have [pj smpx]: exists j, ord_succ jx = idxa s j.
       by exists (tnth (tlabel s) (ord_succ jx)); rewrite cancel_inv_idxa.
-    by rewrite smpx -(ge_shift differ_on ix'x smpx) ?cancel_idxa // ljx' jxix. 
+    by rewrite smpx -(ge_shift differ_on smpx) ?cancel_idxa // ljx' jxix. 
 Qed.
 
 Lemma labelling_differ_on_eq :

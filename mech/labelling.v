@@ -311,6 +311,12 @@ Lemma stable j :
   (jx < minn ix ix') || (maxn ix ix' < jx) -> idxa s' j = jx.
 Admitted.
 
+Lemma shift j (jx' : 'I_n.+1) (ge : bool): 
+  let: jx := idxa s j in 
+  let: sh := if ge then @ord_succ n else @ord_pred n.+1 in
+  sh jx' = jx -> minn ix ix' < jx' + ge <= maxn ix ix' -> idxa s' j = jx'.
+Admitted.
+
 Section Lt.
 
 Variable (ix'x : ix' < ix).
@@ -327,7 +333,7 @@ Lemma lt_stable j : let: jx := idxa s j in (jx < ix') || (ix < jx) -> idxa s' j 
 Lemma lt_shift j (jx' : 'I_n.+1) : 
   let: jx := idxa s j in 
   ord_pred jx' = jx -> ix' < jx' <= ix -> idxa s' j = jx'.
-Admitted.
+Proof. by move: (@shift j jx' false); rewrite minx' maxx addn0. Qed.
 
 End Lt.
 
@@ -347,7 +353,7 @@ Proof. by rewrite -maxx' -{1}minx; exact: stable. Qed.
 Lemma ge_shift j (jx' : 'I_n.+1) : 
   let: jx := idxa s j in 
   ord_succ jx' = jx -> ix <= jx' < ix' -> idxa s' j = jx'.
-Admitted.
+Proof. by move: (@shift j jx' true); rewrite minx maxx' addn1 ltnS. Qed.
 
 End Ge.
 

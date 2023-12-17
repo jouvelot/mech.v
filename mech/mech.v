@@ -665,9 +665,9 @@ Variable leq_act : rel A.
 Variable (tr : transitive leq_act) (totr : total leq_act) 
          (rr : reflexive leq_act) (ar : antisymmetric leq_act).
 
-Definition idx := idxa bs tr rr totr ar i.
+Definition idx := idxa bs tr totr ar i.
 
-Let sorting_fun := tnth (tlabel bs tr rr totr ar).
+Let sorting_fun := tnth (tlabel bs tr totr ar).
 
 Lemma sorting_inj: injective sorting_fun.
 Proof. apply: labelling_inj. exact: tlabelP. Qed.
@@ -689,7 +689,7 @@ have -> : idx = Pi^-1 i.
 have -> : tsort leq_act bs = ptuple Pi bs; last by rewrite truthful_permP.
   apply: eq_from_tnth => j. 
   rewrite tnth_map tnth_ord_tuple permE /sorting_fun. 
-  move: (@labellingP _ _ leq_act bs tr rr totr ar) => /forallP /(_ j) /eqP ->.
+  move: (@labellingP _ _ leq_act bs tr totr ar) => /forallP /(_ j) /eqP ->.
   congr (tnth _ (tnth _ _)); last exact: uniq_labelling.
 Qed.
 

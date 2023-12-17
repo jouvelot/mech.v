@@ -54,7 +54,6 @@ Let geq_bid := @geq_bid p'.
 Notation tsort := (tsort geq_bid).
 Notation idxa bs i := (@idxa n' _ geq_bid bs
                              (@transitive_geq_bid p')
-                             (@reflexive_geq_bid p') 
                              (@total_geq_bid p')
                              (@anti_geq_bid p')
                              i).
@@ -81,7 +80,6 @@ End Algorithm.
 Notation labelling_spec_idxa := 
   (@labelling_spec_idxa _ _ _ _ 
                         (@transitive_geq_bid p')
-                        (@reflexive_geq_bid p')
                         (@total_geq_bid p')
                         (@anti_geq_bid p')).
 Variable v : A -> bid.
@@ -125,12 +123,10 @@ Notation bid := (bid a_p').
 Notation tsort := (tsort (@geq_bid a_p')).
 Notation tlabel bs := (@tlabel a_n' _ (@geq_bid a_p') bs
                              (@transitive_geq_bid a_p')
-                             (@reflexive_geq_bid a_p') 
                              (@total_geq_bid a_p')
                              (@anti_geq_bid a_p')).
 Notation idxa bs i := (@idxa a_n' _ (@geq_bid a_p') bs
                              (@transitive_geq_bid a_p')
-                             (@reflexive_geq_bid a_p') 
                              (@total_geq_bid a_p')
                              (@anti_geq_bid a_p')
                              i).

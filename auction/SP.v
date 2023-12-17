@@ -54,20 +54,20 @@ Notation totr := (@total_geq_bid p').
 Notation ar := (@anti_geq_bid p').
 Notation rr := (@reflexive_geq_bid p').
 
-Notation labelling_spec_idxa bs := (@labelling_spec_idxa _ _ _ bs tr rr totr ar).
-Notation labellingP bs := (@labellingP _ _ _ bs tr rr totr ar).
+Notation labelling_spec_idxa bs := (@labelling_spec_idxa _ _ _ bs tr totr ar).
+Notation labellingP bs := (@labellingP _ _ _ bs tr totr ar).
  
 Notation is_labelling bs := (@is_labelling _ _ geq_bid bs). 
-Notation tlabel bs := (@tlabel n' _ geq_bid bs tr rr totr ar). 
-Notation tlabelP bs := (@tlabelP n' _ geq_bid bs tr rr totr ar). 
+Notation tlabel bs := (@tlabel n' _ geq_bid bs tr totr ar). 
+Notation tlabelP bs := (@tlabelP n' _ geq_bid bs tr totr ar). 
 Notation idxa_eq_mon bs := (@idxa_eq_mon _ _ geq_bid bs tr rr totr ar). 
-Notation idxa_inj bs := (@idxa_inj _ _ geq_bid bs tr rr totr ar).
+Notation idxa_inj bs := (@idxa_inj _ _ geq_bid bs tr totr ar).
 
 Notation ri bs := [rel i1 i2 | tnth bs i2 <= tnth bs i1]. 
 Notation ri_lex bs := [rel i1 i2 | ri bs i1 i2 && (ri bs i2 i1 ==> (i1 <= i2))].
 
 Notation tsort := (tsort geq_bid).
-Notation idxa bs i := (@idxa n' _ geq_bid bs tr rr totr ar i).
+Notation idxa bs i := (@idxa n' _ geq_bid bs tr totr ar i).
 
 Section Algorithm.
 
@@ -86,7 +86,7 @@ End Algorithm.
 Lemma sorted_lex_lex (bs : bids) : sorted (ri_lex bs) (sort (ri_lex bs) (enum 'I_n)). 
 Proof.
 rewrite sort_sorted // => x y. 
-rewrite (@ri_lex_tot _ _ geq_bid bs) //; first by exact: rr.
+rewrite (@ri_lex_tot _ _ geq_bid bs) //. 
 exact: totr.
 Qed.
 
@@ -108,7 +108,7 @@ Variable (iwins : i = i0) (iwins' : i' = i0).
 
 Let l := tlabel bs.
 
-Lemma bs_uniq_labelling : projT1 (@exists_labellingW _ _ geq_bid bs tr rr totr ar) = l. 
+Lemma bs_uniq_labelling : projT1 (@exists_labellingW _ _ geq_bid bs tr totr ar) = l. 
 Proof. exact: uniq_labelling. Qed.
 
 Let l' := l.
@@ -132,7 +132,7 @@ have [] := boolP (j1 == i0) => [/eqP eqj10|].
 - rewrite -lt0n => lt0j1. 
   have inva : a = tnth l i by rewrite cancel_idxa. 
   have netnth (j : A) : 
-    j != i -> tnth (projT1 (@exists_labellingW _ _ geq_bid bs tr rr totr ar)) j != tnth l i.
+    j != i -> tnth (projT1 (@exists_labellingW _ _ geq_bid bs tr totr ar)) j != tnth l i.
     apply: contra_neq.
     rewrite bs_uniq_labelling.
     apply: labelling_inj.
@@ -221,7 +221,6 @@ apply: (@sorted_eq _ (ri_lex bs)).
 - rewrite sort_sorted //.
   move: (@ri_lex_tot _ _ geq_bid bs); rewrite /geq_bid /=.
   apply.
-  exact: leqnn.
   exact: total_geq_bid. 
 - exact: sorted_over_lex_lex'. 
 - by rewrite (@perm_trans _ (enum 'I_n)) // ?(@perm_sym _ (enum 'I_n)) perm_sort perm_refl.
@@ -260,12 +259,11 @@ Qed.
 Lemma eq_winning_price  :
   tnth (tsort bs') (agent_succ i0) = tnth (tsort bs) (agent_succ i0). 
 Proof.
-set i1 := agent_succ i0. 
-move: (labellingP bs') => /forallP /(_ i1) /eqP ->.
-move: (labellingP bs) => /forallP /(_ i1) /eqP ->. 
-have -> : projT1 (@exists_labellingW _ _ geq_bid bs' tr rr totr ar) = l'.
+set i1 := agent_succ i0.  
+move: (labellingP bs') (labellingP bs) => /forallP /(_ i1) /eqP -> /forallP /(_ i1) /eqP ->. 
+have -> : projT1 (@exists_labellingW _ _ geq_bid bs' tr totr ar) = l'.
   apply: labelling_singleton.
-  move: (@exists_labellingW _ _ geq_bid bs' tr rr totr ar) => [lab islab].
+  move: (@exists_labellingW _ _ geq_bid bs' tr totr ar) => [lab islab].
   exact: islab.
   by rewrite -is_over_labelling (tlabelP bs').
 rewrite bs_uniq_labelling.
@@ -299,7 +297,7 @@ Proof. by rewrite cancel_idxa. Qed.
 Let under_index (j' : A) := if j' == i0 then i else if 0 < j' <= i then agent_pred j' else j'.
 Let l' := [tuple tnth l (under_index j) | j < n].
 
-Lemma l'_lt_labelling : l' = lt_labelling a bs bs' tr rr totr ar l.
+Lemma l'_lt_labelling : l' = lt_labelling a bs bs' tr totr ar l.
 Proof.
 apply/eq_from_tnth => j.
 by rewrite !tnth_map !tnth_ord_tuple /lt_index -/i' iwins'.
@@ -313,7 +311,10 @@ Lemma stable_sorted  (x1 x2 : 'I_n) :
   x1 <= x2 -> (tnth bs a2 <= tnth bs a1)  && ((tnth bs a1 <= tnth bs a2) ==> (a1 <= a2)).
 Proof.
 move=> x1x2.
-have mon b j1 j2 : idxa b j1 <= idxa b j2 -> tnth b j2 <= tnth b j1 by move/tnth_mon_idxa. 
+have mon b j1 j2 : idxa b j1 <= idxa b j2 -> tnth b j2 <= tnth b j1.  
+  move/tnth_mon_idxa.
+  apply.
+  exact: rr.
 have l21' : (tnth bs (tnth l x2) <= tnth bs (tnth l x1)). 
   by rewrite mon // !cancel_inv_idxa ?(ltnW i1i2). 
 rewrite !(mon _ (tnth l x1) (tnth l x2)) ?cancel_inv_idxa // ?nth_enum_ord ?(ltnW i1i2) // ?andTb.
@@ -579,9 +580,9 @@ Proof.
 set i1 := agent_succ i0. 
 move: (labellingP bs') => /forallP /(_ i1) /eqP ->.
 move: (labellingP bs) => /forallP /(_ i0) /eqP ->.
-have -> : projT1 (@exists_labellingW _ _ geq_bid bs' tr rr totr ar) = l'.
+have -> : projT1 (@exists_labellingW _ _ geq_bid bs' tr totr ar) = l'.
   apply: labelling_singleton.
-  move: (@exists_labellingW _ _ geq_bid bs' tr rr totr ar) => [lab islab].
+  move: (@exists_labellingW _ _ geq_bid bs' tr totr ar) => [lab islab].
   exact: islab.
   by rewrite -is_under_labelling (tlabelP bs').
 rewrite /l' tnth_map tnth_ord_tuple bs_uniq_labelling.
@@ -718,7 +719,6 @@ Section Wolf.
  
 Notation cancel_inv_idxa bs := (@cancel_inv_idxa n' _ geq_bid bs
                              (@transitive_geq_bid p')
-                             (@reflexive_geq_bid p') 
                              (@total_geq_bid p')
                              (@anti_geq_bid p')).
 Variable bs : bids.

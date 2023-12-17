@@ -124,17 +124,17 @@ Notation totr := (@total_geq_bid p').
 Notation ar := (@anti_geq_bid p').
 Notation rr := (@reflexive_geq_bid p').
 
-Notation labelling_spec_idxa bs := (@labelling_spec_idxa _ _ _ bs tr rr totr ar).
-Notation tlabel bs := (@tlabel n' _ geq_bid bs tr rr totr ar). 
-Notation tlabelP bs := (@tlabelP n' _ geq_bid bs tr rr totr ar). 
-Notation idxa_inj bs := (@idxa_inj _ _ geq_bid bs tr rr totr ar). 
+Notation labelling_spec_idxa bs := (@labelling_spec_idxa _ _ _ bs tr totr ar).
+Notation tlabel bs := (@tlabel n' _ geq_bid bs tr totr ar). 
+Notation tlabelP bs := (@tlabelP n' _ geq_bid bs tr totr ar). 
+Notation idxa_inj bs := (@idxa_inj _ _ geq_bid bs tr totr ar). 
 Notation labelling_inj bs := (@labelling_inj _ _ geq_bid bs (tlabel bs)).  
-Notation cancel_inv_idxa bs := (@cancel_inv_idxa _ _ geq_bid bs tr rr totr ar).
-Notation uniq_to_idxa bs u := (@uniq_to_idxa _ _ geq_bid bs tr rr totr ar _ _ u). 
-Notation uniq_from_idxa bs u := (@uniq_from_idxa _ _ geq_bid bs tr rr totr ar _ _ u). 
+Notation cancel_inv_idxa bs := (@cancel_inv_idxa _ _ geq_bid bs tr totr ar).
+Notation uniq_to_idxa bs u := (@uniq_to_idxa _ _ geq_bid bs tr totr ar _ _ u). 
+Notation uniq_from_idxa bs u := (@uniq_from_idxa _ _ geq_bid bs tr totr ar _ _ u). 
 
 Notation tsort := (tsort geq_bid).
-Notation idxa bs i := (@idxa n' _ geq_bid bs tr rr totr ar i). 
+Notation idxa bs i := (@idxa n' _ geq_bid bs tr totr ar i). 
 
 (* Bids need to be sorted in the VCG for Search algorithm. *)
  
@@ -678,37 +678,59 @@ move: (OStar.le_welfare_o_oStar bs o).
 by rewrite /OStar.max_welfare /OStar.welfare -bidSum_slot valid_bidSum.
 Qed.
 
-(*
-Proof by contradiction that uniq bs -> singleton max_bidSum_spec.
+(* See uniq_max_wS.v_HB. *)
 
-Assume bs is uniq and there exist o*1 and o*2, two distinct outcomes that are extremums 
-for bidSum.
+Variable uniq_max_weightedSubset : forall (q k : nat) (ws : (k.+1).-tuple 'I_q.+1),
+    sorted (fun w w' : 'I_q.+1 => w' < w) ws ->
+    (forall s : 'I_k.+1, 0 < tnth ws s) ->
+    forall m n : nat,
+      k < n ->
+      forall vs : (n.+1).-tuple 'I_m.+1,
+        let: P := 'I_n.+1 in
+        let: team := k.+1.-tuple P in
+        uniq vs -> forall (t : team) (ut : uniq t), 
+            let: M := fun t => (\sum_(i < k.+1) tnth vs (tnth t i) * tnth ws i) in
+            let: is_max_team := 
+              fun (t : team) (ut : uniq t) => 
+                (forall (t' : team) (ut' : uniq t'), 
+                    let: m := M t in maxn m (M t') == m) in
+            let: players := ord_tuple n.+1 in
+            let: lev := fun (p p' : P) => tnth vs p' <= tnth vs p in
+            let: max_team := [tuple nth ord0 (sort_tuple lev players) s | s < k.+1] in
+            is_max_team t ut -> t = max_team.
 
-An extremum is always bid-sorted (otherwise, just swapping two unsorted bidders would 
-increase bidSum, since ctrs are sorted.
-
-Build o1' as follows.
-
-i := 0
-O := o*1
-
-loop
-
-  if bs[O[i]] == bs[o*[2]] then 
-    continue
-
-  if bs[O[i]] < bs[o*2[i]] then
-    if o*2[i] is in O then 
-      forall i <= j < k - 1 while O[j] != o*2[i], then O[j + 1] = O[j].
-      
-    O[i] := o*2[i]
-
-If O == o*1, then o*1 == o*2, a contradiction
-
-Otherwise, bidSum o*1 < bidSum O, a contradiction.
-
-*)
-Conjecture uniq_max_bidSum : uniq bs -> singleton max_bidSum_spec.
+Lemma uniq_max_bidSum : 
+  uniq bs -> uniq cs -> (∀ s : slot, 0 < 'ctr_ s) -> singleton max_bidSum_spec.
+Proof. 
+move=> ubs ucs pcs x y mx my.
+have scs : sorted (fun w w' : 'I_q => w' < w) cs. 
+  apply: pairwise_sorted.
+  apply/(pairwiseP ord0) => c c' ltc ltc' cc' /=.
+  rewrite !inE !size_tuple in ltc ltc'.
+  move: sorted_ctrs ucs => /= /(_ (Ordinal ltc) (Ordinal ltc') (ltnW cc')).
+  rewrite !(@tnth_nth _ _ ord0) leq_eqVlt => /orP [/eqP /[swap] /(uniqP ord0) /(_ c' c) /=| //=].
+  rewrite !inE !size_tuple => /(_ ltc' ltc) /= ics nn.
+  move: cc'; rewrite ics //= ?ltnn //.
+  exact/val_inj.
+have ltk'n' : k' < n' by exact: lt_k_n.
+pose M x := (\sum_(i < k'.+1) 'bid_ (tnth x i) * 'ctr_ i).
+have maxx (z : O) : 
+  max_bidSum_spec z -> 
+  forall t' : k.-tuple 'I_n, 
+      uniq t' -> (maxn (M z) (\sum_(i0 < k'.+1) 'bid_ (tnth t' i0) * 'ctr_ i0) == M z).
+  move=> mbsz t' ut'.  
+  apply/eqP/maxn_idPl.
+  case: mbsz => {}z _ /(_ (Outcome ut') erefl) //=.
+  rewrite !bidSum_slot /= /bidding /t_bidding /bid_in.
+  under eq_bigr => s _. rewrite ffunE /= mem_tnth (cancel_slot (Outcome ut')). by over.
+  under [X in _ <= X]eq_bigr => s _. rewrite ffunE /= mem_tnth /= (cancel_slot z). by over.
+  by [].
+apply: val_inj => /=.
+have wx := (@uniq_max_weightedSubset _ _ _ scs pcs _ _ ltk'n' _ ubs _ (ouniq x) (maxx x mx)).
+apply: esym.
+have wy := (@uniq_max_weightedSubset _ _ _ scs pcs _ _ ltk'n' _ ubs _ (ouniq y) (maxx y my)).
+exact: (eq_trans _ (esym wx)).
+Qed.
 
 Variable uniq_oStar : singleton max_bidSum_spec.
 

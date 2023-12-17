@@ -44,17 +44,17 @@ Notation totr := (@total_geq_bid p').
 Notation ar := (@anti_geq_bid p').
 Notation rr := (@reflexive_geq_bid p').
 
-Notation labelling_spec_idxa bs := (@labelling_spec_idxa _ _ _ bs tr rr totr ar).
-Notation tlabel bs := (@tlabel n' _ geq_bid bs tr rr totr ar). 
-Notation tlabelP bs := (@tlabelP n' _ geq_bid bs tr rr totr ar). 
-Notation idxa_inj bs := (@idxa_inj _ _ geq_bid bs tr rr totr ar). 
+Notation labelling_spec_idxa bs := (@labelling_spec_idxa _ _ _ bs tr totr ar).
+Notation tlabel bs := (@tlabel n' _ geq_bid bs tr totr ar). 
+Notation tlabelP bs := (@tlabelP n' _ geq_bid bs tr totr ar). 
+Notation idxa_inj bs := (@idxa_inj _ _ geq_bid bs tr totr ar). 
 Notation labelling_inj bs := (@labelling_inj _ _ geq_bid bs (tlabel bs)).  
 Notation cancel_inv_idxa bs := (@cancel_inv_idxa _ _ geq_bid bs tr rr totr ar).
 Notation uniq_to_idxa bs u := (@uniq_to_idxa _ _ geq_bid bs tr rr totr ar _ _ u). 
 Notation uniq_from_idxa bs u := (@uniq_from_idxa _ _ geq_bid bs tr rr totr ar _ _ u). 
 
 Notation tsort := (tsort geq_bid).
-Notation idxa bs i := (@idxa n' _ geq_bid bs tr rr totr ar i). 
+Notation idxa bs i := (@idxa n' _ geq_bid bs tr totr ar i). 
 
 Section Algorithm.
 
@@ -138,7 +138,7 @@ split=> [//|].
 - rewrite /auction.is_winner /auction.price /price /=.
   rewrite !tnth_map !tnth_ord_tuple /is_winner /price.
   rewrite (labelling_spec_idxa bs).
-  set abs := (X in idxa X _ _ _ _ i2). 
+  set abs := (X in idxa X _ _ _ i2). 
   rewrite (labelling_spec_idxa abs).
   by rewrite !tnth_map !tnth_ord_tuple !apermE !tpermR idxa_tpermR // ?uniq_bids.
 - move=> i [n1 n2].
@@ -175,8 +175,8 @@ Notation rr := (@reflexive_geq_bid a_p').
 
 Notation bid := (bid a_p').
 Notation geq_bid := (@geq_bid a_p'). 
-Notation tlabel bs := (@tlabel a_n' _ geq_bid bs tr rr totr ar).
-Notation idxa bs i := (@idxa a_n' _ geq_bid bs tr rr totr ar i).
+Notation tlabel bs := (@tlabel a_n' _ geq_bid bs tr totr ar).
+Notation idxa bs i := (@idxa a_n' _ geq_bid bs tr totr ar i).
 Notation labelling_spec_idxa :=  (@labelling_spec_idxa _ _ _ _ tr totr ar).
 
 Notation bids := (bids a_n' a_p').

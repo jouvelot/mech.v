@@ -45,13 +45,13 @@ Let k' := S.k'.
 Let p' := S.p'.
 Let geq_bid := @geq_bid p'.
 
-Notation lt_labelling a bs bs' l := (@lt_labelling _ _ geq_bid a bs bs' tr rr totr ar l).
-Notation ge_labelling a bs bs' l := (@ge_labelling _ _ geq_bid a bs bs' tr rr totr ar l).
+Notation lt_labelling a bs bs' l := (@lt_labelling _ _ geq_bid a bs bs' tr totr ar l).
+Notation ge_labelling a bs bs' l := (@ge_labelling _ _ geq_bid a bs bs' tr totr ar l).
 Notation labelling_differ_on_eq a bs bs' := 
   (@labelling_differ_on_eq _ _ geq_bid a bs bs' tr rr totr ar).
 Notation is_labelling bs l := (@is_labelling _ _ geq_bid bs l).  
-Notation labellingP bs := (@labellingP _ _ geq_bid bs tr rr totr ar). 
-Notation exists_labellingW bs := (@exists_labellingW _ _ geq_bid bs tr rr totr ar).
+Notation labellingP bs := (@labellingP _ _ geq_bid bs tr totr ar). 
+Notation exists_labellingW bs := (@exists_labellingW _ _ geq_bid bs tr totr ar).
 
 (** No positive transfer. *)
 
@@ -161,6 +161,7 @@ Lemma is_labelling_iloses : is_labelling bs' l'.
 Proof. 
 rewrite /l' /geq_bid.
 apply: labelling_differ_on_lt.
+- exact: rr.
 - exact: diff.
 - exact: (tlabelP bs).
 - exact: lt_i'_i. 
@@ -189,7 +190,7 @@ have nea: tnth l' sa != a.
   move/(@labelling.labelling_inj _ _ geq_bid bs' l' is_labelling_iloses)/eqP.
   rewrite -(inj_eq val_inj) /= => /eqP ->.
   by rewrite ltnn.
-rewrite d // -(labelling_spec_idxa bs a) -?(labelling_spec_idxa bs (tnth l' sa)). 
+rewrite d // -(labelling_spec_idxa bs a) -?(labelling_spec_idxa bs (tnth l' sa)).  
 have -> : tnth l' sa = tnth l (agent_pred sa).
     rewrite tnth_mktuple /lt_index ifF; last by apply: gtn_eqF.
     by rewrite lti's andTb (@leq_trans k') //= ?leq_ord // leqNgt.
@@ -210,11 +211,9 @@ set sw := slot_won bs' a.
 have -> : val ('ctr_sw) = 'ctr_sw - 'ctr_last_slot by rewrite S.last_ctr_eq0 /= subn0.
 have mini' : minn i' k' = i' by rewrite /minn ifT.
 have ltsw : sw < k' by rewrite /sw /slot_won /= mini'.
-have -> //:   'ctr_sw - 'ctr_last_slot = \sum_(s < k | sw < s) ('ctr_(slot_pred s) - 'ctr_s).  
+have -> //:  'ctr_sw - 'ctr_last_slot = \sum_(s < k | sw < s) ('ctr_(slot_pred s) - 'ctr_s).  
   under eq_bigl=> s.
-    have -> : (sw < s) = (sw < s <= (last_ord k')).
-      by rewrite leq_ord andbT.
-    over.
+  have -> : (sw < s) = (sw < s <= (last_ord k')). by rewrite leq_ord andbT. over.
   by rewrite sum_diffs // => x y; exact: S.sorted_ctrs.
 rewrite big_distrr /= /price /externality (ltn_trans _ (ltnSn k')) //. 
 rewrite mini' leq_sum // => s lti's.
@@ -239,6 +238,7 @@ apply: labelling_singleton.
 - move: (exists_labellingW bs') => [lab islab]. 
   exact: islab.
 - apply: labelling_differ_on_lt. 
+  - exact: rr.
   - exact: diff.
   - exact: (tlabelP bs).
   - exact: lt_i'_i.
@@ -284,11 +284,11 @@ have lti'm1k'1 : i' + m.+1 < k'.+1 by rewrite ltnS (@leq_trans i) // ltnW.
 rewrite (@sum_diff (C (inord (i' + m)))) ?mulnDr; last first. 
 rewrite sortedC // ?inordK ?leq_addl // ?leq_addr // (@ltn_trans k') //. 
 rewrite sortedC // !inordK // ?leq_add2l //. 
-rewrite (bigD1 (inord (i' + m.+1))) /=; last first.
-  rewrite inordK // ?leqnn ?andbT.
+rewrite (bigD1 (inord (i' + m.+1))) /=; last first. 
+- rewrite inordK // ?leqnn ?andbT.
   by rewrite -[X in X <= _]addn0 -addn1 -addnA addn0 leq_add2l.
-rewrite big_trim_bound_P //leq_add //; last by apply: IH; rewrite ltnW.
-by rewrite ord_predK // leq_mul2r Kbound ?orbT // ltnW.
+- rewrite big_trim_bound_P //leq_add //; last by apply: IH; rewrite ltnW.
+  by rewrite ord_predK // leq_mul2r Kbound ?orbT // ltnW.
 Qed.
 
 Lemma leq_value_over m (lti'mi : i' + m < i) :
@@ -320,7 +320,7 @@ Lemma truthful_over : utility bs' a <= utility bs a.
 Proof.
 rewrite /utility /value.
 have mini : minn i k' = i by rewrite /minn ifT. 
-rewrite swap_dist_subl // ?S.sorted_ctrs //= ?rational //.
+rewrite swap_dist_subl // ?S.sorted_ctrs //= ?rational //. 
 - have ->:  minn i' k' = i' by rewrite /minn ifT.
   by rewrite mini // ltnW.
 - by rewrite eq_price_bs'_over leq_addl.
@@ -351,6 +351,7 @@ Proof.
 apply: labelling_singleton.
 move: (exists_labellingW bs') => [lab islab]; first exact: islab.
 apply: labelling_differ_on_ge. 
+- exact: rr.
 - exact: diff.
 - exact: (tlabelP bs).
 - by rewrite ltnW.
@@ -686,11 +687,11 @@ move: (Ri1 j' (h o)); rewrite /action_on => ->.
 rewrite /bid_in (labelling_spec_idxa bs).
 case: ifP => j'ino; first by rewrite relabel_slot.  
 have -> : slot_of j' (h o) = S.last_slot; last by rewrite S.last_ctr_eq0 /= muln0.
-  rewrite /slot_of.
-  case: tnthP => p //.
-  case: sig_eqW => s /= eqj'. 
-  apply: (@contraFeq _ _ _ _ _ j'ino) => _.
-  by apply/tnthP; exists s; rewrite eqj' tnth_map (cancel_inv_idxa bs).
+rewrite /slot_of.
+case: tnthP => p //.
+case: sig_eqW => s /= eqj'. 
+apply: (@contraFeq _ _ _ _ _ j'ino) => _.
+by apply/tnthP; exists s; rewrite eqj' tnth_map (cancel_inv_idxa bs).
 Qed.
 
 Local Lemma mem_oStar j (ltj'k : idxa bs j < k) : idxa bs j \in oStar. 
@@ -716,9 +717,9 @@ case: ifP => j'ino.
   congr tnth.
   exact: val_inj.
 - have -> : slot_of j' (G.oStar o'01 bs1) = last_slot; last by rewrite S.last_ctr_eq0 /= muln0.
-    rewrite slot_as_idxa // ifF //.
-    apply: (@contraFF _ _ _ j'ino) => ltj'k. 
-    exact: mem_oStar.
+  rewrite slot_as_idxa // ifF //.
+  apply: (@contraFF _ _ _ j'ino) => ltj'k. 
+  exact: mem_oStar.
 Qed.
 
 Lemma MR : Ro (m1 bs1) (m bs).
@@ -834,6 +835,7 @@ rewrite size_set_nth /= size_map size_enum_ord.
 apply/maxn_idPr.
 exact: ltn_ord.
 Qed.
+
 Definition vw := tcast szn (in_tuple sw).
 
 Lemma isCvw : sumn vw = 1. 
@@ -868,9 +870,9 @@ under [RHS]eq_bigr => s _.
   over.
 have -> : \sum_(s < k) tnth [tuple of sort geq_bid bs] (slot_as_agent s) =
          \sum_(0 <= s < k) tnth [tuple of sort geq_bid bs] (inord s). 
-  rewrite big_mkord; apply: eq_bigr => s _ /=.
-  have -> // : inord s = slot_as_agent s.
-    by apply: val_inj => /=; rewrite inordK // (@ltn_trans k) // S.lt_k_n.
+  rewrite big_mkord; apply: eq_bigr => s _ /=. 
+  congr (_ (tnth _ _)).
+  by apply: val_inj => /=; rewrite inordK // (@ltn_trans k) // S.lt_k_n.
 rewrite /k a_single_slot_is_auctionned big_nat1 /iw. 
 rewrite -(cancel_inv_idxa bs (inord 0)) (labelling_spec_idxa bs) tv /=.
 congr (v (tnth _ _)).

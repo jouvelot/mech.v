@@ -69,18 +69,14 @@ move=> x y /=.
 wlog: x y / x <= y. 
   move: (leq_total x y) => /orP [xy /(_ x y) -> //|yx /(_ y x)].
   by rewrite orbC => ->.
-rewrite leq_eqVlt => /orP [/eqP xy|xy].
-- move: (ri_rr y) => /=. 
-  have -> /= : x = y by apply/val_inj.
-  move=> ->.
-  by rewrite eq_refl !orTb.
-- move: (ri_tot x y) => /= /orP [->|ryx]. 
-  - apply/orP; left.
-    rewrite xy andTb orbT.
-    exact/implyP.
-  - rewrite ryx xy. 
-    case: (r (tnth s x) (tnth s y)) => //=.
-    by rewrite orbT orTb.
+rewrite leq_eqVlt => /orP [/eqP xy|xy];
+  first by rewrite xy eq_refl orTb  leqnn !implybT !andbT ri_tot.
+move: (ri_tot x y) => /= /orP [->|ryx]. 
+- apply/orP; left.
+  by rewrite xy andTb orbT implybT.
+- rewrite ryx xy. 
+  case: (r (tnth s x) (tnth s y)) => //=.
+  by rewrite orbT orTb.
 Qed.      
 
 Let l_lex := [tuple of sort ri_lex (ord_tuple n.+1)].
@@ -299,24 +295,57 @@ End Labelling.
 
 Section Update.
 
-Variables (n : nat) (T : eqType) (r : rel T). 
+Variable (T : eqType) (r : rel T).
 
-Variable tr : transitive r.
-Variable rr : reflexive r.
-Variable totr : total r.
-Variable ar : antisymmetric r.
+Variable (tr : transitive r) (rr : reflexive r) (totr : total r) (ar : antisymmetric r).
 
-Variable (i : 'I_n.+1) (s s' : n.+1.-tuple T).
+Variable (n : nat) (i : 'I_n.+1) (s s' : n.+1.-tuple T).
 
 Variable (differ_on : forall j, j != i -> tnth s' j = tnth s j).
 
-Notation idxa s := (@idxa _ _ r s tr rr totr ar).
+Notation idxa s := (@idxa _ _ r s tr totr ar).
 Notation ix := (idxa s i).
 Notation ix' := (idxa s' i).
 
+Section Test.
+
+Notation t := (sort r s).
+Notation t' := (sort r s').
+
+Variable tt0 : T.
+
+Lemma sort_differ (ltii' : ix < ix') jx :
+  nth tt0 t' jx = if jx < ix then nth tt0 t jx else nth tt0 t' jx.
+Admitted.
+
+Lemma stable_uniq (u : uniq s) (u' : uniq s') (ltii' : ix < ix') j :
+  let: jx := idxa s j in 
+  (jx < ix) || (ix' < jx) -> idxa s' j = jx. 
+Proof.
+rewrite !idxa_as_index //= => /orP [pre|post].
+- apply: val_inj => /=.
+  rewrite !idxa_as_index //=. 
+  have neij : j != i by admit.
+  rewrite differ_on //.
+  set jx := (RHS).
+  have [ltji|] := boolP (jx < ix).
+  - have : nth tt0 t' (index (tnth s j) t') = tnth s j  by admit.
+    rewrite sort_differ //.
+    case: ifP.
+  Search (index _).
+Admitted.
+
+End Test.
+
 Lemma stable j :
   let: jx := idxa s j in 
-  (jx < minn ix ix') || (maxn ix ix' < jx) -> idxa s' j = jx.
+  (jx < minn ix ix') || (maxn ix ix' < jx) -> idxa s' j = jx. 
+Proof.
+move=> /orP [pre|post].
+rewrite /(idxa s' j) /(idxa s j) /sval.
+case: (sorted_diff_agent_spec_ex s' tr totr ar j) => jx'.
+case: (sorted_diff_agent_spec_ex s tr totr ar j) => jx <-.
+have [/eqP <- /(labelling_inj (@tlabelP _ _ _ _ tr totr ar)) //|ness'] := boolP (s == s').
 Admitted.
 
 Lemma shift j (jx' : 'I_n.+1) (ge : bool): 
@@ -378,8 +407,8 @@ Variable ar : antisymmetric r.
 
 Variable (differ_on : forall j, j != i -> tnth s' j = tnth s j).
 
-Notation idxa s := (@idxa _ _ r s tr rr totr ar).
-Notation tlabel s := (@tlabel _ _ r s tr rr totr ar).
+Notation idxa s := (@idxa _ _ r s tr totr ar).
+Notation tlabel s := (@tlabel _ _ r s tr totr ar).
 
 Variable (l : labelling n) (isl : is_labelling r s l). 
 
@@ -391,10 +420,10 @@ Section Lt.
 Variable (ix'x : ix' < ix).
 
 Lemma lt_stable_pre j (pre : idxa s j < ix') : idxa s' j = idxa s j.
-Proof. by rewrite (lt_stable differ_on ix'x) // pre. Qed.
+Proof. by rewrite (lt_stable rr differ_on ix'x) // pre. Qed.
 
 Lemma lt_stable_post j (post : ix < idxa s j) : idxa s' j = idxa s j.
-Proof. by rewrite( lt_stable differ_on) // post orbT. Qed.
+Proof. by rewrite( lt_stable rr differ_on) // post orbT. Qed.
 
 Definition lt_index jx := if jx == ix' then ix else if ix' < jx <= ix then ord_pred jx else jx.
 
@@ -426,7 +455,7 @@ rewrite neq_ltn => /orP [ljx'|lx'j].
     by rewrite -smx -[in RHS]lt_stable_post ?cancel_idxa // smx.
   - have [pj smpx]: exists j, ord_pred jx = idxa s j.
       by exists (tnth (tlabel s) (ord_pred jx)); rewrite cancel_inv_idxa.
-    by rewrite smpx -(lt_shift differ_on ix'x smpx) ?cancel_idxa // lx'j jxix. 
+    by rewrite smpx -(lt_shift rr differ_on ix'x smpx) ?cancel_idxa // lx'j jxix. 
 Qed.
 
 End Lt.
@@ -436,10 +465,10 @@ Section Ge.
 Variable (ix'x : ix <= ix').
 
 Lemma ge_stable_pre j (pre : idxa s j < ix) : idxa s' j = idxa s j.
-Proof. by rewrite (ge_stable differ_on ix'x) // pre. Qed.
+Proof. by rewrite (ge_stable rr differ_on ix'x) // pre. Qed.
 
 Lemma ge_stable_post j (post : ix' < idxa s j) : idxa s' j = idxa s j.
-Proof. by rewrite( ge_stable differ_on) // post orbT. Qed.
+Proof. by rewrite( ge_stable rr differ_on) // post orbT. Qed.
 
 Definition ge_index j := 
   if j == ix' then ix else if ix <= j < ix' then ord_succ j else j.
@@ -472,7 +501,7 @@ rewrite neq_ltn => /orP [ljx'|lx'j]; last first.
     by rewrite -smx -[in RHS]ge_stable_pre ?cancel_idxa // smx.
   - have [pj smpx]: exists j, ord_succ jx = idxa s j.
       by exists (tnth (tlabel s) (ord_succ jx)); rewrite cancel_inv_idxa.
-    by rewrite smpx -(ge_shift differ_on ix'x smpx) ?cancel_idxa // ljx' jxix. 
+    by rewrite smpx -(ge_shift rr differ_on ix'x smpx) ?cancel_idxa // ljx' jxix. 
 Qed.
 
 Lemma labelling_differ_on_eq :
@@ -504,7 +533,7 @@ Variable totr : total r.
 Variable ar : antisymmetric r.
  
 Notation x0 := (tnth s ord0).
-Notation idxa s i := (@idxa _ _ r s tr rr totr ar i).
+Notation idxa s i := (@idxa _ _ r s tr totr ar i).
 
 Notation ss p := ([tuple tnth s (p i)  | i < n.+1]).
 
@@ -518,7 +547,7 @@ Qed.
 Lemma idxa_perm (p : 'S_n.+1) i : idxa (ss p) i = idxa s (p i).
 Proof.
 apply: val_inj => /=. 
-rewrite (idxa_as_index tr rr totr ar (us p)) (idxa_as_index tr rr totr ar u).
+rewrite (idxa_as_index tr totr ar (us p)) (idxa_as_index tr totr ar u).
 rewrite tnth_map tnth_ord_tuple.
 congr index. 
 apply/perm_sortP/tuple_permP => //.

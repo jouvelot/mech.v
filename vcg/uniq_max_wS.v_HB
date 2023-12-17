@@ -1,0 +1,559 @@
+
+From HB Require Import structures.
+
+From mathcomp Require Import all_ssreflect all_fingroup.
+
+Set Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
+
+Lemma ltn_transpose b1 b2 c1 c2 (ltb1b2 : b1 < b2) (ltc2c1 : c2 < c1) :
+  b1 * c1 + b2 * c2 < b2 * c1 + b1 * c2.
+Proof.
+have f: (b2 - b1) * (c1 - c2) = b2 * c1 + b1 * c2 - (b2 * c2 + b1 * c1). 
+  rewrite mulnBr 2!mulnBl ?subnBA; last by rewrite leq_mul2r ltnW // orbT.
+  by rewrite [X in _ = _ - X]addnC subnDA addnBAC //; last by rewrite leq_mul2r ltnW // orbT.
+by rewrite -subn_gt0 (addnC (b1 * c1)) -f muln_gt0 2!subn_gt0  ltb1b2 ltc2c1.
+Qed.
+
+Import Order.Theory.
+
+Section AllPrefix.
+
+Open Scope order_scope.
+
+Variable (d : unit) (T : orderType d) (t0 : T).
+
+Lemma all_in_prefix (n : nat) b (ltnb : n < size b)
+  v s (uvs : uniq (v :: s)) (svs : sorted <=%O (v :: s))
+  (inb : forall i : T, i \in v :: s -> i \in drop n b)
+  (leb : nth t0 (drop n b) 0 <= v)
+  (j : T) (jins : j \in s) :
+  j \in drop (1 + n) b.
+Proof.
+move: (inb j).
+rewrite in_cons jins orbT => /(_ erefl).
+rewrite (drop_nth t0) // ?size_sort // in_cons => /orP [/eqP eqjnb0|//].
+rewrite nth_drop addn0 -eqjnb0 in leb.
+have := (@sorted_leq_nth _ _ le_trans le_refl t0 (v :: s) svs 0 (index j (v :: s))).  
+rewrite !inE nth_index //; last by rewrite in_cons jins orbT. 
+have -> : (0 < size (v :: s))%N by [].
+have -> : (index j (v :: s) < size (v :: s))%N by rewrite index_mem in_cons jins orbT.
+move=> /(_ erefl erefl (leq0n (index j (v :: s)))) /=.
+rewrite le_eqVlt => /orP [|]; last by rewrite ltNge leb.
+have -> // : (v == j) = false.
+  move: uvs; apply: contraTF => /eqP ->.
+  move: jins => /(nthP t0) [ij ltij eqij].
+  apply/(uniqPn t0).
+  by exists 0; exists ij.+1 => /=; rewrite eqij; split. 
+Qed.
+
+Lemma nth0_prefix b (sb : sorted <=%O b) (n : nat) (ltnb : n < size b)
+  v s (uvs : uniq (v :: s)) (svs : sorted <=%O (v :: s)) (lt0s : (0 < size s)%N)
+  (inb : forall i : T, i \in v :: s -> i \in drop n b)
+  (leb : nth t0 (drop n b) 0 <= v) :
+  nth t0 b (1 + n) <= nth t0 s 0.
+Proof.
+set t := drop n b. 
+have lt1s1 : (1 < (size s).+1)%N by rewrite ltnS.
+have -> : nth t0 b (1 + n) = nth t0 t 1 by rewrite nth_drop addnC.
+have := (sorted_ltn_nth le_trans t0 svs 0 1).  
+rewrite !inE /= (@le_eqVlt _ _ v). 
+have -> : (v == nth t0 s 0) = false.  
+  apply: negbTE.
+  apply: (@contra_neq _ _ 0 1) => //.
+  move: uvs => /(@uniqP _ t0)/(_ 0 1).
+  rewrite !inE //= => /(_ (ltn0Sn (size s))).
+  by rewrite ltnS => /(_ lt0s).
+have lt0s1 : 0 < (size s).+1 by [].
+rewrite orFb /= => /(_ lt0s1 lt1s1 erefl).
+apply: contra_lt_le => ltnd.
+rewrite (@le_trans _ _ (nth t0 t 0)) //. 
+move: ltnd.
+have [j [ltjsbn ->]] : exists j, (j < size b - n)%N /\ nth t0 s 0 = nth t0 t j.
+  move: (inb (nth t0 s 0)).
+  have: nth t0 s 0 \in v :: s by rewrite in_cons mem_nth // orbT.
+  move=> /[swap] /[apply] /(nthP t0) [j ltjd eqjn].
+  rewrite size_drop in ltjd.
+  by exists j; rewrite eqjn ltjd.
+have [/eqP -> //|] := boolP (j == 0)%N.
+rewrite -lt0n => lt0j. 
+have [/eqP -> |nej1] := boolP (j == 1)%N; first by rewrite ltxx.
+have stbd : sorted <=%O t by rewrite drop_sorted .
+rewrite ltNge.
+have lt1j : (1 < j)%N by rewrite ltn_neqAle eq_sym nej1 lt0j.
+have := (@le_sorted_ltn_nth _ _ t0 t stbd 1 j). 
+rewrite !inE //= !size_drop // => -> //.
+by rewrite (@ltn_trans j).
+Qed.
+
+Lemma all_sort_prefix b (ub : uniq b) s : 
+  forall n, (n < size b)%N ->
+       let: t := drop n (sort <=%O b) in
+       (size s <= size t)%N ->
+       sorted <=%O s ->
+       uniq s ->
+       (forall i, (i \in s) -> (i \in t)) ->
+       nth t0 t 0 <= nth t0 s 0 ->
+       forall i, (i < size s)%N -> nth t0 t i <= nth t0 s i.
+Proof.
+elim: s => [n _ _ _ _ _ _ i /=|v s IH n ltns ltvs svs uvs /= inb leb i lti];
+  first by rewrite ltn0.
+set t := drop n (sort <=%O b). 
+have [/eqP -> //=|] := boolP (i == 0).
+rewrite -lt0n => lt0i. 
+move: (lt0i) => /prednK <- //=.
+move=> /= in ltvs. 
+rewrite prednK //. 
+have -> : nth t0 t i = nth t0 (drop 1 t) i.-1.
+  rewrite ltnS in lti.
+  by rewrite !nth_drop -subn1 (@addnBCA 1) // subnn addn0.
+rewrite drop_drop.
+have lt1s1 : (1 < (size s).+1)%N by rewrite (@leq_ltn_trans i).
+have lt0s : (0 < size s)%N by rewrite ltnS in lt1s1.
+rewrite size_drop ltn_subRL size_sort in ltvs. 
+apply IH => [||||j jins||];
+  rewrite ?drop_sorted // ?drop_uniq // ?size_drop // ?size_sort // ?nth_drop ?addn0 //. 
+- by rewrite (@leq_ltn_trans (n + size s)) // addnC leq_add2l.
+- by rewrite -subBnAC !leq_psubRL // add1n addnS. 
+- by rewrite (@subseq_sorted _ _ le_trans _ (v :: s)) // subseq_cons.
+- by rewrite (@subseq_uniq _ _ (v :: s)) // subseq_cons.
+- by apply: (@all_in_prefix _ _ _ v s) => //; rewrite size_sort.
+- by apply: (@nth0_prefix _ _ _ _ v) => //; rewrite ?size_sort ?sort_sorted.
+- by rewrite -(ltn_add2r 1) !addn1 prednK.
+Qed.
+
+Close Scope order_scope.
+
+End AllPrefix.
+
+Section MaxWeightedSubset.
+
+(* Weight *)
+
+Variable q : nat.
+
+Notation W := ('I_q.+1).
+
+(* Weights *)
+
+Variable k : nat.
+
+Notation slot := ('I_k.+1).
+
+Definition slots := ord_tuple k.+1.
+
+Variable (ws : k.+1.-tuple W).
+
+Notation leqw := (fun w w' : W => (w' < w)).
+
+Lemma leqw_trans : transitive leqw.
+Proof. by move=> a b c; rewrite /leqw => /[swap]; exact: ltn_trans. Qed.
+
+Variable sorted_weights : sorted leqw ws.
+
+Variable positive_weights : forall s : slot, 0 < tnth ws s.
+
+(* Value *)
+
+Variable m : nat.
+
+Notation V := ('I_m.+1).
+
+(* Values *)
+
+Variable n : nat.
+
+Variable (vs : n.+1.-tuple V).
+
+Variable (uvs : uniq vs).
+
+(* Player *)
+
+Definition P := 'I_n.+1.
+
+Definition P0 : P := ord0.
+
+Definition players := ord_tuple n.+1.
+
+Definition lev (p p' : P) := tnth vs p' <= tnth vs p.
+Definition ltv (p p' : P) := tnth vs p' < tnth vs p.
+
+Lemma lev_trans : transitive lev.
+Proof. by move=> a b c; rewrite /lev => /[swap]; exact: leq_trans. Qed.
+
+Lemma ltv_trans : transitive ltv.
+Proof. by move=> a b c; rewrite /ltv => /[swap]; exact: ltn_trans. Qed.
+
+Lemma lev_anti : antisymmetric lev.
+Proof. 
+move=> a b.
+rewrite /lev -eqn_leq !(@tnth_nth _ _ ord0) eq_sym => /eqP eqnn.
+apply/val_inj => /=.
+move: uvs => /(uniqP ord0)/(_ a b).
+rewrite !inE !size_tuple => /(_ (ltn_ord a) (ltn_ord b)) -> //.
+exact/val_inj.
+Qed.
+
+Lemma total_lev : total lev.
+Proof. by move=> a b; rewrite /lev leq_total. Qed.
+
+Definition join (p p' : P) := if ltv p p' then p' else p.
+Definition meet (p p' : P) := if ltv p p' then p else p'.
+
+Lemma ltv_def : forall x y, ltv x y = (y != x) && lev x y.
+Proof. 
+move=> x y; rewrite /lev /ltv ltn_neqAle.
+congr (_ && _).
+rewrite -(inj_eq val_inj) /= !(tnth_nth ord0).
+have [/eqP -> //|nyx] := boolP (y == x); first by rewrite !eq_refl.
+rewrite nyx.
+have/(_ nyx) //: y != x -> nth ord0 vs y != nth ord0 vs x.
+  apply: contra_neq => nynx.
+  apply: val_inj => /=.
+  move: uvs => /(uniqP ord0)/(_ x y).
+  by rewrite !inE !size_tuple => ->.
+Qed.  
+
+Lemma  meet_def : forall x y, meet x y = if ltv x y then x else y.
+Proof. by move=> x y. Qed.
+
+Lemma  join_def : forall x y, join x y = if ltv x y then y else x.
+Proof. by move=> x y. Qed.
+
+HB.instance Definition _ := Choice.on P.
+
+#[export] 
+HB.instance Definition _ := 
+  @Order.isOrder.Build tt (P) lev ltv meet join ltv_def meet_def join_def 
+    lev_anti lev_trans total_lev.
+
+Lemma leEval (p p' : P) : Order.le p p' = lev p p'. Proof. by []. Qed.
+Lemma ltEval (p p' : P) : Order.lt p p' = ltv p p'. Proof. by []. Qed.
+
+(* Team *)
+
+Variable ltkn : k < n.
+
+Inductive team : predArgType := Team (t : k.+1.-tuple P) of uniq t.
+
+Coercion members_of_team t := let: Team m _ := t in m.
+
+HB.instance Definition _ := [isSub of team for members_of_team].
+HB.instance Definition _ := [Countable of team by <:].
+
+Lemma uniq_team (t : team) : uniq t. Proof. exact: valP t. Qed.
+
+Lemma uniq_team_values (t : team) (s1 s2 : slot) : 
+  s1 != s2 -> tnth t s1 != tnth t s2.
+Proof.
+apply: contra_neq. 
+apply/tuple_uniqP.
+exact: uniq_team.
+Qed. 
+
+Notation sorted_team := (sorted lev).
+
+Lemma not_sorted_team (t : team) :
+  ~~ sorted_team t -> 
+  [exists s : slot, exists s' : slot, (s < s') && ~~ (lev (tnth t s) (tnth t s'))].
+Proof.
+apply: contraNT => /existsPn st.
+apply: pairwise_sorted.
+apply/(pairwiseP ord0) => s s' lts lts' ss'.
+rewrite !inE !size_tuple in lts lts'.
+move: (st (Ordinal lts)) => /existsP.
+apply: contra_notT => nn.
+exists (Ordinal lts') => /=.
+by rewrite ss' !(tnth_nth ord0) /= nn.
+Qed.
+
+(* Max *)
+
+Variable (t : team).
+
+Definition M t := (\sum_(i < k.+1) tnth vs (tnth t i) * tnth ws i).
+
+Definition is_max_team t := (forall t' : team, let: m := M t in maxn m (M t') == m).
+
+Lemma nth_sort_enum_inj x y (ltx : x < n.+1) (lty : y < n.+1) :
+  nth P0 (sort lev (enum 'I_n.+1)) x = nth P0 (sort lev (enum 'I_n.+1)) y -> x = y.
+Proof.
+move: (@perm_iota_sort _ lev P0 players) => [Ps] pPs ->. 
+have szPs : size Ps = n.+1.
+  move: pPs => /perm_size.
+  by rewrite size_iota size_tuple.
+move=> /eqP; rewrite -(inj_eq val_inj) /=; move=> /eqP.
+have ltnth : forall z, z < n.+1 -> nth 0 Ps z < n.+1.
+  move=> z.
+  rewrite -{1}szPs => /(mem_nth 0). 
+  by rewrite (perm_mem pPs) mem_iota add0n size_tuple => /andP [].
+rewrite !(@nth_map _ 0) ?nth_enum_ord ?szPs ?ltnth //.
+have/(uniqP 0)/(_ x y): uniq Ps by rewrite (perm_uniq pPs) iota_uniq. 
+by rewrite !inE szPs => /(_ ltx lty) /[apply].
+Qed.
+
+Lemma uniq_sort_team : uniq [tuple nth P0 (sort_tuple lev players) s | s < k.+1].
+Proof.
+apply/(@uniqP _ P0) => x y ltx lty /=.
+rewrite !inE !size_tuple in ltx lty. 
+rewrite !(@nth_map _ ord0) -?enumT ?nth_enum_ord ?size_enum_ord //.
+have ltxn : x < n.+1 by rewrite (ltn_trans ltx).
+have ltyn : y < n.+1 by rewrite (ltn_trans lty).
+exact: nth_sort_enum_inj.
+Qed.
+
+Definition max_team : team := Team uniq_sort_team.
+
+Lemma sorted_max_team : sorted lev max_team.
+Proof.
+rewrite pairwise_sorted //.
+apply/(pairwiseP P0) => p p' ltp ltp' pp'.
+rewrite !inE !size_tuple in ltp ltp'.
+rewrite !(nth_map ord0) -?enumT ?val_ord_tuple ?size_enum_ord ?nth_enum_ord //. 
+have := (sorted_ltn_nth lev_trans ord0 (sort_sorted total_lev players) p p'). 
+rewrite !inE !size_tuple => -> //; last by rewrite (ltn_trans ltp') // ltnS ltkn.
+by rewrite (ltn_trans ltp) // ltnS ltkn.
+Qed.
+
+Lemma unsorted_uniq_max_team : 
+  ~~ (sorted lev t) -> is_max_team t -> t = max_team.
+Proof.
+move=> /not_sorted_team/existsP [s1] /existsP [s2 /andP [lt12 v12]] xt.  
+pose t' := map_tuple (tperm (tnth t s1) (tnth t s2)) t.
+have ltmm' : M t < M t'.
+  have ne12 : s2 != s1 by rewrite -(inj_eq val_inj) /= gtn_eqF.
+  rewrite /M (bigD1 s1) //= (bigD1 s2) //=.
+  rewrite [X in (_ < X)](bigD1 s1) 1?[in X in (_ < X)](bigD1 s2) //=.
+  rewrite !tnth_map tpermL tpermR !addnA. 
+  under [in X in _ < X]eq_bigr => s /andP [nss1 nss2].
+    rewrite tnth_map tpermD 1?eq_sym ?uniq_team_values //.
+    over.
+ rewrite ltn_add2r ltn_transpose //; first by rewrite /lev -ltnNge in v12.
+ rewrite !(tnth_nth ord0) /=.
+ by rewrite (sorted_ltn_nth leqw_trans ord0 sorted_weights s1 s2) ?inE ?size_tuple.
+have ut' : uniq t'. rewrite map_inj_uniq ?uniq_team //; exact: perm_inj.
+move: xt => /(_ (Team ut'))/eqP/maxn_idPl.
+by rewrite leqNgt ltmm'.
+Qed.
+
+Lemma exists_diff r (T : finType) (t1 t2 : r.-tuple T) : 
+  t1 != t2 -> find (fun s : 'I_r => tnth t1 s != tnth t2 s) (ord_tuple r) < r.
+Proof.
+apply: contraNltn => /=.
+have [/hasPn nh ltk|s lts] := findP.
+- rewrite eqEtuple. 
+  apply/forallP => s. 
+  move: (nh s).
+  rewrite negbK => -> //.
+  by rewrite -val_ord_tuple -(tnth_ord_tuple s); apply/tnthP; exists s.
+- rewrite size_enum_ord ltnNge in lts.
+  by rewrite -(negbK (r <= s)) lts.
+Qed.
+
+Open Scope order_scope.
+
+Lemma eq_nth_sort_team (s : slot) :
+  nth P0 (sort lev max_team) s = nth P0 (sort lev players) s.
+Proof.
+have ltsk1 := ltn_ord s. 
+rewrite (@sort_map _ slot) (@nth_map _ ord0) ?size_sort ?size_enum_ord ?ltn_ord //.
+congr (nth P0 (sort _ _)).
+rewrite -[RHS](@nth_enum_ord k.+1 ord0) //. 
+congr (_ (nth _ _ _)).
+set ss := (LHS).
+have -> //= : ss = @ord_tuple k.+1. 
+  rewrite /ss pairwise_sort // -pairwise_map.
+  apply/(pairwiseP P0) => x y /= xin yin ltxy /=.
+  rewrite !inE !size_map -enumT size_enum_ord in xin yin.
+  rewrite !(nth_map ord0) -?enumT ?nth_enum_ord ?size_enum_ord //.
+  move: (@le_sorted_leq_nth _ _ P0 (sort lev (enum 'I_n.+1))).
+  rewrite sort_le_sorted => /(_ erefl x y).
+  have xinn : forall x, (x < k.+1)%N -> (x < n.+1)%N by move=> ? ?; rewrite (@ltn_trans k.+1).
+  rewrite !inE !size_sort !size_enum_ord => /(_ (xinn x xin) (xinn y yin) (ltnW ltxy)) foo.
+  rewrite sorted_leq_nth // ?inE ?size_sort ?size_enum_ord ?(ltnw ltxy) // ?xinn //.
+  - exact: lev_trans.
+  - rewrite sort_sorted //; exact: total_lev.
+  - exact: ltnW.
+Qed.
+
+Lemma le_nth_max_team (st : sorted lev t) (s : slot) : 
+  nth ord0 vs (nth P0 t s) <= nth ord0 vs (nth P0 max_team s). 
+Proof.
+have up : uniq players by rewrite val_ord_tuple enum_uniq.
+have lt0b : (0 < size players)%N by rewrite size_tuple.
+have ltss : (size t <= size (drop 0 (sort lev players)))%N.
+  by rewrite drop0 size_sort !size_tuple (@leq_trans n).
+have stt : sorted <=%O t by exact: st. 
+have sib : (forall i : P, i \in val t -> i \in drop 0 (sort lev players)).
+  by move=> i iint; by rewrite drop0 mem_sort val_ord_tuple mem_enum inE.
+have leqd0 : forall x, x \in players -> nth P0 (drop 0 (sort lev players)) 0 <= x.
+  move=> x; rewrite drop0 -(@mem_sort _ lev players) => /tnthP [ix ->].
+  rewrite (@tnth_nth _ _ P0) /=. 
+  rewrite le_sorted_leq_nth ?sort_sorted ?inE ?size_sort ?size_enum_ord ?ltn_ord //.
+  exact: total_lev.
+have lttx : (s < size t)%N by rewrite size_tuple ltn_ord.
+have tip : nth P0 t 0 \in players.
+  have -> : nth P0 t 0 = nth P0 t (@ord0 k) by [].
+  by rewrite -tnth_nth mem_enum inE.
+move: (@all_sort_prefix _ _ P0 players up t 0 lt0b ltss st (uniq_team t)
+         sib (leqd0 (nth P0 t 0) tip) _ lttx).
+rewrite drop0 -eq_nth_sort_team //. 
+rewrite leEval /lev !(@tnth_nth _ _ ord0) sorted_sort ?sorted_max_team //.
+exact: lev_trans.
+Qed.
+
+Lemma lt_find_max_team 
+  (st : sorted_team t) 
+  (lts : (find (fun s => tnth t s != tnth max_team s) (ord_tuple k.+1) < k.+1)%N) :
+  let: s := Ordinal lts in
+  let: t' := [tuple if i == s then tnth max_team s else tnth t i  | i < k.+1] in
+  (tnth vs (tnth t s) < tnth vs (tnth max_team s))%N.  
+Proof.
+set d := (X in (find X _)); set s := Ordinal lts.
+  rewrite !(@tnth_nth _ _ ord0).
+  have := le_nth_max_team st s.
+  rewrite le_eqVlt=> /orP [|//=].   
+  apply: contraLR => _. 
+  have: tnth t s != tnth max_team s.  
+    move: (lts); rewrite -[X in (_ < X)%N](size_tuple (ord_tuple k.+1)) -has_find.
+    rewrite !(@tnth_nth _ _ ord0) => /(@nth_find _ ord0 d _).
+    by rewrite /d !(@tnth_nth _ _ ord0) !nth_enum_ord.
+  apply: contraNN => /eqP.
+  have ltnsvs : forall t : team, (nth ord0 t s < size vs)%N.
+    by move=> ?; rewrite -tnth_nth size_tuple ltn_ord.
+  move: uvs => /(uniqP ord0)/(_ (nth ord0 t s) (nth ord0 max_team s)). 
+  rewrite !inE => /(_ (ltnsvs t) (ltnsvs max_team)) /= /[apply] /eqP.
+  by rewrite !(@tnth_nth _ _ ord0).  
+Qed. 
+
+Lemma uniq_set_team 
+  (st : sorted_team t) 
+  (lts : (find (fun s => tnth t s != tnth max_team s) (ord_tuple k.+1) < k.+1)%N) :
+  let: s := Ordinal lts in
+  let: t' := [tuple if i == s then tnth max_team s else tnth t i  | i < k.+1] in
+  uniq t'.
+Proof.
+set d := (X in (find X _)); set s := Ordinal lts.
+rewrite uniq_pairwise. 
+apply/(pairwiseP P0) => x y ltx lty xy /=.
+rewrite !inE size_tuple in ltx lty. 
+pose ox := Ordinal ltx; pose oy := Ordinal lty.
+rewrite !(nth_map ord0) -?enumT ?size_enum_ord //=.
+rewrite !tnth_map ?tnth_ord_tuple -?enumT /= -?[X in if X then _ else _](inj_eq val_inj) /= . 
+rewrite !(tnth_nth P0) !nth_enum_ord //.
+have trunc_team : forall s, s < k.+1 -> nth P0 (sort lev (enum 'I_n.+1)) s = nth P0 max_team s. 
+  move=> j ltj.
+  by rewrite (nth_map ord0) /= ?size_enum_ord // nth_enum_ord.
+case: ifP => [/eqP xd|/negbT nxd]. 
+- rewrite -xd ifF; last by rewrite -(inj_eq val_inj) /= -xd nth_enum_ord // gtn_eqF.
+  move: (xd).
+  case: findP => [/hasNfind /eqP|i lti  /(_ ord0) di /(_ ord0) nd xi]; 
+                first by rewrite size_enum_ord ltn_eqF.
+  rewrite size_enum_ord in lti.  
+  rewrite negbT // lt_eqF // (@lt_le_trans _ _ (nth P0 t x)) //.
+  - by rewrite xd trunc_team // ltEval /ltv -!(@tnth_nth _ _ _ _ s) lt_find_max_team. 
+  - by move: st => /(le_sorted_ltn_nth P0) /(_ x y) -> //; rewrite !inE !size_tuple.
+- case: ifP => [yd|_].  
+  - case: findP => [/hasNfind /eqP|i lti]; first by rewrite size_enum_ord ltn_eqF.
+    rewrite size_enum_ord in lti.  
+    move=> /(_ ord0) di /(_ ord0) nd.
+    have [ltxi|] := boolP (x < i)%N.
+    - move: (ltxi) => /nd/negbT. 
+      rewrite negbK !(@tnth_nth _ _ P0) !nth_enum_ord // => /eqP ->.
+      rewrite trunc_team // -(@tnth_nth _ _ _ _ ox) -(@tnth_nth _ _ _ _ (Ordinal lti)).
+      by rewrite uniq_team_values // -(inj_eq val_inj) /= ltn_eqF.
+    - rewrite -leqNgt leq_eqVlt => /orP [/eqP ix|ltix].
+      - by move: di; rewrite ix /d !(@tnth_nth _ _ P0) trunc_team // !nth_enum_ord.
+      - rewrite gt_eqF // (@le_lt_trans _ _ (nth P0 t i)) //.
+        - rewrite trunc_team // leEval /lev !(@tnth_nth _ _ ord0). 
+          have /= := (le_nth_max_team st (Ordinal lti)).
+          by rewrite leEord.
+        - move: st => /(le_sorted_ltn_nth P0) /(_ i x); rewrite !inE !size_tuple.
+          move=>/(_ lti ltx ltix).
+          rewrite le_eqVlt => /orP [/eqP|//]. 
+          apply: contra_eqT => _.
+          rewrite -(@tnth_nth _ _ _ _ (Ordinal lti)) -(@tnth_nth _ _ _ _ ox).
+          by rewrite uniq_team_values // -(inj_eq val_inj) /= ltn_eqF.
+  - rewrite -(@tnth_nth _ _ _ _ ox) -(@tnth_nth _ _ _ _ oy) uniq_team_values //.
+    by rewrite -(inj_eq val_inj) /= ltn_eqF.
+Qed.
+
+Definition max_team_unicity := is_max_team t -> t = max_team.
+
+Lemma uniq_max_team : max_team_unicity.
+Proof.
+have [st xt|] := boolP (sorted lev t); last by exact: unsorted_uniq_max_team.
+move: (xt).
+apply: contraPeq. 
+have := @exists_diff _ _ t max_team => /[apply].   
+set d := (X in find X) => lts; set s := Ordinal lts.      
+pose t' := [tuple if i == s then tnth max_team s else tnth t i | i < k.+1].
+have ltmm' : (M t < M t')%N.
+  rewrite /M (bigD1 s) //= [X in (_ < X)%N](bigD1 s) //=.
+  under [in X in (_ < X)%N]eq_bigr => i ns. 
+    rewrite tnth_map tnth_ord_tuple ifF; last by exact: negbTE.
+    over. 
+  rewrite ltn_add2r ltn_mul2r positive_weights andTb tnth_map tnth_ord_tuple ifT //.
+  exact: lt_find_max_team.
+move: (uniq_set_team st lts) => ut' /(_ (Team ut'))/eqP/maxn_idPl. 
+by rewrite leqNgt ltmm'.
+Qed.
+
+Close Scope order_scope.
+
+End MaxWeightedSubset.
+
+(* This (equivalent) definition is independent of HB. *)
+Definition uniq_max_weightedSubset := forall (q k : nat) (ws : (k.+1).-tuple 'I_q.+1),
+    sorted (fun w w' : 'I_q.+1 => w' < w) ws ->
+    (forall s : 'I_k.+1, 0 < tnth ws s) ->
+    forall m n : nat,
+      k < n ->
+      forall vs : (n.+1).-tuple 'I_m.+1,
+        let: P := 'I_n.+1 in
+        let: team := k.+1.-tuple P in
+        uniq vs -> forall (t : team) (ut : uniq t), 
+            let: M := fun t => (\sum_(i < k.+1) tnth vs (tnth t i) * tnth ws i) in
+            let: is_max_team := 
+              fun (t : team) (ut : uniq t) => 
+                (forall (t' : team) (ut' : uniq t'), 
+                    let: m := M t in maxn m (M t') == m) in
+            let: players := ord_tuple n.+1 in
+            let: lev := fun (p p' : P) => tnth vs p' <= tnth vs p in
+            let: max_team := [tuple nth ord0 (sort_tuple lev players) s | s < k.+1] in
+            is_max_team t ut -> t = max_team.
+
+Definition gen_max_team_unicity :=
+  (forall q k 
+     (ws : (k.+1).-tuple 'I_q.+1) 
+       (sws : sorted (fun w w' : 'I_q.+1 => w' < w) ws)
+       (ws0 : forall s : 'I_k.+1, 0 < tnth ws s)
+     m n 
+     (vs : (n.+1).-tuple 'I_m.+1) (uvs : uniq vs)
+     (kn : k < n) (t : team k n), 
+      @max_team_unicity q k ws m n vs kn t).
+
+Lemma eq_uniqs : gen_max_team_unicity <-> uniq_max_weightedSubset.
+Proof. 
+split=> u. 
+- rewrite /uniq_max_weightedSubset => q k ws sws ws0 m n ltkn vs uvs t ut MX.
+  move: (@u q k ws sws ws0 m n vs uvs ltkn (Team ut)) => /=.
+  have MT : is_max_team ws vs (Team ut) by move=> t'; rewrite MX // ?uniq_team.
+  move=> /(_ MT) /eqP.
+  by rewrite -(inj_eq val_inj) /= => /eqP ->.
+- move=> q k ws sws ws0 m n vs uvs kn t MT. 
+  apply: val_inj => /=.
+  move: (@u _ _ _ sws ws0 _ _ kn _ uvs _ (uniq_team t)).
+  set MX := (X in ((X -> _) -> _)).
+  have mx : MX by move=> t' ut'; exact: (MT (Team ut')).
+  by move=> /(_ mx) {mx} ->.
+Qed.
+
+Print Assumptions eq_uniqs.
+
+
+
+
+
+

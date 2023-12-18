@@ -749,16 +749,11 @@ Qed.
 
 Lemma eq_bid_ctr (j : A) : bid_ctr_agent j = bid_ctr_slot (slot_of j oStar).
 Proof.
-rewrite /bid_ctr_agent /bid_ctr_slot /slot_of. 
-have: tnth oStar (slot_of j oStar) \in oStar.
-  rewrite tnth_mktuple widen_slot_as_agent.
-  case: tnthP => p //.
-  have //=: (∃ s : slot, slot_as_agent (slot_of j oStar) = tnth oStar s)
-    by exists (slot_of j oStar); rewrite tnth_mktuple; apply: val_inj.
+rewrite /bid_ctr_agent /bid_ctr_slot /slot_of.  
+have: tnth oStar (slot_of j oStar) \in oStar by exact: mem_tnth.
 case: tnthP => p; last by rewrite last_ctr_eq0 ?muln0 .
 case: sig_eqW => s' p' //=.
-rewrite -widen_slot_as_agent => _.
-congr ('bid__ * _).
+rewrite -widen_slot_as_agent  => _.
 by rewrite p' tnth_mktuple.
 Qed.
 

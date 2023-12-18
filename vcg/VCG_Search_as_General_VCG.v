@@ -700,12 +700,11 @@ Variable uniq_max_weightedSubset : forall (q k : nat) (ws : (k.+1).-tuple 'I_q.+
             is_max_team t ut -> t = max_team.
 
 Lemma uniq_max_bidSum : 
-  uniq bs -> uniq cs -> (∀ s : slot, 0 < 'ctr_ s) -> singleton max_bidSum_spec.
+  uniq bs -> uniq cs -> 0 < 'ctr_ last_slot -> singleton max_bidSum_spec.
 Proof. 
-move=> ubs ucs pcs x y mx my.
+move=> ubs ucs pls x y mx my.
 have scs : sorted (fun w w' : 'I_q => w' < w) cs. 
-  apply: pairwise_sorted.
-  apply/(pairwiseP ord0) => c c' ltc ltc' cc' /=.
+  apply/pairwise_sorted/(pairwiseP ord0) => c c' ltc ltc' cc' /=.
   rewrite !inE !size_tuple in ltc ltc'.
   move: sorted_ctrs ucs => /= /(_ (Ordinal ltc) (Ordinal ltc') (ltnW cc')).
   rewrite !(@tnth_nth _ _ ord0) leq_eqVlt => /orP [/eqP /[swap] /(uniqP ord0) /(_ c' c) /=| //=].
@@ -714,6 +713,11 @@ have scs : sorted (fun w w' : 'I_q => w' < w) cs.
   exact/val_inj.
 have ltk'n' : k' < n' by exact: lt_k_n.
 pose M x := (\sum_(i < k'.+1) 'bid_ (tnth x i) * 'ctr_ i).
+have pcs : forall s : slot, 0 < 'ctr_s.
+  move=> s.
+  have [/eqP -> //|] := boolP (s == last_slot).
+  rewrite -(inj_eq val_inj) /= neq_ltn => /orP [|]; first by exact: positive_ctrs.
+  by rewrite ltnNge leq_ord.
 have maxx (z : O) : 
   max_bidSum_spec z -> 
   forall t' : k.-tuple 'I_n, 
@@ -1058,7 +1062,7 @@ Variable not_i_in_oStar : i \in oStar = false.
 Let eq_welfare_with_i :
   welfare_with_i = \sum_(s < k) bid_ctr_slot bs s.
 Proof.
-rewrite /welfare_with_i /G.welfare_with_i /G.bidSum_i -/(VCG_oStar bs).
+rewrite /welfare_with_i /G.welfare_with_i /G.bidSum_i -/(VCG_oStar bs). 
 rewrite (uniq_oStar (VCG_oStar_extremum bs) (oStar_extremum bs)) eq_oStar_iota //.
 rewrite (bidsSum_sumBid (fun j => j != i)).
 apply/eqP; rewrite -(eqn_add2l (bidding bs i oStar)); apply/eqP.

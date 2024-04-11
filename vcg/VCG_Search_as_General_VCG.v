@@ -699,10 +699,10 @@ Variable uniq_max_weightedSubset : forall (q k : nat) (ws : (k.+1).-tuple 'I_q.+
             let: max_team := [tuple nth ord0 (sort_tuple lev players) s | s < k.+1] in
             is_max_team t ut -> t = max_team.
 
-Lemma uniq_max_bidSum : 
-  uniq bs -> uniq cs -> 0 < 'ctr_ last_slot -> singleton max_bidSum_spec.
+Lemma lt0c_max_bidSum : 
+  uniq bs -> uniq cs -> (forall s : slot, 0 < 'ctr_s) -> singleton max_bidSum_spec.
 Proof. 
-move=> ubs ucs pls x y mx my.
+move=> ubs ucs pcs x y mx my.
 have scs : sorted (fun w w' : 'I_q => w' < w) cs. 
   apply/pairwise_sorted/(pairwiseP ord0) => c c' ltc ltc' cc' /=.
   rewrite !inE !size_tuple in ltc ltc'.
@@ -713,11 +713,6 @@ have scs : sorted (fun w w' : 'I_q => w' < w) cs.
   exact/val_inj.
 have ltk'n' : k' < n' by exact: lt_k_n.
 pose M x := (\sum_(i < k'.+1) 'bid_ (tnth x i) * 'ctr_ i).
-have pcs : forall s : slot, 0 < 'ctr_s.
-  move=> s.
-  have [/eqP -> //|] := boolP (s == last_slot).
-  rewrite -(inj_eq val_inj) /= neq_ltn => /orP [|]; first by exact: positive_ctrs.
-  by rewrite ltnNge leq_ord.
 have maxx (z : O) : 
   max_bidSum_spec z -> 
   forall t' : k.-tuple 'I_n, 
@@ -735,6 +730,10 @@ apply: esym.
 have wy := (@uniq_max_weightedSubset _ _ _ scs pcs _ _ ltk'n' _ ubs _ (ouniq y) (maxx y my)).
 exact: (eq_trans _ (esym wx)).
 Qed.
+
+Conjecture k1n_max_bidSum : 
+  uniq bs -> uniq cs -> k.+1 == n -> (forall s : slot, s < last_slot -> 0 < 'ctr_s) -> 
+  singleton max_bidSum_spec.
 
 Variable uniq_oStar : singleton max_bidSum_spec.
 
@@ -1515,31 +1514,29 @@ move: (@elimT _ _ (tnthP oStar_i ('lab'_j)) jino_i).
 case: tnthP => [pj /=|//]. 
 case: sig_eqW => sj psj _ //=.
 have: 'lab'_j = tnth oStar_i (inord j); last by rewrite psj; move/(@o_injective oStar_i).
-- have [] := boolP (j < i) => [ltji|].
-  have ltjk'1 : j < k'.+1 by exact: ltn_trans ltji (mem_oStar_inv i_in_oStar).
+have [] := boolP (j < i) => [ltji|].
+- have ltjk'1 : j < k'.+1 by exact: ltn_trans ltji (mem_oStar_inv i_in_oStar).
   rewrite eq_lab'_id ?id_tuple_i ?tnth_mktuple // ?inordK //.
   by apply: val_inj => /=; rewrite inordK.
 - rewrite -leqNgt => leij.
   have [] := boolP (j < k') => [ltjk'|].
-  have ltjn': j < n'.
-    move: lt_k_n; rewrite -subn_gt0 subSS subn_gt0.
-    exact: ltn_trans ltjk'.
-  have ltjk: j < k by exact: ltn_trans ltjk' (ltnSn k').
-  rewrite eq_lab'_succ // shifted_tuple_i // ?inordK //.
-  rewrite tnth_mktuple; apply: val_inj => /=.
-  by rewrite !eq_proper_addS /= ?inordK.
-- rewrite -leqNgt leq_eqVlt => /orP [/eqP eqk'j|];
-    last by have -> : (k' < j) = false by 
-      move: jino; apply: contraTF => /(not_in_oStar sorted_bs0)/negbT.
-  have ltjn': j < n' by rewrite -eqk'j; apply: lt_k_n.
-  rewrite eq_lab'_succ //.   
-  have -> : tnth oStar_i (inord j) = tnth oStar_i ord_max.
-    congr tnth.
+  - have ltjn': j < n' by move: lt_k_n; rewrite -subn_gt0 subSS subn_gt0; exact: ltn_trans ltjk'.
+    have ltjk: j < k by exact: ltn_trans ltjk' (ltnSn k').
+    rewrite eq_lab'_succ // shifted_tuple_i // ?inordK //.
+    rewrite tnth_mktuple; apply: val_inj => /=.
+    by rewrite !eq_proper_addS /= ?inordK.
+  - rewrite -leqNgt leq_eqVlt => /orP [/eqP eqk'j|];
+      last by have -> : (k' < j) = false by 
+        move: jino; apply: contraTF => /(not_in_oStar sorted_bs0)/negbT.
+    have ltjn': j < n' by rewrite -eqk'j; apply: lt_k_n.
+    rewrite eq_lab'_succ //.   
+    have -> : tnth oStar_i (inord j) = tnth oStar_i ord_max.
+      congr tnth.
+      apply: val_inj => /=.
+      by rewrite inordK ?eq_sym // -eqk'j ltnSn.
+    rewrite last_tuple_i /= /succ_last_slot_agent.
     apply: val_inj => /=.
-    by rewrite inordK ?eq_sym // -eqk'j ltnSn.
-  rewrite last_tuple_i /= /succ_last_slot_agent.
-  apply: val_inj => /=.
-  by rewrite eq_proper_addS /= inordK eqk'j.
+    by rewrite eq_proper_addS /= inordK eqk'j.
 Qed.
 
 Let argmax_bidSum'' : VCG_bidSum'' [arg max_(o > o0) VCG_bidSum'' o] = VCG_bidSum'' oStar_i.
@@ -1559,7 +1556,7 @@ congr (_ + _).
   rewrite !tnth_mktuple !ffunE ifT //; last by move/ltn_eqF/negbT: (ltji).
   rewrite /t_bidding /bid_in id_tuple_i //.
   move: (eq_in_oStars j); rewrite eq_lab'_id // => <-.
-  have [] // := boolP (j \in t_oStar) => inoS.
+  case: ifP => inoS //.
   by rewrite eq_slots ?eq_lab'_id.
 - rewrite (bigID (fun j => j == i)) [in RHS](bigID (fun j => j == last_agent)) /=. 
   congr (_ + _).
@@ -1580,7 +1577,7 @@ congr (_ + _).
       last by move/gtn_eqF/negbT: (leq_ltn_trans leij (lt_ord_succ ltjn')).
     rewrite /t_bidding /bid_in shifted_tuple_i //.
     move: (eq_in_oStars j); rewrite eq_lab'_succ /agent_succ // => <-.
-    have [] // := boolP (j \in t_oStar) => inoS.
+    case: ifP => inoS //.
     by rewrite eq_slots ?eq_lab'_succ.
 Qed.
 
@@ -1765,7 +1762,7 @@ have eqlabiota: map_tuple (tnth (tlabel bs)) oStar =
   apply: eq_from_tnth => s.
   rewrite !tnth_map. 
   congr tnth.
-  exact: val_inj.   
+  exact: val_inj.    
 set s1 := (X in X <= _ -> _); set s2 := (X in _ -> X <= _).
 have -> : s1 = s2.
   apply: eq_bigr => j _.

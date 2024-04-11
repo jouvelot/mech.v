@@ -731,8 +731,16 @@ have wy := (@uniq_max_weightedSubset _ _ _ scs pcs _ _ ltk'n' _ ubs _ (ouniq y) 
 exact: (eq_trans _ (esym wx)).
 Qed.
 
+(* If we assume that 
+   - there are only n.-1 actual agents (the 'n' bidder is reserved to handle the without_i case
+     and is not provided in the General_VCG instance), 
+     i.e., 0, 1 ... n.-2
+   - there are k' actual slots to allocate (the k-th is used as last_slot), 
+     i.e., 0, 1 ... k'', k'
+  then slot k' must correspond to agent n.-2 to ensure unicity of omega*. *)
+
 Conjecture k1n_max_bidSum : 
-  uniq bs -> uniq cs -> k.+1 == n -> (forall s : slot, s < last_slot -> 0 < 'ctr_s) -> 
+  uniq bs -> uniq cs -> k == n' -> (forall s : slot, s < last_slot -> 0 < 'ctr_s) -> 
   singleton max_bidSum_spec.
 
 Variable uniq_oStar : singleton max_bidSum_spec.

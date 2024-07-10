@@ -332,7 +332,6 @@ rewrite !idxa_as_index //= => /orP [pre|post].
   - have : nth tt0 t' (index (tnth s j) t') = tnth s j  by admit.
     rewrite sort_differ //.
     case: ifP.
-  Search (index _).
 Admitted.
 
 End Test.

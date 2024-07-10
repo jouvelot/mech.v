@@ -30,7 +30,7 @@
 
 *)
 
-From Coq Require Import Init.Prelude Unicode.Utf8.
+From Coq Require Import Init.Prelude Unicode.Utf8 Logic.FunctionalExtensionality.
 From mathcomp Require Import all_ssreflect.
 
 Set Implicit Arguments.
@@ -211,21 +211,14 @@ rewrite bidSumE (perm_big bs) ?permbsbs' //= relabi -bidSumE /bidSum.
 by rewrite [\sum_(j < n) _](bigD1 i).
 Qed.
 
-Definition max_bidSum_spec := (@extremum_spec [eqType of nat] geq O predT (bidSum bs)).
-
-Lemma eq_oStar (uniq_oStar : singleton max_bidSum_spec) : oStar o0 bs = oStar o0 bs'.
+Lemma eq_oStar : oStar o0 bs = oStar o0 bs'.
 Proof.
-apply: uniq_oStar; first by exact: arg_maxnP.
-rewrite /max_bidSum_spec.
-have true_oStar: predT oStar by [].
-have max_oStar (o : O) : predT o → geq (bidSum bs (oStar o0 bs')) (bidSum bs o).
-  move=> _ /=.
-  by rewrite !perm_bidSum -(bigmax_eq_arg o0) // leq_bigmax.
-exact: ExtremumSpec.
+congr arg_max. 
+apply: functional_extensionality_dep => o.
+exact: perm_bidSum.
 Qed.
 
-Lemma relabelled_price (uniq_oStar : singleton max_bidSum_spec) : 
-  @price O o0 i' bs' = @price O o0 i bs.
+Lemma relabelled_price : @price O o0 i' bs' = @price O o0 i bs.
 Proof.
 congr (_ - _); last by rewrite /welfare_with_i eq_oStar // perm_bidSum_i.
 rewrite /welfare_without_i. 

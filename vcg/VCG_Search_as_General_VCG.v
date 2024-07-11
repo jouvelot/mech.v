@@ -224,6 +224,55 @@ apply: (labelling_inj bs) => //.
 exact: (tlabelP bs).
 Qed.
 
+Definition set_o (o : O) (s : 'I_k) (a : A) :=
+  mktuple (fun s' => if s == s' then a else tnth o s').
+
+Lemma uniq_set_o (o : O) s a : (forall x, tnth o x != a) -> uniq (set_o o s a).
+Proof.
+move=> out /=.
+rewrite map_inj_uniq ?enum_uniq// => x y.
+case: ifP => [/eqP|].
+- case: ifP => [/eqP <- <- //| nsy _ /eqP].
+  by rewrite -(negbK (a == tnth o y)) eq_sym out.
+- case: ifP => [_ _ /eqP|_ _ /o_injective//].
+  by rewrite -(negbK (tnth o x == a)) out.
+Qed.  
+
+Lemma set_o_tnth (o : O) (s : 'I_k) (a : A) : tnth (set_o o s a) s = a.
+Proof. by rewrite tnth_map tnth_ord_tuple eq_refl. Qed.
+
+Lemma tuple_tperm_in a (o : O) s s' : (a \in tuple_tperm s s' o) = (a \in o).
+Proof.
+apply/tnthP/tnthP => [[sa pa]|[sa pa]]. 
+- by rewrite /tuple_tperm tnth_map tnth_ord_tuple in pa; exists (tperm s s' sa).
+- have [/eqP ->|nsa] := boolP (s == sa).
+  - by exists s'; rewrite tnth_map tnth_ord_tuple tpermR.
+  - have [/eqP ->|ns'] := boolP (s' == sa).
+    by exists s; rewrite tnth_map tnth_ord_tuple tpermL.
+  - by exists sa; rewrite tnth_map tnth_ord_tuple tpermD.
+Qed.
+
+Lemma not_in_set_o (o : O) s j a (nja : j != a) (njo : (j \in o) = false) : 
+  (j \in set_o o s a) = false.
+Proof. 
+move: njo.
+apply: contraFF => /= /tnthP [js ps].
+apply/tnthP.
+exists js.
+move: ps; rewrite tnth_map tnth_ord_tuple. 
+by case: ifP => [_ /eqP|//]; first by rewrite -(negbK (j == a)) nja.
+Qed.
+
+Lemma not_tnth_in_set_o (o : O) s  a (nja : tnth o s != a) : 
+  (tnth o s \in set_o o s a) = false. 
+Proof.
+move: nja.
+apply: contra_neqF => /tnthP [ja].
+rewrite tnth_map tnth_ord_tuple.
+case: ifP => [//|nsja /o_injective /eqP].
+by rewrite nsja.
+Qed.
+
 (* Slot of an agent in an outcome. *)
 
 Section SlotOf.
@@ -690,66 +739,114 @@ Definition bidSum_extremum_rel :=
   forall (o1 o2 : O) (mx1 : max_bidSum_spec o1) (mx2 : max_bidSum_spec o2),
     uniq bs -> uniq cs -> forall s, 'ctr_s != ctr0 -> tnth o1 s = tnth o2 s.
 
-Definition set_O (o : O) (s : 'I_k) (a : A) :=
-  mktuple (fun s' => if s == s' then a else tnth o s').
-
-Lemma uniq_set_O (o : O) s a : (forall x, tnth o x != a) -> uniq (set_O o s a).
+Lemma eq_bidSum_out (o : O) s  s' :
+  let o' := Outcome (tuple_tperm_uniq s' s (ouniq o)) in
+  let os := tnth o s in
+  let os' := tnth o s' in
+  os != os' -> 
+  \sum_(i < n | (i != os') && (i != os)) tnth (biddings bs) i o  =
+  \sum_(i < n | (i != os') && (i != os)) tnth (biddings bs) i o'. 
 Proof.
-move=> out /=.
-rewrite map_inj_uniq ?enum_uniq// => x y.
-case: ifP => [/eqP|].
-- case: ifP => [/eqP <- <- //| nsy _ /eqP].
-  by rewrite -(negbK (a == tnth o y)) eq_sym out.
-- case: ifP => [_ _ /eqP|_ _ /o_injective//].
-  by rewrite -(negbK (tnth o x == a)) out.
-Qed.  
-
-Lemma set_O_tnth (o : O) (s : 'I_k) (a : A) : tnth (set_O o s a) s = a.
-Proof. by rewrite tnth_map tnth_ord_tuple eq_refl. Qed.
-
-Lemma tuple_tperm_in a (o : O) s s' : (a \in tuple_tperm s s' o) = (a \in o).
-Proof.
-apply/tnthP/tnthP => [[sa pa]|[sa pa]]. 
-- by rewrite /tuple_tperm tnth_map tnth_ord_tuple in pa; exists (tperm s s' sa).
-- have [/eqP ->|nsa] := boolP (s == sa).
-  - by exists s'; rewrite tnth_map tnth_ord_tuple tpermR.
-  - have [/eqP ->|ns'] := boolP (s' == sa).
-    by exists s; rewrite tnth_map tnth_ord_tuple tpermL.
-  - by exists sa; rewrite tnth_map tnth_ord_tuple tpermD.
+move=> o' s2 s2' diff2.
+rewrite /s2 /s2'.
+apply: eq_big => [a //|a /andP [ia' ia]].
+rewrite /biddings /bidding /t_bidding !tnth_map !ffunE !tnth_ord_tuple tuple_tperm_in.
+case: ifP => [ao|//].
+rewrite /o'/= -{4}(@cancel_slot_inv o a)//.
+rewrite tperm_slot !tpermD ?cancel_slot//.
+move: (ia'); apply: contra_neq => ->; rewrite cancel_slot_inv//.
+by move: (ia); apply: contra_neq => ->; rewrite cancel_slot_inv.
 Qed.
 
-Lemma not_in_set_O (o : O) s j a (nja : j != a) (njo : (j \in o) = false) : 
-  (j \in set_O o s a) = false.
-Proof. 
-move: njo.
-apply: contraFF => /= /tnthP [js ps].
-apply/tnthP.
-exists js.
-move: ps; rewrite tnth_map tnth_ord_tuple. 
-by case: ifP => [_ /eqP|//]; first by rewrite -(negbK (j == a)) nja.
-Qed.
-
-Lemma not_tnth_in_set_O (o : O) s  a (nja : tnth o s != a) : 
-  (tnth o s \in set_O o s a) = false. 
-move: nja.
-apply: contra_neqF => /tnthP [ja].
-rewrite tnth_map tnth_ord_tuple.
-case: ifP => [//|nsja /o_injective /eqP].
-by rewrite nsja.
-Qed.
-
-Lemma ltn_swap (a b x y : nat) : x < y -> a < b -> x * b + y * a < y * b + x * a.
+Lemma lt_bidSum0 (o1 o2 : O) s s' (p1 : tnth o2 s' = tnth o1 s) 
+  (l21 : 'bid_ (tnth o2 s) < 'bid_ (tnth o1 s)) : 
+  let o2' :=  (Outcome (tuple_tperm_uniq s' s (ouniq o2))) in
+  'ctr_ s != ctr0 ->
+  'ctr_ s' = ctr0  -> 
+  tnth o2 s != tnth o2 s' -> 
+  bidSum o2 < bidSum o2'.
 Proof.
-move=>xy ab.
-rewrite -ltn_subRL.
-rewrite -addnBAC ?leq_pmul2r ?(ltnW xy)//; last by rewrite (leq_ltn_trans (leq0n a) ab).
-rewrite -mulnBl// -(ltn_add2l (y * a)) -ltn_subRL -(addnC (x * a)) addnA -addnBAC ?leq_addr//.
-rewrite -mulnDl// -mulnBl -subnBA ?(ltnW xy)// mulnBl -addnABC; last first.
-- case: (y - x) => [|n]; first by rewrite !mul0n.
-  by rewrite leq_pmul2l// ltnW.
-- case: a ab => [|n]; first by rewrite !muln0.
-  by rewrite leq_pmul2r// ?leq_subr.
-- by rewrite -{1}(addn0 (y * a)) ltn_add2l -mulnBr muln_gt0 !subn_gt0 xy ab.
+move=> o2' ns0 cs'0 diff2.
+rewrite /bidSum /G.bidSum. 
+rewrite (bigD1 (tnth o2 s'))//= [X in _ < X](bigD1 (tnth o2 s'))//=.
+rewrite (bigD1 (tnth o2 s))//= [X in _ < _ + X](bigD1 (tnth o2 s))//=.
+rewrite !addnA [X in X + _]addnC.
+rewrite /biddings !tnth_map !tnth_ord_tuple /bidding !ffunE /t_bidding. 
+rewrite !mem_tnth !ifT ?tperm_slot ?cancel_slot ?tuple_tperm_in ?mem_tnth//. 
+rewrite /bid_in tpermL tpermR !cs'0/= !muln0 !addn0 {2}p1.  
+by rewrite eq_bidSum_out// ltn_add2r ltn_mul2r l21 lt0n ns0.
+Qed.
+
+Lemma lt_bidSum (ucs : uniq cs) (o1 o2 : O) s s' (p1 : tnth o2 s' = tnth o1 s) 
+  (l21 : 'bid_ (tnth o2 s) < 'bid_ (tnth o1 s)) : 
+  let o2' :=  (Outcome (tuple_tperm_uniq s' s (ouniq o2))) in
+  'ctr_ s != ctr0 ->
+  'ctr_ s' != ctr0  -> 
+  s < s' ->
+  tnth o2 s != tnth o2 s' -> 
+  bidSum o2 < bidSum o2'.
+Proof.
+move=> o2' ns0 cs'0 ss' diff2.
+rewrite /bidSum /G.bidSum. 
+rewrite (bigD1 (tnth o2 s'))//= [X in _ < X](bigD1 (tnth o2 s'))//=.
+rewrite (bigD1 (tnth o2 s))//= [X in _ < _ + X](bigD1 (tnth o2 s))//=.
+rewrite !addnA [X in X + _]addnC.
+rewrite /biddings !tnth_map !tnth_ord_tuple /bidding !ffunE /t_bidding. 
+rewrite !mem_tnth !ifT ?tperm_slot ?cancel_slot ?tuple_tperm_in ?mem_tnth//. 
+rewrite /bid_in tpermL tpermR. 
+rewrite eq_bidSum_out// ltn_add2r ltn_swap// ?p1//.
+move: (@sorted_ctrs s s') => /=/(_ (ltnW ss')).
+rewrite leq_eqVlt => /orP [/eqP eqc|//]. 
+have : 'ctr_ s' = 'ctr_ s by apply: val_inj.
+move: ucs => /(tuple_uniqP ctr0)/[apply]/eqP.
+by rewrite -(inj_eq val_inj)/= gtn_eqF.
+Qed.
+
+Lemma lt_bidSum_out (o1 o2 : O) s  
+  (l21 : 'bid_ (tnth o2 s) < 'bid_ (tnth o1 s)) 
+  (out2 : ∀ x : ordinal_finType k, tnth o2 x != tnth o1 s) : 
+  let o2' :=  Outcome (uniq_set_o s out2) in
+  'ctr_ s != ctr0 -> bidSum o2 < bidSum o2'.
+Proof.
+move=> o2' ns0.
+rewrite /bidSum /G.bidSum. 
+rewrite (bigD1 (tnth o2 s))//= [X in _ < X](bigD1 (tnth o2' s))//=.
+rewrite /biddings !tnth_map !tnth_ord_tuple /bidding !ffunE /t_bidding. 
+rewrite !mem_tnth !eq_refl. 
+have o1o2' : tnth o1 s = tnth o2' s by rewrite set_o_tnth.
+rewrite o1o2' !mem_tnth ?cancel_slot. 
+under eq_bigr => j j2. by rewrite tnth_map tnth_ord_tuple ffunE; over. 
+rewrite -o1o2'.
+under [X in _ < _ + X]eq_bigr => j j2. by rewrite tnth_map tnth_ord_tuple ffunE; over.
+have An : associative addn by move=> x y z; rewrite addnA.
+have Cn : commutative addn by move=> x y; rewrite addnC.
+rewrite big_mkcond_idem//= [X in _ < _ + X]big_mkcond_idem//=.
+set S := (X in _ + X < _); set S' := (X in _ < _ + X).
+have -> : S = S'. 
+  apply: eq_bigr => j _.
+  case: ifP => [|/negbFE /eqP nj2].
+  - case: ifP. 
+    - case: ifP => [nj1 /tnthP [j2 p2] nj2|/negbFE /eqP -> /tnthP [x] /eqP]. 
+      - rewrite ifT.
+        - congr bid_in.
+          rewrite p2 cancel_slot /slot_of.
+          case: tnthP => [w|].
+          - case: sig_eqW => s'' p' /=.
+            move: (p'); rewrite tnth_map tnth_ord_tuple.
+            case: ifP => [/eqP _|_ /o_injective -> //].
+            rewrite -p2 => /eqP.
+            by rewrite -(negbK (j == tnth o1 s)) nj1.
+          - have // : ∃ i0 : 'I_k, tnth o2 j2 = tnth (set_o o2 s (tnth o1 s)) i0.
+              exists j2; rewrite tnth_map tnth_ord_tuple ifF //.
+              move: nj2; rewrite p2.
+              by apply: contra_neqF => /eqP ->.
+        - apply/tnthP; exists j2; rewrite tnth_map tnth_ord_tuple ifF//.
+          by move: nj2; rewrite p2; apply: contra_neqF => /eqP ->.
+      - by rewrite -(negbK (tnth o1 s == tnth o2 x)) eq_sym out2.
+    - by case: ifP => [nj2 nj2s|//]; first by rewrite ifF// not_in_set_o.
+  - by case: ifP => //; first rewrite nj2 not_tnth_in_set_o. 
+rewrite ltn_add2r ltn_mul2r l21 lt0n.
+by move: ns0; rewrite -(inj_eq val_inj)/= => ->.
 Qed.
 
 Lemma bidSum_extremums : bidSum_extremum_rel.
@@ -765,8 +862,7 @@ wlog: o1 o2  mx1 mx2 IH / 'bid_ (tnth o2 os) <= 'bid_ (tnth o1 os) => [P|].
   move: (leq_total ('bid_ (tnth o1 os)) ('bid_ (tnth o2 os)))
       => /orP [l12|l21]; last by rewrite (P _ _  mx1 mx2 IH).
   have IH' : ∀ s : nat,
-     s < m
-     → ∀ i : s < k, 'ctr_ (Ordinal i) != ctr0 → tnth o2 (Ordinal i) = tnth o1 (Ordinal i).
+      s < m → ∀ i : s < k, let: oi := Ordinal i in 'ctr_ oi != ctr0 → tnth o2 oi = tnth o1 oi.
     by move=> s' sm' s'k cs'k0; rewrite IH.
   by rewrite (P _ _ mx2 mx1 IH').
 rewrite leq_eqVlt => /orP [/eqP o2o1|l21].
@@ -774,45 +870,24 @@ rewrite leq_eqVlt => /orP [/eqP o2o1|l21].
   apply: val_inj => /=.
   by rewrite o2o1. 
 - have [/existsP [s' /eqP p1]|] := boolP ([exists s', tnth o2 s' == tnth o1 os]). 
-  - pose o2' := Outcome (tuple_tperm_uniq s' os (ouniq o2)). 
-    have subbidSum : 'ctr_ s' = ctr0  -> tnth o2 os != tnth o2 s' -> bidSum o2 < bidSum o2'. 
-      move=> cs'0 diff2.
-      rewrite /bidSum /G.bidSum. 
-      rewrite (bigD1 (tnth o2 s'))//= [X in _ < X](bigD1 (tnth o2 s'))//=.
-      rewrite (bigD1 (tnth o2 os))//= ?[X in _ < _ + X](bigD1 (tnth o2 os))//=.
-      rewrite !addnA [X in X + _]addnC.
-      rewrite /biddings !tnth_map !tnth_ord_tuple /bidding !ffunE /t_bidding. 
-      rewrite !mem_tnth !ifT ?tperm_slot ?cancel_slot ?tuple_tperm_in ?mem_tnth//. 
-      rewrite /bid_in tpermL tpermR !cs'0/= !muln0 !addn0 {2}p1.
-      set S := (X in _ + X < _); set S' := (X in _ < _ + X).
-      have -> : S = S'. 
-        apply: eq_big => [a //|a /andP [ia' ia]].
-        rewrite !tnth_map !ffunE !tnth_ord_tuple tuple_tperm_in.
-        case: ifP => [ao2|//].
-        rewrite /o2'/= -{4}(@cancel_slot_inv o2 a)//.
-        rewrite tperm_slot !tpermD ?cancel_slot//.
-        move: (ia'); apply: contra_neq => ->; rewrite cancel_slot_inv//.
-        by move: (ia); apply: contra_neq => ->; rewrite cancel_slot_inv//.
-      by rewrite ltn_add2r ltn_mul2r l21 lt0n ns0. 
+  - pose o2' := Outcome (tuple_tperm_uniq s' os (ouniq o2)).
     have [s's|] := boolP (s' < s). 
     - have diff2 : tnth o2 os != tnth o2 s'.  
           move: (ltn_eqF s's).
           apply: contraFneq => /o_injective/eqP.
           by rewrite -(inj_eq val_inj)/= eq_sym.
       have [/eqP cs'0|ncs'] := boolP ('ctr_ s' == ctr0 ). 
-      - move: (subbidSum cs'0 diff2).
+      - move: (lt_bidSum0 p1 l21 ns0 cs'0 diff2); rewrite -/o2'.
         case: mx2 => x2 _ /(_ o2' erefl) /=.
         by rewrite ltnNge => ->.
-      - move: (s's).
-        rewrite sm => s'm.
+      - move: (s's); rewrite sm => s'm.
         move: (IH _ s'm (ltn_ord s')) ncs'.
         have -> : (Ordinal (ltn_ord s')) = s' by apply: val_inj.
         move=> /[apply].
         rewrite p1 => /o_injective /eqP.
         by rewrite -(inj_eq val_inj)/= ltn_eqF. 
     - rewrite -leqNgt leq_eqVlt => /orP [/eqP ss'|ss'].
-      - move: l21. 
-        rewrite -p1.
+      - move: l21; rewrite -p1.
         have -> : tnth o2 s' = tnth o2 os.
           by congr tnth; apply/eqP; rewrite -(inj_eq val_inj)/= ss'.
         by rewrite ltnn.
@@ -821,86 +896,14 @@ rewrite leq_eqVlt => /orP [/eqP o2o1|l21].
          apply: contraFneq => /o_injective/eqP.
          by rewrite -(inj_eq val_inj)/= eq_sym.
        have [/eqP cs'0|ncs'] := boolP ('ctr_ s' == ctr0 ). 
-        - move: (subbidSum cs'0 diff2).
-          case: mx2 => x2 _ /(_ o2' erefl) /=.
-          by rewrite ltnNge => ->. 
-        - have : bidSum o2 < bidSum o2'. 
-           rewrite /bidSum /G.bidSum. 
-           rewrite (bigD1 (tnth o2 s'))//= [X in _ < X](bigD1 (tnth o2 s'))//=.
-           rewrite (bigD1 (tnth o2 os))//= ?[X in _ < _ + X](bigD1 (tnth o2 os))//=.
-           rewrite !addnA [X in X + _]addnC.
-           rewrite /biddings !tnth_map !tnth_ord_tuple /bidding !ffunE /t_bidding. 
-           rewrite !mem_tnth !ifT ?tperm_slot ?cancel_slot ?tuple_tperm_in ?mem_tnth//. 
-           rewrite /bid_in tpermL tpermR. 
-           set S := (X in _ + X < _); set S' := (X in _ < _ + X).
-           have -> : S = S'. 
-             apply: eq_big => [a //|a /andP [ia' ia]].
-             rewrite !tnth_map !ffunE !tnth_ord_tuple tuple_tperm_in.
-             case: ifP => [ao2|//].
-             rewrite /o2'/= -{4}(@cancel_slot_inv o2 a)//.
-             rewrite tperm_slot !tpermD ?cancel_slot//.
-             move: (ia'); apply: contra_neq => ->; rewrite cancel_slot_inv//.
-             by move: (ia); apply: contra_neq => ->; rewrite cancel_slot_inv.
-           rewrite ltn_add2r ltn_swap// ?p1//.
-           move: (@sorted_ctrs os s') => /=/(_ (ltnW ss')).
-           rewrite leq_eqVlt => /orP [/eqP eqc|//]. 
-           have : 'ctr_ s' = 'ctr_ os by apply: val_inj.
-           move: ucs => /(tuple_uniqP ctr0)/[apply]/eqP.
-           by rewrite -(inj_eq val_inj)/= gtn_eqF.
-         case: mx2 => x2 _ /(_ o2' erefl) /=.      
-         by rewrite ltnNge => ->.
+        - move: (lt_bidSum0 p1 l21 ns0 cs'0 diff2); rewrite -/o2'.
+          case: mx2 => x2 _ /(_ o2' erefl) /=; last by rewrite ltnNge => ->.  
+        - move: (lt_bidSum ucs p1 l21 ns0 ncs' ss' diff2); rewrite -/o2'.
+          case: mx2 => x2 _ /(_ o2' erefl) /=; last by rewrite ltnNge => ->.
   - rewrite negb_exists => /forallP out2.
-    pose o2' := Outcome (uniq_set_O os out2).
-    have : bidSum o2 < bidSum o2'.  
-      rewrite /bidSum /G.bidSum. 
-      rewrite (bigD1 (tnth o2 os))//= [X in _ < X](bigD1 (tnth o2' os))//=.
-      rewrite /biddings !tnth_map !tnth_ord_tuple /bidding !ffunE /t_bidding. 
-      rewrite !mem_tnth !eq_refl. 
-      have o1o2' : tnth o1 os = tnth o2' os by rewrite set_O_tnth.
-      rewrite o1o2' !mem_tnth ?cancel_slot.
-      under eq_bigr => j j2. by rewrite tnth_map tnth_ord_tuple ffunE; over.
-      under [X in _ < _ + X]eq_bigr => j j2. 
-        by rewrite tnth_map tnth_ord_tuple ffunE; over.
-      rewrite -o1o2'. 
-      have An : associative addn by move=> x y z; rewrite addnA.
-      have Cn : commutative addn by move=> x y; rewrite addnC.
-      rewrite big_mkcond_idem//= [X in _ < _ + X]big_mkcond_idem//=.
-      set S := (X in _ + X < _); set S' := (X in _ < _ + X).
-      have -> : S = S'. 
-        apply: eq_bigr => j _.
-        case: ifP => [|/negbFE /eqP nj2].
-        - case: ifP. 
-          - case: ifP => [nj1 /tnthP [j2 p2] nj2|/negbFE /eqP -> /tnthP [x] /eqP].
-            - rewrite ifT.
-              have -> // : slot_of j (set_O o2 os (tnth o1 os)) = slot_of j o2. 
-                rewrite p2 cancel_slot /slot_of.
-                case: tnthP => [w|].
-                - case: sig_eqW => s' p' /=.
-                  move: (p').
-                  rewrite tnth_map tnth_ord_tuple.
-                  case: ifP => [/eqP _|_ /o_injective -> //].
-                  rewrite -p2 => /eqP.
-                  by rewrite -(negbK (j == tnth o1 os)) nj1.
-                - have // : ∃ i0 : 'I_k, tnth o2 j2 = tnth (set_O o2 os (tnth o1 os)) i0.
-                    exists j2.
-                    rewrite tnth_map tnth_ord_tuple ifF //.
-                    move: nj2.
-                    rewrite p2.
-                    by apply: contra_neqF => /eqP ->.
-              apply/tnthP.
-              exists j2.
-              rewrite tnth_map tnth_ord_tuple ifF//.
-              rewrite p2 in nj2.
-              move: nj2.
-              by apply: contra_neqF => /eqP ->.
-            - by rewrite -(negbK (tnth o1 os == tnth o2 x)) eq_sym out2.
-          - by case: ifP => [nj2 nj2s|//]; first by rewrite ifF// not_in_set_O.
-        - by case: ifP => //; first rewrite nj2 not_tnth_in_set_O. 
-      rewrite ltn_add2r ltn_mul2r l21 lt0n.
-      rewrite -(inj_eq val_inj)/= in ns0.
-      by rewrite ns0.
-    case: mx2 => x2 _ /(_ o2' erefl) /=.      
-    by rewrite ltnNge => ->.
+    pose o2' := Outcome (uniq_set_o os out2). 
+    move: (lt_bidSum_out l21 out2 ns0); rewrite -/o2'.
+    by case: mx2 => x2 _ /(_ o2' erefl) /=; last by rewrite ltnNge => ->.
 Qed.
 
 Variable sorted_bs : sorted_bids bs.
@@ -1970,7 +1973,6 @@ rewrite eq_sorted_VCG_price //; last first.
 - exact: sorted_bids_sorted.
 - by congr G.price; rewrite sorted_relabelled_biddings. 
 Qed.
-
 
 End VCGforSearchPrice.
 

@@ -940,7 +940,7 @@ by apply: val_inj => /=; rewrite inordK.
 Qed.
 
 End Surplus.
-
+ 
 Check truthful_VCG_for_Search_dir.
 Print Assumptions truthful_VCG_for_Search_dir.
 

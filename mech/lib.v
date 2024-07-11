@@ -42,6 +42,20 @@ rewrite !neq_ltn (@ltnNge c1) (@ltnNge b1) leb2b1 lec2c1 /= !orbF => ltc2c1 ltb2
 by rewrite ltnW // -subn_gt0 -f muln_gt0 2!subn_gt0 ltb2b1 ltc2c1.
 Qed.
 
+Lemma ltn_swap (a b x y : nat) : x < y -> a < b -> x * b + y * a < y * b + x * a.
+Proof.
+move=>xy ab.
+rewrite -ltn_subRL.
+rewrite -addnBAC ?leq_pmul2r ?(ltnW xy)//; last by rewrite (leq_ltn_trans (leq0n a) ab).
+rewrite -mulnBl// -(ltn_add2l (y * a)) -ltn_subRL -(addnC (x * a)) addnA -addnBAC ?leq_addr//.
+rewrite -mulnDl// -mulnBl -subnBA ?(ltnW xy)// mulnBl -addnABC; last first.
+- case: (y - x) => [|n]; first by rewrite !mul0n.
+  by rewrite leq_pmul2l// ltnW.
+- case: a ab => [|n]; first by rewrite !muln0.
+  by rewrite leq_pmul2r// ?leq_subr.
+- by rewrite -{1}(addn0 (y * a)) ltn_add2l -mulnBr muln_gt0 !subn_gt0 xy ab.
+Qed.
+
 Lemma lenn1 j (lt0j : 0 < j) : j <= j.-1 = false.
 Proof. by rewrite -[X in (X <= _) = _](prednK lt0j) ltnn. Qed.
 

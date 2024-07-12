@@ -76,37 +76,41 @@ Section Rationality.
 
 Variable (bs : bids) (a : A). 
 
-Definition value := true_value a * 'ctr_(slot_won bs a).
-
 Notation bs' := (tsort bs). 
 Notation i := (idxa bs a).
 
 Variable (awins : i < S.k').
 
-Variable (value_is_bid : bid_in bs' i (slot_won bs a) = value).
+Variable bidding_true_value : tnth bs a = true_value a.
+
+Definition value := true_value a * 'ctr_(slot_won bs a).
+
+Lemma value_is_bid_in : bid_in bs' i (slot_won bs a) = value.
+Proof. by rewrite /bid_in /value -bidding_true_value (labelling_spec_idxa bs). Qed.
 
 Definition utility := value - price bs a.
 
 (* 0 <= utility *)
+
 Theorem VCG_for_Search_rational : price bs a  <= value.
 Proof.
-rewrite /price -value_is_bid /externality /bid_in ifT; last by rewrite (@ltn_trans k'). 
+rewrite /price -value_is_bid_in /externality /bid_in ifT; last by rewrite (@ltn_trans k').  
 set S := (X in X <= _). 
 have : S <= \sum_(s < k | i < s) 
              tnth bs' (slot_as_agent (inord i)) * ('ctr_ (slot_pred s) - 'ctr_ s).
   apply: leq_sum => s lis.
   rewrite leq_mul2r.
   move: (@sorted_bids_sorted bs (slot_as_agent (inord i)) (slot_as_agent s)) => /= -> //.
-  apply/orP; right=> //.
-  by rewrite inordK ltnW.
+  - by apply/orP; right.
+  - by rewrite inordK ltnW.
 rewrite -big_distrr/=. 
-have -> : \sum_(s < k | i < s) ('ctr_ (slot_pred s) - 'ctr_ s) = 'ctr_ (inord i). 
+have -> : \sum_(s < k | i < s) ('ctr_ (slot_pred s) - 'ctr_ s) = 'ctr_ (inord i).
   have -> : \sum_(s < k | i < s) ('ctr_ (slot_pred s) - 'ctr_ s) =
              \sum_(i.+1 <= s < k) (nth ctr0 S.cs s.-1 - nth ctr0 S.cs s). 
     rewrite (@big_nat_widenl _ _ _ _ 0)//= big_mkord.
     by apply: eq_bigr => s lis; last by rewrite !(@tnth_nth _ _ ctr0).
-  pose F x y := (nth ctr0 S.cs x.-1 - nth ctr0 S.cs y.-1). 
-  rewrite (@telescope_big _ _ _ F)/= => [|s /andP [i1s sk]].
+  pose F x y := nth ctr0 S.cs x.-1 - nth ctr0 S.cs y.-1. 
+  rewrite (telescope_big F)/= => [|s /andP [i1s sk]].
   - rewrite ifT// /F.
     move: S.last_ctr_eq0 => /eqP.
     rewrite -(inj_eq val_inj)/= (@tnth_nth _ _ ctr0)/= => /eqP ->.
@@ -119,18 +123,15 @@ have -> : \sum_(s < k | i < s) ('ctr_ (slot_pred s) - 'ctr_ s) = 'ctr_ (inord i)
       have is1 : i <= s.-1 by rewrite -(leq_add2r 1) !addn1 prednK ?1(@ltn_trans i.+1).
       move: (@S.sorted_ctrs (Ordinal ik) (Ordinal s1k)) => /= /(_ is1)/=.
       by rewrite !(@tnth_nth _ _ ctr0).
-set bc := (X in _ <= X -> _); set bc' := (X in _ -> _ <= X) => Sbc.
-have bb : bc <= bc'.
-  rewrite leq_mul// eq_leq//.
-  - congr (_ (tnth _ _)).
-    rewrite -widen_slot_as_agent/=.
-    by apply: val_inj => /=; rewrite inordK// (@ltn_trans k').
-  - congr (_ (tnth _ _)).
-    apply: val_inj => /=.
-    rewrite inordK; last by rewrite (@ltn_trans k').
-    apply: esym.
-    by apply/minn_idPl; last by rewrite ltnW.
-exact: (leq_trans Sbc).
+move=> Sb.
+rewrite (leq_trans Sb)// eq_leq//.
+congr (_ (tnth _ _) * _).
+- rewrite -widen_slot_as_agent/=.
+  by apply: val_inj => /=; rewrite inordK// (@ltn_trans k').
+- congr (_ (tnth _ _)).
+  apply: val_inj => /=; rewrite inordK; last by rewrite (@ltn_trans k').
+  apply: esym.
+  by apply/minn_idPl; last by rewrite ltnW.
 Qed.
 
 End Rationality.
@@ -165,10 +166,7 @@ Local Definition i' := idxa bs' a.
 Variable (bid_true_value : action_on bs a = true_value a).
 
 Lemma rational (awins : i < k') : price bs a <= value bs a.
-Proof. 
-apply: VCG_for_Search_rational => //.
-by rewrite /bid_in /value -bid_true_value (labelling_spec_idxa bs).
-Qed.
+Proof. exact: VCG_for_Search_rational. Qed.
 
 Definition l := tlabel bs.
 

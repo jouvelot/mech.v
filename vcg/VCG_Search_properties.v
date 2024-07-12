@@ -53,28 +53,9 @@ Notation is_labelling bs l := (@is_labelling _ _ geq_bid bs l).
 Notation labellingP bs := (@labellingP _ _ geq_bid bs tr totr ar). 
 Notation exists_labellingW bs := (@exists_labellingW _ _ geq_bid bs tr totr ar).
 
-(* We assume that ctrs are unique.
-
-   Also, we enforce that impact-less agents in the outcomes (i.e., with ctr = 0)
-   are the same in the optimal outcomes for VCG for Search and General VCG. *)
+(* We assume that ctrs are unique. *)
 
 Variable uniq_cs : uniq S.cs.
-
-Variable fix_ctr0 : 
-  forall bs s, 'ctr_ s = ctr0 -> tnth (VCG_oStar (tsort bs)) s = tnth oStar s.
-
-Lemma uniq_oStar (bs : bids) (ubs : uniq bs) : 
-  VCG_oStar (tsort bs) = oStar.
-Proof.
-set bs' := tsort bs.
-have sortedbs': sorted_bids bs' by exact: sorted_bids_sorted.
-apply: val_inj => /=.
-apply: eq_from_tnth => s.
-move: (oStar_extremum bs'); rewrite eq_oStar_iota// => ox.
-have [/eqP c0|nc0] := boolP ('ctr_s == ctr0 ); first by rewrite fix_ctr0.
-rewrite (bidSum_extremums (VCG_oStar_extremum bs') ox)// ?sort_uniq//.
-by rewrite uniq_cs.
-Qed.
 
 (** No positive transfer. *)
 
@@ -95,8 +76,6 @@ Section Rationality.
 
 Variable (bs : bids) (a : A). 
 
-Variable ubs : uniq bs.
-
 Definition value := true_value a * 'ctr_(slot_won bs a).
 
 Notation bs' := (tsort bs). 
@@ -106,31 +85,58 @@ Variable (awins : i < S.k').
 
 Variable (value_is_bid : bid_in bs' i (slot_won bs a) = value).
 
-Lemma bidding_value : bidding bs' i (G.oStar o0 (biddings bs')) = value.
-Proof.
-rewrite /bidding ffunE /t_bidding -/(VCG_oStar bs').
-have sortedbs': sorted_bids bs' by exact: sorted_bids_sorted.
-rewrite uniq_oStar//.
-rewrite ifT; last by rewrite (mem_oStar sortedbs') // ltnW. 
-rewrite -value_is_bid.
-by rewrite (@slot_in_oStar bs') // ?wonE // (mem_oStar sortedbs') // ltnW.
-Qed.
-
 Definition utility := value - price bs a.
 
 (* 0 <= utility *)
-Theorem VCG_for_Search_rational : 
-  price bs a  <= value.
+Theorem VCG_for_Search_rational : price bs a  <= value.
 Proof.
-rewrite eq_instance_VCG_price//. 
-move: (@eq_instance_vcg_price bs a).
-rewrite /instance_vcg_price => <-.
-move: (@G.rational _ o0 i (biddings bs') (tnth (biddings bs') i) erefl).
-by rewrite -bidding_value ?tnth_mktuple // /instance_vcg_price' // sorted_relabelled_biddings.
-by rewrite uniq_cs.
+rewrite /price -value_is_bid /externality /bid_in ifT; last by rewrite (@ltn_trans k'). 
+set S := (X in X <= _). 
+have : S <= \sum_(s < k | i < s) 
+             tnth bs' (slot_as_agent (inord i)) * ('ctr_ (slot_pred s) - 'ctr_ s).
+  apply: leq_sum => s lis.
+  rewrite leq_mul2r.
+  move: (@sorted_bids_sorted bs (slot_as_agent (inord i)) (slot_as_agent s)) => /= -> //.
+  apply/orP; right=> //.
+  by rewrite inordK ltnW.
+rewrite -big_distrr/=. 
+have -> : \sum_(s < k | i < s) ('ctr_ (slot_pred s) - 'ctr_ s) = 'ctr_ (inord i). 
+  have -> : \sum_(s < k | i < s) ('ctr_ (slot_pred s) - 'ctr_ s) =
+             \sum_(i.+1 <= s < k) (nth ctr0 S.cs s.-1 - nth ctr0 S.cs s). 
+    rewrite (@big_nat_widenl _ _ _ _ 0)//= big_mkord.
+    by apply: eq_bigr => s lis; last by rewrite !(@tnth_nth _ _ ctr0).
+  pose F x y := (nth ctr0 S.cs x.-1 - nth ctr0 S.cs y.-1). 
+  rewrite (@telescope_big _ _ _ F)/= => [|s /andP [i1s sk]].
+  - rewrite ifT// /F.
+    move: S.last_ctr_eq0 => /eqP.
+    rewrite -(inj_eq val_inj)/= (@tnth_nth _ _ ctr0)/= => /eqP ->.
+    by rewrite subn0 (@tnth_nth _ _ ctr0) inordK// (@ltn_trans k').
+  - have s1k : s.-1 < k by rewrite (@leq_ltn_trans s)// leq_pred.
+    rewrite addnC -sum_diff//=.
+    - move: (@S.sorted_ctrs (Ordinal s1k) (Ordinal sk)) => /= /(_ (leq_pred s))/=.
+      by rewrite !(@tnth_nth _ _ ctr0).
+    - have ik : i < k by rewrite (@ltn_trans k').
+      have is1 : i <= s.-1 by rewrite -(leq_add2r 1) !addn1 prednK ?1(@ltn_trans i.+1).
+      move: (@S.sorted_ctrs (Ordinal ik) (Ordinal s1k)) => /= /(_ is1)/=.
+      by rewrite !(@tnth_nth _ _ ctr0).
+set bc := (X in _ <= X -> _); set bc' := (X in _ -> _ <= X) => Sbc.
+have bb : bc <= bc'.
+  rewrite leq_mul// eq_leq//.
+  - congr (_ (tnth _ _)).
+    rewrite -widen_slot_as_agent/=.
+    by apply: val_inj => /=; rewrite inordK// (@ltn_trans k').
+  - congr (_ (tnth _ _)).
+    apply: val_inj => /=.
+    rewrite inordK; last by rewrite (@ltn_trans k').
+    apply: esym.
+    by apply/minn_idPl; last by rewrite ltnW.
+exact: (leq_trans Sbc).
 Qed.
 
 End Rationality.
+
+Check VCG_for_Search_rational.
+Print Assumptions VCG_for_Search_rational.
 
 (** Truthfulness. *)
 

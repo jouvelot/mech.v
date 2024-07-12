@@ -867,39 +867,33 @@ wlog: o1 o2  mx1 mx2 IH / 'bid_ (tnth o2 os) <= 'bid_ (tnth o1 os) => [P|].
   by rewrite (P _ _ mx2 mx1 IH').
 rewrite leq_eqVlt => /orP [/eqP o2o1|l21].
 - move: ubs => /(@tuple_uniqP _ _ bid0 bs) /(_ (tnth o1 os) (tnth o2 os)) -> //.
-  apply: val_inj => /=.
-  by rewrite o2o1. 
+  by apply: val_inj => /=; rewrite o2o1. 
 - have [/existsP [s' /eqP p1]|] := boolP ([exists s', tnth o2 s' == tnth o1 os]). 
   - pose o2' := Outcome (tuple_tperm_uniq s' os (ouniq o2)).
     have [s's|] := boolP (s' < s). 
     - have diff2 : tnth o2 os != tnth o2 s'.  
-          move: (ltn_eqF s's).
-          apply: contraFneq => /o_injective/eqP.
+          move: (ltn_eqF s's); apply: contraFneq => /o_injective/eqP.
           by rewrite -(inj_eq val_inj)/= eq_sym.
       have [/eqP cs'0|ncs'] := boolP ('ctr_ s' == ctr0 ). 
       - move: (lt_bidSum0 p1 l21 ns0 cs'0 diff2); rewrite -/o2'.
-        case: mx2 => x2 _ /(_ o2' erefl) /=.
-        by rewrite ltnNge => ->.
+        by case: mx2 => x2 _ /(_ o2' erefl) /=; last by rewrite ltnNge => ->.
       - move: (s's); rewrite sm => s'm.
         move: (IH _ s'm (ltn_ord s')) ncs'.
-        have -> : (Ordinal (ltn_ord s')) = s' by apply: val_inj.
-        move=> /[apply].
-        rewrite p1 => /o_injective /eqP.
+        have -> : Ordinal (ltn_ord s') = s' by apply: val_inj.
+        move=> /[apply]; rewrite p1 => /o_injective /eqP.
         by rewrite -(inj_eq val_inj)/= ltn_eqF. 
     - rewrite -leqNgt leq_eqVlt => /orP [/eqP ss'|ss'].
       - move: l21; rewrite -p1.
-        have -> : tnth o2 s' = tnth o2 os.
+        have -> : tnth o2 s' = tnth o2 os; last by rewrite ltnn.
           by congr tnth; apply/eqP; rewrite -(inj_eq val_inj)/= ss'.
-        by rewrite ltnn.
      - have diff2 : tnth o2 os != tnth o2 s'.   
-         move: (ltn_eqF ss').
-         apply: contraFneq => /o_injective/eqP.
+         move: (ltn_eqF ss'); apply: contraFneq => /o_injective/eqP.
          by rewrite -(inj_eq val_inj)/= eq_sym.
        have [/eqP cs'0|ncs'] := boolP ('ctr_ s' == ctr0 ). 
         - move: (lt_bidSum0 p1 l21 ns0 cs'0 diff2); rewrite -/o2'.
-          case: mx2 => x2 _ /(_ o2' erefl) /=; last by rewrite ltnNge => ->.  
+          by case: mx2 => x2 _ /(_ o2' erefl) /=; last by rewrite ltnNge => ->.  
         - move: (lt_bidSum ucs p1 l21 ns0 ncs' ss' diff2); rewrite -/o2'.
-          case: mx2 => x2 _ /(_ o2' erefl) /=; last by rewrite ltnNge => ->.
+          by case: mx2 => x2 _ /(_ o2' erefl) /=; last by rewrite ltnNge => ->.
   - rewrite negb_exists => /forallP out2.
     pose o2' := Outcome (uniq_set_o os out2). 
     move: (lt_bidSum_out l21 out2 ns0); rewrite -/o2'.

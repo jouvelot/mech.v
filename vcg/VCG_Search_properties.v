@@ -285,10 +285,9 @@ Definition Ra (as2 : A2s) (i : agent) (a1 : A1) (a2 : A2) : Prop :=
    forall o1 : O1, o1.1 = O2_winners as2 ->
               f_of_a1 a1 o1 = a2 * 'ctr_(slot_of i o1.1).
 
-Definition Ri (as2 : A2s) (bs1 : n.-tuple A1) : Prop :=
-  (forall i, Ra as2 i (action_on bs1 i) (action_on as2 i)) /\
-    let: m1 := M1 bs1 in let: m2 := M2 as2 in
-    (m1.1, m1.2) = (m2.1, m2.2).
+Definition Ri (as2 : A2s) (as1 : n.-tuple A1) : Prop :=
+  (forall i, Ra as2 i (action_on as1 i) (action_on as2 i)) /\
+    M1 as1 = M2 as2.
  
 Definition fR (as2 : A2s) (i : agent) (a2 : A2) : A1 := sig_b i a2. 
 

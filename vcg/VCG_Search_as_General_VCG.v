@@ -340,6 +340,18 @@ case: tnthP => [[w' hw']|]; last first.
   exact: (@o_injective o).
 Qed.
 
+Lemma index_slot (bs : bids) (o : O) (j : A) (jo : j \in o) : slot_of j o = inord (index j o).
+Proof.
+rewrite /slot_of. 
+case: tnthP => [[w hw]|]; last by have // : ∃ i : 'I_k, j = tnth o i; apply/tnthP.
+case: sig_eqW => s p /=.
+rewrite p /=.
+apply: val_inj => /=.
+rewrite inordK.
+- by rewrite (tnth_nth ord0) index_uniq// ?size_tuple ?ltn_ord ?ouniq.
+- by rewrite -[X in _ < X](size_tuple o) index_mem -p.
+Qed.
+
 End SlotOf.
 
 Lemma after_last_slot a bs : k' <= idxa bs a -> 'ctr_(slot_won bs a) = ctr0.

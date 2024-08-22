@@ -85,18 +85,21 @@ Theorem no_positive_transfer : (* 0 <= price *)
   welfare_with_i <= welfare_without_i.
 Proof. exact: leq_bigmax. Qed.
 
-(** Rationality. *)
+(** Rationalities. *)
+
+Theorem bid_rational : price <= tnth bs i oStar.
+Proof.
+rewrite leq_subLR addnC -bidSumD1 -bigmax_eq_arg //.
+apply: max_monotonic => o.
+by rewrite (bidSumD1 o) leq_addl.
+Qed.
 
 Variable (value : bidding).
 
 Hypothesis value_is_bid : 'bidding_i = value.
 
 Theorem rational : price <= value oStar.
-Proof.
-rewrite -value_is_bid leq_subLR addnC -bidSumD1 -bigmax_eq_arg //.
-apply: max_monotonic => o.
-by rewrite (bidSumD1 o) leq_addl.
-Qed.
+Proof. by rewrite -value_is_bid bid_rational. Qed.
 
 Section BidSumProps.
 
@@ -213,8 +216,8 @@ Qed.
 
 Lemma eq_oStar : oStar o0 bs = oStar o0 bs'.
 Proof.
-congr arg_max. 
-apply: functional_extensionality_dep => o.
+congr arg_max.  
+apply: functional_extensionality => o.
 exact: perm_bidSum.
 Qed.
 

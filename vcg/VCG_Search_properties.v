@@ -76,17 +76,14 @@ Section Rationality.
 
 Variable (bs : bids) (a : A). 
 
+Definition value := true_value a * 'ctr_(slot_won bs a).
+
 Notation bs' := (tsort bs). 
 Notation i := (idxa bs a).
 
 Variable (awins : i < S.k').
 
-Variable bidding_true_value : tnth bs a = true_value a.
-
-Definition value := true_value a * 'ctr_(slot_won bs a).
-
-Lemma value_is_bid_in : bid_in bs' i (slot_won bs a) = value.
-Proof. by rewrite /bid_in /value -bidding_true_value (labelling_spec_idxa bs). Qed.
+Variable (value_is_bid : bid_in bs' i (slot_won bs a) = value).
 
 Definition utility := value - price bs a.
 
@@ -94,23 +91,23 @@ Definition utility := value - price bs a.
 
 Theorem VCG_for_Search_rational : price bs a  <= value.
 Proof.
-rewrite /price -value_is_bid_in /externality /bid_in ifT; last by rewrite (@ltn_trans k').  
+rewrite /price -value_is_bid /externality /bid_in ifT; last by rewrite (@ltn_trans k'). 
 set S := (X in X <= _). 
 have : S <= \sum_(s < k | i < s) 
              tnth bs' (slot_as_agent (inord i)) * ('ctr_ (slot_pred s) - 'ctr_ s).
   apply: leq_sum => s lis.
   rewrite leq_mul2r.
   move: (@sorted_bids_sorted bs (slot_as_agent (inord i)) (slot_as_agent s)) => /= -> //.
-  - by apply/orP; right.
-  - by rewrite inordK ltnW.
+  apply/orP; right=> //.
+  by rewrite inordK ltnW.
 rewrite -big_distrr/=. 
-have -> : \sum_(s < k | i < s) ('ctr_ (slot_pred s) - 'ctr_ s) = 'ctr_ (inord i).
+have -> : \sum_(s < k | i < s) ('ctr_ (slot_pred s) - 'ctr_ s) = 'ctr_ (inord i). 
   have -> : \sum_(s < k | i < s) ('ctr_ (slot_pred s) - 'ctr_ s) =
              \sum_(i.+1 <= s < k) (nth ctr0 S.cs s.-1 - nth ctr0 S.cs s). 
     rewrite (@big_nat_widenl _ _ _ _ 0)//= big_mkord.
     by apply: eq_bigr => s lis; last by rewrite !(@tnth_nth _ _ ctr0).
-  pose F x y := nth ctr0 S.cs x.-1 - nth ctr0 S.cs y.-1. 
-  rewrite (telescope_big F)/= => [|s /andP [i1s sk]].
+  pose F x y := (nth ctr0 S.cs x.-1 - nth ctr0 S.cs y.-1). 
+  rewrite (@telescope_big _ _ _ F)/= => [|s /andP [i1s sk]].
   - rewrite ifT// /F.
     move: S.last_ctr_eq0 => /eqP.
     rewrite -(inj_eq val_inj)/= (@tnth_nth _ _ ctr0)/= => /eqP ->.
@@ -123,15 +120,18 @@ have -> : \sum_(s < k | i < s) ('ctr_ (slot_pred s) - 'ctr_ s) = 'ctr_ (inord i)
       have is1 : i <= s.-1 by rewrite -(leq_add2r 1) !addn1 prednK ?1(@ltn_trans i.+1).
       move: (@S.sorted_ctrs (Ordinal ik) (Ordinal s1k)) => /= /(_ is1)/=.
       by rewrite !(@tnth_nth _ _ ctr0).
-move=> Sb.
-rewrite (leq_trans Sb)// eq_leq//.
-congr (_ (tnth _ _) * _).
-- rewrite -widen_slot_as_agent/=.
-  by apply: val_inj => /=; rewrite inordK// (@ltn_trans k').
-- congr (_ (tnth _ _)).
-  apply: val_inj => /=; rewrite inordK; last by rewrite (@ltn_trans k').
-  apply: esym.
-  by apply/minn_idPl; last by rewrite ltnW.
+set bc := (X in _ <= X -> _); set bc' := (X in _ -> _ <= X) => Sbc.
+have bb : bc <= bc'.
+  rewrite leq_mul// eq_leq//.
+  - congr (_ (tnth _ _)).
+    rewrite -widen_slot_as_agent/=.
+    by apply: val_inj => /=; rewrite inordK// (@ltn_trans k').
+  - congr (_ (tnth _ _)).
+    apply: val_inj => /=.
+    rewrite inordK; last by rewrite (@ltn_trans k').
+    apply: esym.
+    by apply/minn_idPl; last by rewrite ltnW.
+exact: (leq_trans Sbc).
 Qed.
 
 End Rationality.
@@ -139,7 +139,414 @@ End Rationality.
 Check VCG_for_Search_rational.
 Print Assumptions VCG_for_Search_rational.
 
-(** Truthfulness. *)
+(** Relational proof of truthfulness of m2 = VCG for Search, using m1 = General VCG. *)
+
+Lemma ltn_leq_mul: ∀ [m1 m2 n1 n2 : nat], 0 < m1 -> 0 < n2 -> m1 < n1 → m2 <= n2 → m1 * m2 < n1 * n2.
+Proof.
+move=> m1 m2 n1 n2 m10 n20 mn1 mn2.
+by rewrite (@leq_ltn_trans (m1 * n2))// ?leq_pmul2l// ltn_mul2r mn1 n20.
+Qed.
+
+Section Relational.
+
+Notation agent := 'I_n.
+Notation agents := (ord_tuple n).
+
+(* prices and winners *)
+
+(* Type for prices, and, via rationality, prices are always less than
+   bids times ctrs, i.e., p * q *)
+
+Definition P := 'I_(p * q).
+
+Definition O := (S.O * k.-tuple P)%type. 
+
+Definition o0 : O := (S.o0, [tuple ord0 | s < k]).
+
+(* Mech2 = VCG for Search. *)
+
+Definition O2 := O.
+
+Notation A2 := bid.
+Notation A2s := (n.-tuple A2).
+
+Definition O2_winners a2s := OStar.oStar a2s. 
+
+Definition O2_prices (a2s : A2s) : k.-tuple P := 
+  map_tuple (inord \o (fun i => price a2s i)) (O2_winners a2s).  
+
+Definition O2_outcome a2s := (O2_winners a2s, O2_prices a2s).
+
+Definition M2 : A2s -> O2 := O2_outcome.
+
+Definition m2 : mech.type n := mech.new M2.
+
+Definition v2 :agent -> A2 := true_value.
+
+Definition is_winner2 w2 i := slot_of i w2 != last_slot.
+
+Definition p2 : prefs.type m2 :=
+  prefs.new v2 
+            (fun i (o2 : mech.O m2) => 
+               if is_winner2 o2.1 i then 
+                 v2 i * 'ctr_(slot_of i o2.1) - tnth o2.2 (slot_of i o2.1) else 0)
+            v2.
+
+(* Mech1 = General VCG *)
+
+Definition O1 := [finType of O].
+
+Definition G_bound (a1 : {ffun O1 -> nat}) := forall o, a1 o < p * q. (* rationality *)
+
+Definition A1 := {f : {ffun O1 -> nat} | G_bound f}.
+
+Definition f_of_a1 := (@proj1_sig _ G_bound).
+
+Definition S_f_of_a1 (a1 : A1) := [ffun o : S.O => f_of_a1 a1 (o, o0.2)].
+
+Notation A1s := (n.-tuple A1). 
+
+Notation G_biddings a1s := (map_tuple S_f_of_a1 a1s).
+
+Definition O1_winners (a1s : A1s) := G.oStar S.o0 (G_biddings a1s).
+
+Definition O1_prices (a1s : A1s) : k.-tuple P :=
+  map_tuple (inord \o (G.price S.o0 ^~ (G_biddings a1s))) (O1_winners a1s).
+
+Definition O1_outcome a1s := (O1_winners a1s, O1_prices a1s).
+
+Definition M1 : A1s -> O1 := O1_outcome.
+
+Definition m1 : mech.type n := mech.new M1.
+
+Definition sig_v (i : agent) : {f : {ffun O1 -> nat} | G_bound f}.
+Proof. 
+exists [ffun o1 : O1 => true_value i * 'ctr_(slot_of i o1.1)]=> o.
+by rewrite !ffunE /= ltn_mul. 
+Defined.
+
+Definition v1 (i : agent) := sig_v i. 
+
+Definition p1 : prefs.type m1 :=
+  prefs.new 
+    v1
+    (fun i (o1 : mech.O m1) =>
+       if is_winner2 o1.1 i then
+         v2 i * 'ctr_(slot_of i o1.1) - tnth o1.2 (slot_of i o1.1) else 0)
+    v1.
+
+(* Truthfulness theorem. *)
+
+Lemma G_rational i (t : A1s) : G.price S.o0 i (map S_f_of_a1 t) < p * q.
+Proof. 
+move: (G.bid_rational S.o0 i (map S_f_of_a1 t))
+        (proj2_sig (tnth t i) (G.oStar S.o0 (map_tuple S_f_of_a1 t), o0.2)). 
+rewrite tnth_map ffunE.
+exact: leq_ltn_trans.
+Qed.
+
+Lemma truthful_General_VCG : truthful p1. 
+Proof.
+pose v := (fun i => [ffun o : S.O => v2 i * 'ctr_(slot_of i o)]).
+move: (@G.truthful_General_VCG [finType of S.O] S.o0 v) => G_truth bs bs' i d av.  
+have df : differ_on (map_tuple S_f_of_a1 bs) (map_tuple S_f_of_a1 bs') i.
+  move=> j nji.
+  rewrite /differ_on /action_on in d *.  
+  by rewrite !tnth_map d.
+have avf : action_on (map_tuple S_f_of_a1 bs) i = S_f_of_a1 (prefs.v p1 i).
+  rewrite /action_on in av *.  
+  by rewrite tnth_map av.
+have tws : forall (t : A1s) (iw : is_winner2 (O1_winners t) i), 
+    tnth (O1_winners t) (slot_of i (O1_winners t)) = i.
+  move=> t iw.
+  rewrite cancel_slot_inv//.
+  move: iw.
+  apply: contra_neqT => /negbTE niw.
+  by rewrite slot_not_in. 
+move: (@G_truth (map S_f_of_a1 bs) (map S_f_of_a1 bs') i) => {G_truth} /(_ df).
+rewrite /action_on tnth_map in av avf *.
+rewrite avf /v /p1 /= !tnth_map !ffunE !tnth_ord_tuple. 
+set ff := (X in S_f_of_a1 _ = X). 
+have -> : S_f_of_a1 (v1 i) = ff. by apply: eq_ffun => o; rewrite ffunE. 
+move=> /(_ erefl).
+have [i't|//] := boolP (is_winner2 (O1_winners bs') i).  
+case: ifP => [it /=|/negbFE /eqP nit//]. 
+- by rewrite !inordK ?G_rational// /O1_winners !tws.
+- by rewrite nit S.last_ctr_eq0/= muln0/= sub0n inordK// ?G_rational// tws.
+Qed.
+
+(* Relations *)
+
+Definition tlabel_o bs o := Outcome (uniq_map_o bs o).
+
+Lemma uniq_idxa_o (bs : bids) (o : S.O) : uniq (map_tuple (fun i => (idxa bs i)) o).
+Proof.
+rewrite map_inj_uniq => [|s1 s2 eq12]; first by exact: (ouniq o).
+exact: (idxa_inj bs).
+Qed.
+
+Definition tidxa_o bs o := Outcome (uniq_idxa_o bs o).
+
+Lemma slot_inj f (injf : injective f) (o : S.O) i : slot_of (f i) (map_tuple f o) = slot_of i o.
+Proof.
+rewrite /slot_of. 
+case: tnthP => [[w hw //]|x //=].
+- case: sig_eqW => s p /=. 
+  rewrite !tnth_map in hw p.
+  case: tnthP => [[w' hw' //]|x' //=].
+  - case: sig_eqW => s' p' /=.
+    apply: (@o_injective o).
+    move: p => /injf <-.
+    by rewrite p'.
+  - have // : (∃ i0 : 'I_k, i = tnth o i0) by exists s; move: p => /injf.
+- case: tnthP => [[w hw //]|y //=].
+  have //: (∃ i0 : 'I_k, f i = tnth (map_tuple f o) i0).
+    by exists w; by rewrite tnth_map hw.
+Qed.
+
+Definition Ra (as2 : A2s) (i : agent) (a1 : A1) (a2 : A2) : Prop :=
+   forall o1 : O1, o1.1 = O2_winners as2 ->
+              f_of_a1 a1 o1 = a2 * 'ctr_(slot_of i o1.1).
+
+Definition Ri (as2 : A2s) (bs1 : n.-tuple A1) : Prop :=
+  (forall i, Ra as2 i (action_on bs1 i) (action_on as2 i)) /\
+    let: m1 := M1 bs1 in let: m2 := M2 as2 in
+    (m1.1, m1.2) = (m2.1, m2.2).
+ 
+Definition sig_b (as2 : A2s) (i : agent) (a2 : A2) : {f : {ffun O1 -> nat} | G_bound f}.
+Proof. 
+exists [ffun o1 : O1 =>  a2 * 'ctr_(slot_of i o1.1)] => o.
+by rewrite !ffunE /= ltn_mul.
+Defined.
+
+Definition fR (as2 : A2s) (i : agent) (a2 : A2) : A1 := sig_b as2 i a2. 
+
+Definition fRi (as2 : A2s) : A1s := [tuple fR as2 i (tnth as2 i) | i < n].
+
+Lemma fRP : forall (as2 : A2s) (i : agent) (a2 : A2), Ra as2 i (fR as2 i a2) a2. 
+Proof. 
+by move=> as2 i a2 o; rewrite ffunE /= => ->.
+Qed.
+
+Lemma fRvP : forall (as2 : A2s) i, fR as2 i (v2 i) = v1 i.
+Proof. 
+move=> as2 i. 
+by apply: eq_sig_hprop => [f|//=]; first exact: Classical_Prop.proof_irrelevance.  
+Qed.
+
+Hypothesis uniq_ctrs : uniq S.cs.
+Hypothesis ctrs_ne0 : forall k, 'ctr_k != ord0.
+
+Section Bids.
+
+Variable (as2 : A2s) (uniq_bs : uniq as2).
+
+Definition a1s_of := [tuple sig_b as2 i (tnth as2 i) | i < n]. 
+
+Lemma injtl : injective (tnth (tlabel as2)).
+Proof. apply: (labelling_inj as2). exact: (tlabelP as2). Qed.
+
+Lemma S_biddings : G_biddings a1s_of = biddings as2.
+Proof.
+apply: eq_from_tnth => j.
+rewrite !tnth_map !tnth_ord_tuple. 
+apply: eq_ffun => o.
+rewrite ffunE /t_bidding /= /bid_in.
+have [//|/negbTE njo] := boolP (j \in o).
+by rewrite slot_not_in// ?S.last_ctr_eq0/= ?muln0.
+Qed.
+
+Lemma G_oStar_instance : G.oStar S.o0 (instance_biddings as2) = oStar. 
+Proof.
+rewrite /instance_biddings /instance_bidding /t_bidding /bid_in.
+rewrite /oStar /t_oStar.
+apply: val_inj => /=.
+pose as2' := tsort as2. 
+have uas2' : uniq as2' by rewrite sort_uniq uniq_bs.
+move: (@bidSum_extremums as2') => 
+      /(_ _ _ (VCG_oStar_extremum as2') (oStar_extremum as2') uas2' uniq_ctrs) => teq.
+set bds2' := (X in _ (G.oStar _ X) = _).
+apply: eq_from_tnth => s.
+rewrite /VCG_oStar /biddings /bidding /t_bidding /bid_in in teq.
+move: (teq s (ctrs_ne0 s)).
+set bd2 := (X in G.oStar _ X). 
+rewrite (@G.eq_oStar _ _ _ [tuple tnth bd2 (idxa as2 j) | j < n]).
+have -> : [tuple tnth bd2 (idxa as2 j)  | j < n] = bds2'.
+  apply: eq_from_tnth => j.
+  rewrite !tnth_map.
+  apply/ffunP => o.
+  by rewrite !ffunE !tnth_ord_tuple.
+move=> ->.
+rewrite eq_oStar_iota//; exact: sorted_bids_sorted.
+apply/tuple_permP.
+exists (perm (idxa_inj as2)).
+apply: (@eq_from_nth _ [ffun o => 0]) => [|j jn /=]; first by rewrite !size_tuple.
+rewrite size_tuple in jn.
+rewrite !(@nth_map _ ord0) -?enumT ?size_enum_ord//. 
+by rewrite (permE (idxa_inj as2) (nth ord0 (enum (ordinal_finType n)) j)).
+Qed.
+
+Lemma G_oStar_G_biddings : G.oStar S.o0 (G_biddings a1s_of) = tlabel_o as2 oStar.
+Proof.
+rewrite S_biddings.
+move: (@bidSum_extremums as2) => 
+      /(_ _ _ (VCG_oStar_extremum as2) (oStar_extremum as2) uniq_bs uniq_ctrs) => teq.
+apply: val_inj => /=.
+apply: eq_from_tnth => s.
+rewrite teq ?tnth_map ?ctrs_ne0//.
+congr tnth.
+by apply: val_inj.
+Qed.
+
+Lemma relabel_oS : 
+  G.oStar S.o0 (G_biddings a1s_of) = tlabel_o as2 (G.oStar S.o0 (instance_biddings as2)).
+Proof. by rewrite G_oStar_instance G_oStar_G_biddings. Qed.
+
+Lemma eq_winners : O1_winners a1s_of = O2_winners as2.
+Proof.
+apply: val_inj => /=. 
+apply: eq_from_tnth => s. 
+rewrite !tnth_map tnth_ord_tuple /O1_winners G_oStar_G_biddings.
+rewrite !tnth_map.
+congr tnth.
+apply: val_inj => /=.
+by rewrite tnth_ord_tuple.
+Qed.
+
+Lemma eq_prices : O1_prices a1s_of = O2_prices as2. 
+Proof.
+apply: eq_from_tnth => s. 
+rewrite 2!tnth_map.   
+congr (inord _).
+rewrite eq_winners.
+set i := (tnth _ _). 
+rewrite  S_biddings.  
+rewrite eq_instance_VCG_price ?sorted_relabelled_biddings//. 
+rewrite /instance_biddings /instance_bidding /biddings /bidding /t_bidding /bid_in.
+have injx :=  idxa_inj as2.
+have in_inj (T : eqType) (f : A -> T) (injf : injective f) (o : S.O) j : 
+  (f j \in (map_tuple f o)) = (j \in o) by rewrite -(mem_map injf).
+congr (_ - _). 
+- apply/eqP; rewrite eqn_leq; apply/andP; split. 
+  - apply/bigmax_leqP => o _. 
+    under [X in X <= _]eq_bigr => j _. rewrite tnth_map ffunE !tnth_ord_tuple. by over.
+    rewrite (bigmax_sup (tidxa_o as2 o))//.
+    under [X in _ <= X]eq_bigr => j _.
+      rewrite tnth_map ffunE !tnth_ord_tuple. 
+      rewrite (labelling_spec_idxa as2) slot_inj ?in_inj//.
+    by over.
+    by [].
+  - apply/bigmax_leqP => o _.
+    under [X in X <= _]eq_bigr => j _. rewrite tnth_map ffunE !tnth_ord_tuple. by over.
+    rewrite (bigmax_sup (tlabel_o as2 o))//.
+    under [X in _ <= X]eq_bigr => j _. rewrite tnth_map ffunE !tnth_ord_tuple. by over.
+    rewrite eq_leq//.
+    apply: eq_bigr => j _.
+    rewrite (labelling_spec_idxa as2).
+    case: ifP => io; first by rewrite relabel_slot// -labelling_in io.
+    by rewrite -labelling_in io.
+- rewrite /G.welfare_with_i /G.bidSum_i.
+  set oS := (G.oStar _ _); set ioS := (G.oStar _ _).
+  under [in LHS]eq_bigr => j _. rewrite tnth_map ffunE !tnth_ord_tuple. by over.
+  under [in RHS]eq_bigr => j _. rewrite tnth_map ffunE !tnth_ord_tuple. by over.
+  have -> : oS = tlabel_o as2 ioS. 
+    rewrite -relabel_oS.
+    congr G.oStar.
+    apply: eq_from_tnth => j.
+    rewrite !tnth_map !tnth_ord_tuple.
+    apply/ffunP => o.
+    rewrite !ffunE.
+    case: ifP => io //=.  
+    by rewrite slot_not_in// ?S.last_ctr_eq0/= ?muln0.
+  apply: eq_bigr => j _.
+  case: ifP => io; first by rewrite relabel_slot// labelling_in io// (labelling_spec_idxa as2).
+  by rewrite labelling_in io.
+Qed.
+
+Lemma Ri12 : O1_outcome a1s_of = O2_outcome as2.
+Proof. by rewrite /O1_outcome eq_winners// eq_prices. Qed.
+
+Lemma fRiP :  Ri as2 (fRi as2).
+Proof.
+split=> [i|].
+- rewrite /action_on /fRi /Ri tnth_map tnth_ord_tuple /fR /Ra => o /=. 
+  by rewrite ffunE.
+- rewrite /M1 /M2. 
+  have eqsig : [tuple sig_b as2 i (tnth as2 i) | i < n] = a1s_of.
+      apply: eq_from_tnth => i.
+      rewrite !tnth_map tnth_ord_tuple /=.
+      by apply: eq_sig_hprop => [f|//=]; first by exact: Classical_Prop.proof_irrelevance.
+  rewrite /O1_winners /fRi /fR eqsig.
+  by rewrite Ri12.
+Qed.
+
+Lemma fRdP as2' i (hd : differ_on as2 as2' i) : differ_on (fRi as2) (fRi as2') i.
+Proof.
+move=> j /hd ha; rewrite /action_on in ha.
+rewrite /fRi /action_on !tnth_map !tnth_ord_tuple. 
+rewrite /fR /=.
+apply: eq_sig_hprop => [f|//=]; first by exact: Classical_Prop.proof_irrelevance.  
+apply/ffunP => o.
+by rewrite !ffunE ha.
+Qed.
+
+Lemma fRviP i (ha : action_on as2 i = v2 i) : action_on (fRi as2) i = v1 i.
+Proof. 
+rewrite /action_on /fRi !tnth_map !tnth_ord_tuple in ha *. 
+rewrite /fR /v1.
+apply: eq_sig_hprop => [f|//=]. 
+exact: Classical_Prop.proof_irrelevance.  
+apply/ffunP => o.
+by rewrite !ffunE ha. 
+Qed.
+
+End Bids.
+
+Definition Ro (o1 : O1) (o2 : O2) := o1 = o2.
+
+Lemma MR : forall (bs1 : A1s) (as2 : A2s) (ri : Ri as2 bs1), Ro (m1 bs1) (m2 as2).
+Proof.
+move=> bs1 as2 [ri1 [ri2 ri3]] /=.
+congr (_, _).
+rewrite ri2//. 
+by apply: val_inj => /=.
+Qed. 
+
+Notation U1 := (@prefs.U A1 _ m1 p1).
+Notation U2 := (@prefs.U A2 _ m2 p2).
+
+Lemma RelFP : forall o1 o2, Ro o1 o2 -> U1^~o1 =1 U2^~o2.
+Proof. 
+move=> o1 o2 o12 i.
+rewrite /U1 /U2 /p1 /p2.
+rewrite /Ro in o12. 
+by rewrite !o12.
+Qed.
+
+Hypothesis uniq_bs : forall a2s : A2s, uniq a2s.
+
+Lemma MP : truthful p1 -> truthful p2.
+Proof. 
+move=> h1 as2 as2' i hd1 ht1.
+have u2 : uniq as2 by exact: uniq_bs.
+have u2' : uniq as2' by exact: uniq_bs.
+have ho := MR (fRiP u2).
+have ho' := MR (fRiP u2').
+have hu := RelFP ho.
+have hu' := RelFP ho'.
+rewrite -hu -hu'.
+by apply/h1; [apply/fRdP|apply/fRviP].
+Qed.
+
+Lemma VCG_for_Search_truthful_rel : truthful p2.
+Proof. by apply MP; exact: truthful_General_VCG. Qed.
+
+End Relational.
+ 
+Check VCG_for_Search_truthful_rel.
+Print Assumptions VCG_for_Search_truthful_rel.
+
+(* A direct proof attemps of thruthfulness. *)
 
 Section TruthfulnessCases.
 
@@ -166,7 +573,10 @@ Local Definition i' := idxa bs' a.
 Variable (bid_true_value : action_on bs a = true_value a).
 
 Lemma rational (awins : i < k') : price bs a <= value bs a.
-Proof. exact: VCG_for_Search_rational. Qed.
+Proof. 
+apply: VCG_for_Search_rational => //.
+by rewrite /bid_in /value -bid_true_value (labelling_spec_idxa bs).
+Qed.
 
 Definition l := tlabel bs.
 
@@ -538,289 +948,10 @@ Qed.
 
 End TruthfulnessCases.
 
-(** Direct proof of truthfulness using mech.v, assuming that all bids admit one optimal
-    solution to max of bidsum. *)
+(** SP is a special case of VCG for Search.
 
-Section Truthfulness.
-
-Structure R := Result {awins : bool;
-                       price : nat;
-                       what : slot}.
-
-Definition A := bid.
-
-Definition O : Type := n.-tuple R. 
-
-Definition m := 
-  mech.new (fun bs => map_tuple (fun a => Result (is_winner bs a) (S.price bs a) (slot_won bs a))
-                             (agent.agents n)).
-
-Definition v : agent.type n -> A := true_value.
-
-Definition p : prefs.type m :=
-  prefs.new v 
-            (fun a (o : mech.O m) => let r := tnth o a in
-                                  if awins r then v a * 'ctr_(what r) - price r else 0)
-            v.
-
-Definition uniq_truthful :=
-λ (n : nat) (A : eqType) (m : mech.type n) (p : prefs.type m),
-  ∀ (bs bs' : n.-tuple A) (ubs : uniq bs) (ubs' : uniq bs') (i : ordinal_eqType n),
-    truthful' p bs bs' i.
-
-Theorem truthful_VCG_for_Search : uniq_truthful p. 
-Proof.   
-move=> bs bs' ubs ubs' a d tv /=.  
-rewrite !tnth_map !tnth_ord_tuple /=. 
-case: ifP => iw' //.
-case: ifP => iw; first by rewrite truthful_i_wins.
-by rewrite leqn0 subn_eq0 (@truthful_i_loses bs).
-Qed.
-
-End Truthfulness.
-
-(** Relational proof of truthfulness, using General VCG. *)
-
-Section Relational.
-
-Section MechG1. (* General VCG *)
-
-Definition O'1 := O_finType.
-
-Definition o'01 : O'1 := o0.
-
-Definition A1 := G.bidding O'1.
-
-Definition O1 := (n.-tuple nat * O'1)%type.
-
-Definition m1 := G.m o'01.
-
-Definition v1 : agent.type n -> A1 := fun i => [ffun o'1 : O'1 => v i * 'ctr_(slot_of i o'1)].
-
-Definition p1 := G.p o'01 v1.
-
-End MechG1.
-
-Definition Ra i (a1 : A1) (a : A) := forall o'1 : O'1, a1 o'1 = a * 'ctr_(slot_of i o'1).
-
-Definition Ro (o1 : O1) (o : O) := 
-  forall j, let r := tnth o j in 
-       let: (ps, ws) := o1 in
-       let s := slot_of j ws in
-       awins r = (s != last_slot) /\ (awins r -> what r = s /\ price r = tnth ps j).
-
-Definition fR i (a : A) : A1 := [ffun o'1 : O'1 => a * 'ctr_(slot_of i o'1)].
-
-Lemma fRP i (a : A) : Ra i (fR i a) a.
-Proof. rewrite /Ra /fR /= => o'1. by rewrite ffunE. Qed.
-
-Lemma fRvP i : fR i (v i) = v1 i.
-Proof. by []. Qed.
-
-Variable (bs1 : n.-tuple A1) (ubs1 : uniq bs1).
-
-Variable (bs : n.-tuple A) (ubs : uniq bs).
-
-Variable (Ri1 : Ri Ra bs1 bs).
-
-Lemma eq_GoStar : G.oStar o'01 bs1 = OStar.oStar bs.
-Proof.
-(*
-move: Ri1; rewrite /Ri /Ra /action_on => R'i1.
-move: (VCG_oStar_extremum bs) (oStar_extremum bs).
-
-rewrite -(uniq_oStar_unsorted ) /VCG_oStar.
-congr G.oStar.
-apply: eq_from_tnth => s. 
-rewrite tnth_map.
-apply/ffunP => o.
-rewrite ffunE tnth_ord_tuple /t_bidding /bid_in R'i1.
-case: ifP => [//|/slot_not_in ->]; last by rewrite S.last_ctr_eq0 /= muln0.
-Qed.
-*)
-Admitted. 
-
-Lemma slot_as_idxa j :
-  slot_of j (G.oStar o'01 bs1) = if idxa bs j < k then inord (idxa bs j) else last_slot.
-Proof.  
-apply: (@o_injective (G.oStar o'01 bs1)).
-rewrite eq_GoStar.
-case jin: (j \in OStar.oStar bs).
-- rewrite cancel_slot_inv//. 
-  case: ifP => [jk|].
-  - by rewrite -OStar.slot_in_oStar ?cancel_slot_inv// -eq_GoStar.
-  - by rewrite OStar.mem_oStar_inv// -eq_GoStar.
-- congr tnth.
-  rewrite slot_not_in// ifF//.
-  move: jin; apply: contraFF => jk.
-  by rewrite OStar.mem_oStar.
-Qed.
-
-Lemma idxa_wins_as_slot j :
-  (idxa bs j < k') = (slot_of j (G.oStar o'01 bs1) != last_slot).
-Proof.
-rewrite slot_as_idxa //.  
-have [] := boolP (idxa bs j < k') => [ltjk'|].
-- rewrite ifT; last by rewrite (@ltn_trans k').
-  by rewrite below_last_ord inordK // ltnW.
-- rewrite -ltnNge ltnS leq_eqVlt => /orP [/eqP eqk'j|];
-    last by move=> ltk'j; rewrite ifF ?eq_refl // leq_gtF.                                    
-  rewrite (_ : inord (idxa bs j) = last_slot) ?if_same ?eq_refl //.
-  apply: val_inj => /=.
-  by rewrite inordK // -eqk'j.
-Qed.
-
-Lemma slot_won_as_slot_of j (ltijk' : idxa bs j < k') :
-  slot_won bs j = slot_of j (G.oStar o'01 bs1).
-Proof. by rewrite slot_as_idxa // ifT // ?wonE; last by rewrite (@ltn_trans k'). Qed.
-
-Lemma eq_welfares_i j : 
-  VCG.welfare_without_i j (instance_biddings bs) = VCG.welfare_without_i j bs1.
-Proof.
-rewrite /G.welfare_without_i /G.bidSum_i /G.bidSum.   
-pose h := (fun o => Outcome (uniq_map_o bs o)).
-pose F := (fun o => \sum_(j0 < n | j0 != j) tnth bs1 j0 o).
-rewrite [in RHS](@reindex_inj _ _ _ _ h _ F) /= => [|o1 o2 h12]; last first.
-  apply: val_inj => /=. 
-  apply: (inj_map_tuple (labelling_inj bs (tlabelP bs))).
-  by move/eqP: h12; rewrite -(inj_eq val_inj) => /eqP.
-apply: eq_bigr => o _.
-apply: eq_bigr => j' _.
-rewrite /instance_biddings /instance_bidding /t_bidding tnth_map ffunE !tnth_ord_tuple.
-move: (Ri1 j' (h o)); rewrite /action_on => ->.
-rewrite /bid_in (labelling_spec_idxa bs).
-case: ifP => j'ino; first by rewrite relabel_slot.  
-have -> : slot_of j' (h o) = S.last_slot; last by rewrite S.last_ctr_eq0 /= muln0.
-rewrite /slot_of.
-case: tnthP => p //.
-case: sig_eqW => s /= eqj'. 
-apply: (@contraFeq _ _ _ _ _ j'ino) => _.
-by apply/tnthP; exists s; rewrite eqj' tnth_map (cancel_inv_idxa bs).
-Qed.
-
-Local Lemma mem_oStar j (ltj'k : idxa bs j < k) : idxa bs j \in oStar. 
-Proof.
-apply/tnthP; exists (inord (idxa bs j)); rewrite tnth_map tnth_ord_tuple.
-apply: val_inj => /=.
-by rewrite inordK.
-Qed.
-
-(**)
-
-Lemma eq_instance_vcg_oStar_oStar : G.oStar o0 (instance_biddings bs) = oStar.
-(*
-Proof.
-apply: uniq_instance_oStar; first by exact: arg_maxnP.
-apply: ExtremumSpec => //= o _.
-have: forall o, G.bidSum (biddings bs) o <= G.bidSum (biddings bs) (OStar.oStar bs).
-  move: (oStar_extremum bs) => [] omax _ p o'.
-  exact: (p o' erefl).
-rewrite /instance_bidSum /instance_biddings /instance_bidding. 
-rewrite /biddings /bidding /t_bidding /bid_in.
-pose uo := Outcome (uniq_from_idxa bs (ouniq o)).
-rewrite /OStar.oStar /OStar.t_oStar /G.bidSum => /(_ uo).
-under eq_bigr do rewrite tnth_map ffunE /= tnth_ord_tuple. 
-under [X in _ <= X -> _]eq_bigr=> j do rewrite tnth_map ffunE /= tnth_ord_tuple. 
-have eqlabiota: map_tuple (tnth (tlabel bs)) oStar = 
-                [tuple tnth (tlabel bs) (slot_as_agent s)  | s < k].
-  apply: eq_from_tnth => s.
-  rewrite !tnth_map. 
-  congr tnth.
-  exact: val_inj.    
-set s1 := (X in X <= _ -> _); set s2 := (X in _ -> X <= _).
-have -> : s1 = s2.
-  apply: eq_bigr => j _.
-  rewrite tnth_map ffunE -labelling_in tnth_ord_tuple.
-  case: ifP => jino //.
-  by rewrite (labelling_spec_idxa bs) relabel_slot. 
-set s'1 := (X in _ <= X -> _) => les'. 
-rewrite (@leq_trans s'1) // eq_leq // => {les'}.
-apply: eq_bigr => j _.
-rewrite tnth_map ffunE labelling_in tnth_ord_tuple eqlabiota.
-case: ifP => jino //.
-by rewrite (labelling_spec_idxa bs) -eqlabiota relabel_slot // labelling_in eqlabiota.
-Qed.
-*)
-Admitted.
-
-(**)
-
-Lemma eq_welfares j (ltjk' : idxa bs j < k') :
-  VCG.welfare_with_i o0 j (instance_biddings bs) = VCG.welfare_with_i o'01 j bs1.
-Proof.
-rewrite /G.welfare_with_i /G.bidSum_i /G.bidSum.
-rewrite (eq_bigr (fun j => tnth bs1 j (G.oStar o'01 bs1))) // => j' nej'j. 
-rewrite eq_instance_vcg_oStar_oStar.  
-rewrite !tnth_mktuple !ffunE /instance_biddings /instance_bidding /t_bidding. 
-move: (Ri1 j' (G.oStar o'01 bs1)); rewrite /action_on => ->. 
-case: ifP => j'ino.
-- rewrite /bid_in (labelling_spec_idxa bs) relabel_slot //. 
-  congr (_ * 'ctr_ (slot_of _ _)). 
-  apply: eq_from_tnth => s /=.
-  rewrite eq_GoStar // /OStar.t_oStar !tnth_map.
-  congr tnth.
-  exact: val_inj.
-- have -> : slot_of j' (G.oStar o'01 bs1) = last_slot; last by rewrite S.last_ctr_eq0 /= muln0.
-  rewrite slot_as_idxa // ifF //.
-  apply: (@contraFF _ _ _ j'ino) => ltj'k. 
-  exact: mem_oStar.
-Qed.
-
-Lemma MR : Ro (m1 bs1) (m bs).
-Proof.
-move=> j /=. 
-rewrite !tnth_map /= /is_winner !tnth_ord_tuple.   
-split=> [|ltjk']; first exact: idxa_wins_as_slot.
-split; first exact: slot_won_as_slot_of.
-rewrite eq_instance_VCG_price 1?(@ltn_trans k') //. 
-by rewrite /instance_vcg_price /VCG.price eq_welfares_i eq_welfares.
-exact: uniq_cs.
-Qed.
-
-Notation U := (prefs.U p).
-Notation U1 := (prefs.U p1).
-
-Lemma RelFP (o1 : O1) (o : O) : Ro o1 o -> U1^~o1 =1 U^~o. 
-Proof.
-move=> Ro1 j. 
-rewrite /prefs.U /= /v1 (surjective_pairing o1) ffunE. 
-move: (Ro1 j).  
-rewrite (surjective_pairing o1). 
-case: ifP => [w //= [_ /(_ w) [-> ->]] //| /= -> [] /esym /eqP -> _].
-by rewrite S.last_ctr_eq0 /= muln0 sub0n.
-Qed.
-
-End Relational.
-
-Lemma uniq_MP (p1 : prefs.type m1) (p2 : prefs.type m) : uniq_truthful p1 -> uniq_truthful p2.
-(*
-Proof. 
-move=> h1 bs2 bs2' i hd1 ht1 /=.
-have ho := MR (fRiP bs2).
-have ho' := MR (fRiP bs2').
-have hu := RelFP ho.
-have hu' := RelFP ho'.
-rewrite -hu -hu'.
-by apply/h1; [apply/fRdP|apply/fRviP].
-Qed.
-*)
-Admitted.
-
-Variable G_uniq_truthful_General_VCG :
-     ∀ (O : finType) (o0 : O) (v : VCG_Search_as_General_VCG.A → G.bidding O),
-         uniq_truthful (G.p o0 v).
-
-Theorem truthful_VCG_for_Search_rel : 
-  uniq_truthful p.
-Proof.  
-have MR' : ∀ (bs1 : n.-tuple A1) (ubs1 : uniq bs1) (bs : n.-tuple A) (ubs : uniq bs), 
-    Ri Ra bs1 bs → Ro (m1 bs1) (m bs). 
-  move=> bs1 bs ri.
-  exact: MR.
-apply: (@uniq_MP p1).
-exact: G_uniq_truthful_General_VCG.
-Qed.
-
+   See Tim Roughgarden (http://timroughgarden.org/f05/ca.pdf) *)
+    
 Section Sumn.
 
 Lemma sumn_nconsE (s : seq nat) x0 n : sumn (ncons n x0 s) = n * x0 + sumn s.
@@ -857,10 +988,6 @@ Qed.
 
 End Sumn.
 
-(** SP is a special case of VCG for Search.
-
-   See Tim Roughgarden (http://timroughgarden.org/f05/ca.pdf) *)
-    
 Section Surplus.
 
 (* 3 hypotheses to map VCG for Search into Second Prize. *)
@@ -887,6 +1014,8 @@ Record C := new {
 Coercion val : C >-> tuple_of.
 
 Variable (c0 : C).
+
+Variable v : A -> bid.
 
 Definition surplus c := \sum_(i < n) v i * tnth c i.
 
@@ -944,13 +1073,5 @@ by apply: val_inj => /=; rewrite inordK.
 Qed.
 
 End Surplus.
- 
-Check truthful_VCG_for_Search_dir.
-Print Assumptions truthful_VCG_for_Search_dir.
-
-Check truthful_VCG_for_Search_rel.
-Print Assumptions truthful_VCG_for_Search_rel.
-
-
 
 

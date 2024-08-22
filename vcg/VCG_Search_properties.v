@@ -55,7 +55,7 @@ Notation exists_labellingW bs := (@exists_labellingW _ _ geq_bid bs tr totr ar).
 
 (* We assume that ctrs are unique. *)
 
-Variable uniq_cs : uniq S.cs.
+Variable uniq_ctrs : uniq S.cs.
 
 (** No positive transfer. *)
 
@@ -219,13 +219,13 @@ Definition M1 : A1s -> O1 := O1_outcome.
 
 Definition m1 : mech.type n := mech.new M1.
 
-Definition sig_v (i : agent) : {f : {ffun O1 -> nat} | G_bound f}.
+Definition sig_b (i : agent) (a2 : A2) : {f : {ffun O1 -> nat} | G_bound f}.
 Proof. 
-exists [ffun o1 : O1 => true_value i * 'ctr_(slot_of i o1.1)]=> o.
-by rewrite !ffunE /= ltn_mul. 
+exists [ffun o1 : O1 =>  a2 * 'ctr_(slot_of i o1.1)] => o.
+by rewrite !ffunE /= ltn_mul.
 Defined.
 
-Definition v1 (i : agent) := sig_v i. 
+Definition v1 (i : agent) := sig_b i (true_value i). 
 
 Definition p1 : prefs.type m1 :=
   prefs.new 
@@ -279,30 +279,7 @@ Qed.
 
 Definition tlabel_o bs o := Outcome (uniq_map_o bs o).
 
-Lemma uniq_idxa_o (bs : bids) (o : S.O) : uniq (map_tuple (fun i => (idxa bs i)) o).
-Proof.
-rewrite map_inj_uniq => [|s1 s2 eq12]; first by exact: (ouniq o).
-exact: (idxa_inj bs).
-Qed.
-
-Definition tidxa_o bs o := Outcome (uniq_idxa_o bs o).
-
-Lemma slot_inj f (injf : injective f) (o : S.O) i : slot_of (f i) (map_tuple f o) = slot_of i o.
-Proof.
-rewrite /slot_of. 
-case: tnthP => [[w hw //]|x //=].
-- case: sig_eqW => s p /=. 
-  rewrite !tnth_map in hw p.
-  case: tnthP => [[w' hw' //]|x' //=].
-  - case: sig_eqW => s' p' /=.
-    apply: (@o_injective o).
-    move: p => /injf <-.
-    by rewrite p'.
-  - have // : (∃ i0 : 'I_k, i = tnth o i0) by exists s; move: p => /injf.
-- case: tnthP => [[w hw //]|y //=].
-  have //: (∃ i0 : 'I_k, f i = tnth (map_tuple f o) i0).
-    by exists w; by rewrite tnth_map hw.
-Qed.
+Definition tidxa_o bs o := Outcome (uniq_to_idxa bs (ouniq o)). 
 
 Definition Ra (as2 : A2s) (i : agent) (a1 : A1) (a2 : A2) : Prop :=
    forall o1 : O1, o1.1 = O2_winners as2 ->
@@ -313,13 +290,7 @@ Definition Ri (as2 : A2s) (bs1 : n.-tuple A1) : Prop :=
     let: m1 := M1 bs1 in let: m2 := M2 as2 in
     (m1.1, m1.2) = (m2.1, m2.2).
  
-Definition sig_b (as2 : A2s) (i : agent) (a2 : A2) : {f : {ffun O1 -> nat} | G_bound f}.
-Proof. 
-exists [ffun o1 : O1 =>  a2 * 'ctr_(slot_of i o1.1)] => o.
-by rewrite !ffunE /= ltn_mul.
-Defined.
-
-Definition fR (as2 : A2s) (i : agent) (a2 : A2) : A1 := sig_b as2 i a2. 
+Definition fR (as2 : A2s) (i : agent) (a2 : A2) : A1 := sig_b i a2. 
 
 Definition fRi (as2 : A2s) : A1s := [tuple fR as2 i (tnth as2 i) | i < n].
 
@@ -334,14 +305,13 @@ move=> as2 i.
 by apply: eq_sig_hprop => [f|//=]; first exact: Classical_Prop.proof_irrelevance.  
 Qed.
 
-Hypothesis uniq_ctrs : uniq S.cs.
 Hypothesis ctrs_ne0 : forall k, 'ctr_k != ord0.
 
 Section Bids.
 
 Variable (as2 : A2s) (uniq_bs : uniq as2).
 
-Definition a1s_of := [tuple sig_b as2 i (tnth as2 i) | i < n]. 
+Definition a1s_of := [tuple sig_b i (tnth as2 i) | i < n]. 
 
 Lemma injtl : injective (tnth (tlabel as2)).
 Proof. apply: (labelling_inj as2). exact: (tlabelP as2). Qed.
@@ -421,7 +391,7 @@ congr (inord _).
 rewrite eq_winners.
 set i := (tnth _ _). 
 rewrite  S_biddings.  
-rewrite eq_instance_VCG_price ?sorted_relabelled_biddings//. 
+rewrite eq_instance_VCG_price ?sorted_relabelled_biddings ?uniq_ctrs//.
 rewrite /instance_biddings /instance_bidding /biddings /bidding /t_bidding /bid_in.
 have injx :=  idxa_inj as2.
 have in_inj (T : eqType) (f : A -> T) (injf : injective f) (o : S.O) j : 
@@ -472,7 +442,7 @@ split=> [i|].
 - rewrite /action_on /fRi /Ri tnth_map tnth_ord_tuple /fR /Ra => o /=. 
   by rewrite ffunE.
 - rewrite /M1 /M2. 
-  have eqsig : [tuple sig_b as2 i (tnth as2 i) | i < n] = a1s_of.
+  have eqsig : [tuple sig_b i (tnth as2 i) | i < n] = a1s_of.
       apply: eq_from_tnth => i.
       rewrite !tnth_map tnth_ord_tuple /=.
       by apply: eq_sig_hprop => [f|//=]; first by exact: Classical_Prop.proof_irrelevance.
@@ -523,13 +493,9 @@ rewrite /Ro in o12.
 by rewrite !o12.
 Qed.
 
-Hypothesis uniq_bs : forall a2s : A2s, uniq a2s.
-
-Lemma MP : truthful p1 -> truthful p2.
+Lemma MP : truthful p1 -> uniq_truthful p2.
 Proof. 
-move=> h1 as2 as2' i hd1 ht1.
-have u2 : uniq as2 by exact: uniq_bs.
-have u2' : uniq as2' by exact: uniq_bs.
+move=> h1 as2 u2 as2' u2' i hd1 ht1.
 have ho := MR (fRiP u2).
 have ho' := MR (fRiP u2').
 have hu := RelFP ho.
@@ -538,8 +504,8 @@ rewrite -hu -hu'.
 by apply/h1; [apply/fRdP|apply/fRviP].
 Qed.
 
-Lemma VCG_for_Search_truthful_rel : truthful p2.
-Proof. by apply MP; exact: truthful_General_VCG. Qed.
+Lemma VCG_for_Search_truthful_rel : uniq_truthful p2.
+Proof. apply MP; exact: truthful_General_VCG. Qed.
 
 End Relational.
  

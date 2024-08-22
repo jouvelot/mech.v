@@ -325,6 +325,35 @@ End Strategy.
 
 (** Truthfulness (i.e., "incentive-compatible") Prop and bool definitions and properties. *)
 
+Section UniqTruthfulness. (* for uniq action types *)
+
+Variable (n : nat) (A : eqType).
+
+Notation prefs := (@prefs.type A n).
+
+Variable m : @mech.type A n.
+
+Variable p : @prefs m.
+
+Notation "'v_ i" := (prefs.v p i) (at level 10).
+Notation "'U_ i" := (prefs.U p i) (at level 10).
+Notation "'s_ i" := (prefs.s p i) (at level 10).
+
+Notation bids := (n.-tuple A).
+
+Definition action_on := tnth.
+
+Definition eq_differ_on (bs bs' : bids) i := 
+  forall j, j != i -> action_on bs' j = action_on bs j.
+
+Definition uniq_truthful' (bs : bids) (us : uniq bs) (bs' : bids) (us' : uniq bs') i :=
+  eq_differ_on bs bs' i -> action_on bs i = 'v_i -> 'U_i (m bs') <= 'U_i (m bs).
+
+Definition uniq_truthful := forall (bs : bids) (us : uniq bs) (bs' : bids) (us' : uniq bs') i, 
+    uniq_truthful' us us' i.
+
+End UniqTruthfulness.
+
 Section Truthfulness. (* for arbitrary action types *)
 
 Variable (n : nat) (A : Type).
@@ -340,8 +369,6 @@ Notation "'U_ i" := (prefs.U p i) (at level 10).
 Notation "'s_ i" := (prefs.s p i) (at level 10).
 
 Notation bids := (n.-tuple A).
-
-Definition action_on := tnth.
 
 Definition differ_on (bs bs' : bids) i := 
   forall j, j != i -> action_on bs' j = action_on bs j.

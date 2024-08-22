@@ -352,6 +352,23 @@ rewrite inordK.
 - by rewrite -[X in _ < X](size_tuple o) index_mem -p.
 Qed.
 
+Lemma slot_inj f (injf : injective f) (o : O) i : slot_of (f i) (map_tuple f o) = slot_of i o.
+Proof.
+rewrite /slot_of. 
+case: tnthP => [[w hw //]|x //=].
+- case: sig_eqW => s p /=. 
+  rewrite !tnth_map in hw p.
+  case: tnthP => [[w' hw' //]|x' //=].
+  - case: sig_eqW => s' p' /=.
+    apply: (@o_injective o).
+    move: p => /injf <-.
+    by rewrite p'.
+  - have // : (∃ i0 : 'I_k, i = tnth o i0) by exists s; move: p => /injf.
+- case: tnthP => [[w hw //]|y //=].
+  have //: (∃ i0 : 'I_k, f i = tnth (map_tuple f o) i0).
+    by exists w; by rewrite tnth_map hw.
+Qed.
+
 End SlotOf.
 
 Lemma after_last_slot a bs : k' <= idxa bs a -> 'ctr_(slot_won bs a) = ctr0.

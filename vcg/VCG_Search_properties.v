@@ -362,7 +362,7 @@ move: (@bidSum_extremums as2) =>
 apply/val_inj/eq_from_tnth => s.
 have [/eqP ->|/not_ctr0 c0] := boolP (s == last_slot); 
                                first by rewrite G_oStar_biddings_last.
-rewrite teq ?tnth_map ?ctrs_ne0//.
+rewrite teq ?tnth_map //.
 congr tnth.
 by apply: val_inj.
 Qed.

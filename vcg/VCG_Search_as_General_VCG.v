@@ -369,6 +369,13 @@ case: tnthP => [[w hw //]|x //=].
     by exists w; by rewrite tnth_map hw.
 Qed.
 
+Lemma not_ctr0 s : s != last_slot -> 'ctr_s != ord0.
+Proof.
+move=> ns.
+move: (leq_ord s); rewrite -(inj_eq val_inj)/=.
+by rewrite leq_eqVlt -(negbK (s == k' :> nat)) ns/= => /positive_ctrs/gtn_eqF ->.
+Qed.
+
 End SlotOf.
 
 Lemma after_last_slot a bs : k' <= idxa bs a -> 'ctr_(slot_won bs a) = ctr0.

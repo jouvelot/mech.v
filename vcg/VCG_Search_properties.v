@@ -141,12 +141,6 @@ Print Assumptions VCG_for_Search_rational.
 
 (** Relational proof of truthfulness of m2 = VCG for Search, using m1 = General VCG. *)
 
-Lemma ltn_leq_mul: ∀ [m1 m2 n1 n2 : nat], 0 < m1 -> 0 < n2 -> m1 < n1 → m2 <= n2 → m1 * m2 < n1 * n2.
-Proof.
-move=> m1 m2 n1 n2 m10 n20 mn1 mn2.
-by rewrite (@leq_ltn_trans (m1 * n2))// ?leq_pmul2l// ltn_mul2r mn1 n20.
-Qed.
-
 Section Relational.
 
 Notation agent := 'I_n.
@@ -282,8 +276,7 @@ Definition tlabel_o bs o := Outcome (uniq_map_o bs o).
 Definition tidxa_o bs o := Outcome (uniq_to_idxa bs (ouniq o)). 
 
 Definition Ra (as2 : A2s) (i : agent) (a1 : A1) (a2 : A2) : Prop :=
-   forall o1 : O1, o1.1 = O2_winners as2 ->
-              f_of_a1 a1 o1 = a2 * 'ctr_(slot_of i o1.1).
+   forall o1 : O1, f_of_a1 a1 o1 = a2 * 'ctr_(slot_of i o1.1).
 
 Definition Ri (as2 : A2s) (as1 : n.-tuple A1) : Prop :=
   (forall i, Ra as2 i (action_on as1 i) (action_on as2 i)) /\
@@ -295,7 +288,7 @@ Definition fRi (as2 : A2s) : A1s := [tuple fR as2 i (tnth as2 i) | i < n].
 
 Lemma fRP : forall (as2 : A2s) (i : agent) (a2 : A2), Ra as2 i (fR as2 i a2) a2. 
 Proof. 
-by move=> as2 i a2 o; rewrite ffunE /= => ->.
+by move=> as2 i a2 o; rewrite ffunE /=.
 Qed.
 
 Lemma fRvP : forall (as2 : A2s) i, fR as2 i (v2 i) = v1 i.
@@ -304,9 +297,14 @@ move=> as2 i.
 by apply: eq_sig_hprop => [f|//=]; first exact: Classical_Prop.proof_irrelevance.  
 Qed.
 
-Hypothesis ctrs_ne0 : forall k, 'ctr_k != ord0.
+Hypothesis G_oStar_instance_biddings_last : 
+  forall as2 : A2s, tnth (G.oStar S.o0 (instance_biddings as2)) last_slot = 
+           tnth oStar last_slot.
+Hypothesis G_oStar_biddings_last :
+  forall as2 : A2s , tnth (G.oStar S.o0 (biddings as2)) last_slot = 
+           tnth (tlabel_o as2 oStar) last_slot.
 
-Section Bids.
+Section Outcome.
 
 Variable (as2 : A2s) (uniq_bs : uniq as2).
 
@@ -336,8 +334,10 @@ move: (@bidSum_extremums as2') =>
       /(_ _ _ (VCG_oStar_extremum as2') (oStar_extremum as2') uas2' uniq_ctrs) => teq.
 set bds2' := (X in _ (G.oStar _ X) = _).
 apply: eq_from_tnth => s.
+have [/eqP ->|/not_ctr0 c0] := boolP (s == last_slot); 
+                               first by rewrite G_oStar_instance_biddings_last.
 rewrite /VCG_oStar /biddings /bidding /t_bidding /bid_in in teq.
-move: (teq s (ctrs_ne0 s)).
+move: (teq s c0).
 set bd2 := (X in G.oStar _ X). 
 rewrite (@G.eq_oStar _ _ _ [tuple tnth bd2 (idxa as2 j) | j < n]).
 have -> : [tuple tnth bd2 (idxa as2 j)  | j < n] = bds2'.
@@ -362,6 +362,8 @@ move: (@bidSum_extremums as2) =>
       /(_ _ _ (VCG_oStar_extremum as2) (oStar_extremum as2) uniq_bs uniq_ctrs) => teq.
 apply: val_inj => /=.
 apply: eq_from_tnth => s.
+have [/eqP ->|/not_ctr0 c0] := boolP (s == last_slot); 
+                               first by rewrite G_oStar_biddings_last.
 rewrite teq ?tnth_map ?ctrs_ne0//.
 congr tnth.
 by apply: val_inj.
@@ -469,7 +471,7 @@ apply/ffunP => o.
 by rewrite !ffunE ha. 
 Qed.
 
-End Bids.
+End Outcome.
 
 Definition Ro (o1 : O1) (o2 : O2) := o1 = o2.
 

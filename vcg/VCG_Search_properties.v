@@ -2,9 +2,10 @@
 
   VCG_Search_Properties.v
 
-  A formalization project for the Vickrey‑Clarke‑Groves auctions.
+  A formalization project for the Vickrey‑Clarke‑Groves auction.
 
-  Properties of the VCG for Search auction variant.
+  Properties of the VCG for Search auction variant:
+
   - no positive transfer;
   - rationality;
   - truthfulness (for uniq bids and specified optimal outcomes);
@@ -16,14 +17,12 @@
 
   Authors: Pierre Jouvelot(+), Lucas Sguerra(+), Emilio Gallego Arias(++).
 
-  Date: October, 2021.
+  Date: October, 2021- 2024.
 
-  (+) MINES ParisTech, PSL University, France
+  (+) Mines Paris, PSL University, France
   (++) Inria, France
 
-  Thanks for their insights to the ssreflect community, and in particular:
-
-   - Cyril Cohen ([VCG_for_Search_truthful], [Canonical]).
+  Thanks for their insights to the ssreflect community, and in particular Cyril Cohen.
 
   Licence: CeCILL-B.
 
@@ -150,8 +149,7 @@ Notation agents := (ord_tuple n).
 
 (* prices and winners *)
 
-(* Type for prices, and, via rationality, prices are always less than
-   bids times ctrs, i.e., p * q *)
+(* Type for prices, and, via rationality, prices are always less than bids times ctrs. *)
 
 Definition P := 'I_(p * q).
 
@@ -231,7 +229,7 @@ Definition p1 : prefs.type m1 :=
          v2 i * 'ctr_(slot_of i o1.1) - tnth o1.2 (slot_of i o1.1) else 0)
     v1.
 
-(* Truthfulness theorem. *)
+(* Truthfulness theorem for m1. *)
 
 Lemma G_rational i (t : A1s) : G.price S.o0 i (map S_f_of_a1 t) < p * q.
 Proof. 
@@ -500,6 +498,8 @@ have hu' := RelFP ho'.
 rewrite -hu -hu'.
 by apply/h1; [apply/fRdP|apply/fRviP].
 Qed.
+
+(* Uniq truthfulness for m2. *)
 
 Lemma VCG_for_Search_truthful_rel : uniq_truthful p2.
 Proof. apply MP; exact: truthful_General_VCG. Qed.

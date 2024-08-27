@@ -499,7 +499,7 @@ rewrite -hu -hu'.
 by apply/h1; [apply/fRdP|apply/fRviP].
 Qed.
 
-(* Uniq truthfulness for m2. *)
+(* Truthfulness of m2 with uniq bids. *)
 
 Lemma VCG_for_Search_truthful_rel : uniq_truthful p2.
 Proof. apply MP; exact: truthful_General_VCG. Qed.

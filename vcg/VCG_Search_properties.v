@@ -44,15 +44,6 @@ Module G := VCG.
 
 Let k' := S.k'.
 Let p' := S.p'.
-Let geq_bid := @geq_bid p'.
-
-Notation lt_labelling a bs bs' l := (@lt_labelling _ _ geq_bid a bs bs' tr totr ar l).
-Notation ge_labelling a bs bs' l := (@ge_labelling _ _ geq_bid a bs bs' tr totr ar l).
-Notation labelling_differ_on_eq a bs bs' := 
-  (@labelling_differ_on_eq _ _ geq_bid a bs bs' tr rr totr ar).
-Notation is_labelling bs l := (@is_labelling _ _ geq_bid bs l).  
-Notation labellingP bs := (@labellingP _ _ geq_bid bs tr totr ar). 
-Notation exists_labellingW bs := (@exists_labellingW _ _ geq_bid bs tr totr ar).
 
 (* We assume that ctrs are unique. *)
 
@@ -429,16 +420,9 @@ Proof. by rewrite /O1_outcome eq_winners// eq_prices. Qed.
 
 Lemma fRiP :  Ri as2 (fRi as2).
 Proof.
-split=> [i|].
-- rewrite /action_on /fRi /Ri tnth_map tnth_ord_tuple /fR /Ra => o /=. 
-  by rewrite ffunE.
-- rewrite /M1 /M2. 
-  have eqsig : [tuple sig_b i (tnth as2 i) | i < n] = a1s_of.
-      apply: eq_from_tnth => i.
-      rewrite !tnth_map tnth_ord_tuple /=.
-      by apply: eq_sig_hprop => [f|//=]; first by exact: Classical_Prop.proof_irrelevance.
-  rewrite /O1_winners /fRi /fR eqsig.
-  by rewrite Ri12.
+split=> [i|]; last by rewrite /M1 /M2 /O1_winners /fRi /fR -Ri12. 
+rewrite /action_on /fRi /Ri tnth_map tnth_ord_tuple /fR /Ra => o /=. 
+by rewrite ffunE.
 Qed.
 
 Lemma fRdP as2' i (hd : differ_on as2 as2' i) : differ_on (fRi as2) (fRi as2') i.
@@ -446,18 +430,15 @@ Proof.
 move=> j /hd ha; rewrite /action_on in ha.
 rewrite /fRi /action_on !tnth_map !tnth_ord_tuple /fR /=.
 apply: eq_sig_hprop => [f|//=]; first by exact: Classical_Prop.proof_irrelevance.  
-apply/ffunP => o.
-by rewrite !ffunE ha.
+by apply/ffunP => o; rewrite !ffunE ha.
 Qed.
 
 Lemma fRviP i (ha : action_on as2 i = v2 i) : action_on (fRi as2) i = v1 i.
 Proof. 
 rewrite /action_on /fRi !tnth_map !tnth_ord_tuple in ha *. 
 rewrite /fR /v1.
-apply: eq_sig_hprop => [f|//=]. 
-exact: Classical_Prop.proof_irrelevance.  
-apply/ffunP => o.
-by rewrite !ffunE ha. 
+apply: eq_sig_hprop => [f|//=]; first by exact: Classical_Prop.proof_irrelevance.  
+by apply/ffunP => o; rewrite !ffunE ha. 
 Qed.
 
 End Outcome.
@@ -505,6 +486,16 @@ Check VCG_for_Search_uniq_truthful_rel.
 Print Assumptions VCG_for_Search_uniq_truthful_rel.
 
 (* A direct proof attemps of thruthfulness. *)
+
+Let geq_bid := @geq_bid p'.
+
+Notation lt_labelling a bs bs' l := (@lt_labelling _ _ geq_bid a bs bs' tr totr ar l).
+Notation ge_labelling a bs bs' l := (@ge_labelling _ _ geq_bid a bs bs' tr totr ar l).
+Notation labelling_differ_on_eq a bs bs' := 
+  (@labelling_differ_on_eq _ _ geq_bid a bs bs' tr rr totr ar).
+Notation is_labelling bs l := (@is_labelling _ _ geq_bid bs l).  
+Notation labellingP bs := (@labellingP _ _ geq_bid bs tr totr ar). 
+Notation exists_labellingW bs := (@exists_labellingW _ _ geq_bid bs tr totr ar).
 
 Section TruthfulnessCases.
 

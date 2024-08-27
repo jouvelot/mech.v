@@ -269,7 +269,7 @@ case: ifP => [it /=|/negbFE /eqP nit//].
 - by rewrite nit S.last_ctr_eq0/= muln0/= sub0n inordK// ?G_rational// tws.
 Qed.
 
-(* Relations *)
+(* Relations, inspired by mech.v but adapted to uniq and osition-dependant bids. *)
 
 Definition tlabel_o bs o := Outcome (uniq_map_o bs o).
 
@@ -501,13 +501,13 @@ Qed.
 
 (* Truthfulness of m2 with uniq bids. *)
 
-Lemma VCG_for_Search_truthful_rel : uniq_truthful p2.
+Lemma VCG_for_Search_uniq_truthful_rel : uniq_truthful p2.
 Proof. apply MP; exact: truthful_General_VCG. Qed.
 
 End Relational.
  
-Check VCG_for_Search_truthful_rel.
-Print Assumptions VCG_for_Search_truthful_rel.
+Check VCG_for_Search_uniq_truthful_rel.
+Print Assumptions VCG_for_Search_uniq_truthful_rel.
 
 (* A direct proof attemps of thruthfulness. *)
 

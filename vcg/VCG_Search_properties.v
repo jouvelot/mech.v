@@ -4,10 +4,12 @@
 
   A formalization project for the Vickrey‑Clarke‑Groves auctions.
 
-  Properties of the "VCG for Search" auction variant.
+  Properties of the VCG for Search auction variant.
   - no positive transfer;
   - rationality;
-  - truthfulness.
+  - truthfulness (for uniq bids and specified optimal outcomes);
+  - SP as a special case of VCG for Search;
+  - surplus as maximum welfare.
 
   See Tim Roughtgarden lecture notes for more details.
   (http://timroughgarden.org/f16/l/l15.pdf)
@@ -297,6 +299,10 @@ move=> as2 i.
 by apply: eq_sig_hprop => [f|//=]; first exact: Classical_Prop.proof_irrelevance.  
 Qed.
 
+(* There are multiple optimal outcomes oStar in General VCG for VCG for Search, since the
+   last slot has a 'ctr_last_slot equal to 0, which allows any agent to be used for that
+   slot in oStar. We impose here the choice that is defined in VCG_for_Search_as_General_VCG. *)
+
 Hypothesis G_oStar_instance_biddings_last : 
   forall as2 : A2s, tnth (G.oStar S.o0 (instance_biddings as2)) last_slot = 
            tnth oStar last_slot.
@@ -310,9 +316,6 @@ Variable (as2 : A2s) (uniq_bs : uniq as2).
 
 Definition a1s_of := [tuple sig_b i (tnth as2 i) | i < n]. 
 
-Lemma injtl : injective (tnth (tlabel as2)).
-Proof. apply: (labelling_inj as2). exact: (tlabelP as2). Qed.
-
 Lemma S_biddings : G_biddings a1s_of = biddings as2.
 Proof.
 apply: eq_from_tnth => j.
@@ -325,8 +328,7 @@ Qed.
 
 Lemma G_oStar_instance : G.oStar S.o0 (instance_biddings as2) = oStar. 
 Proof.
-rewrite /instance_biddings /instance_bidding /t_bidding /bid_in.
-rewrite /oStar /t_oStar.
+rewrite /instance_biddings /instance_bidding /t_bidding /bid_in /oStar /t_oStar.
 apply: val_inj => /=.
 pose as2' := tsort as2. 
 have uas2' : uniq as2' by rewrite sort_uniq uniq_bs.
@@ -360,8 +362,7 @@ Proof.
 rewrite S_biddings.
 move: (@bidSum_extremums as2) => 
       /(_ _ _ (VCG_oStar_extremum as2) (oStar_extremum as2) uniq_bs uniq_ctrs) => teq.
-apply: val_inj => /=.
-apply: eq_from_tnth => s.
+apply/val_inj/eq_from_tnth => s.
 have [/eqP ->|/not_ctr0 c0] := boolP (s == last_slot); 
                                first by rewrite G_oStar_biddings_last.
 rewrite teq ?tnth_map ?ctrs_ne0//.
@@ -377,8 +378,7 @@ Lemma eq_winners : O1_winners a1s_of = O2_winners as2.
 Proof.
 apply: val_inj => /=. 
 apply: eq_from_tnth => s. 
-rewrite !tnth_map tnth_ord_tuple /O1_winners G_oStar_G_biddings.
-rewrite !tnth_map.
+rewrite !tnth_map tnth_ord_tuple /O1_winners G_oStar_G_biddings !tnth_map.
 congr tnth.
 apply: val_inj => /=.
 by rewrite tnth_ord_tuple.
@@ -391,12 +391,9 @@ rewrite 2!tnth_map.
 congr (inord _).
 rewrite eq_winners.
 set i := (tnth _ _). 
-rewrite  S_biddings.  
-rewrite eq_instance_VCG_price ?sorted_relabelled_biddings ?uniq_ctrs//.
+rewrite  S_biddings eq_instance_VCG_price ?sorted_relabelled_biddings ?uniq_ctrs//.
 rewrite /instance_biddings /instance_bidding /biddings /bidding /t_bidding /bid_in.
 have injx :=  idxa_inj as2.
-have in_inj (T : eqType) (f : A -> T) (injf : injective f) (o : S.O) j : 
-  (f j \in (map_tuple f o)) = (j \in o) by rewrite -(mem_map injf).
 congr (_ - _). 
 - apply/eqP; rewrite eqn_leq; apply/andP; split. 
   - apply/bigmax_leqP => o _. 
@@ -404,7 +401,7 @@ congr (_ - _).
     rewrite (bigmax_sup (tidxa_o as2 o))//.
     under [X in _ <= X]eq_bigr => j _.
       rewrite tnth_map ffunE !tnth_ord_tuple. 
-      rewrite (labelling_spec_idxa as2) slot_inj ?in_inj//.
+      rewrite (labelling_spec_idxa as2) slot_inj ?in_inj_o//.
     by over.
     by [].
   - apply/bigmax_leqP => o _.
@@ -454,8 +451,7 @@ Qed.
 Lemma fRdP as2' i (hd : differ_on as2 as2' i) : differ_on (fRi as2) (fRi as2') i.
 Proof.
 move=> j /hd ha; rewrite /action_on in ha.
-rewrite /fRi /action_on !tnth_map !tnth_ord_tuple. 
-rewrite /fR /=.
+rewrite /fRi /action_on !tnth_map !tnth_ord_tuple /fR /=.
 apply: eq_sig_hprop => [f|//=]; first by exact: Classical_Prop.proof_irrelevance.  
 apply/ffunP => o.
 by rewrite !ffunE ha.

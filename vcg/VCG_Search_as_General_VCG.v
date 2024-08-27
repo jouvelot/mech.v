@@ -369,6 +369,10 @@ case: tnthP => [[w hw //]|x //=].
     by exists w; by rewrite tnth_map hw.
 Qed.
 
+Lemma in_inj_o (T : eqType) (f : A -> T) (injf : injective f) (o : O) j : 
+  (f j \in (map_tuple f o)) = (j \in o). 
+Proof. by rewrite -(mem_map injf). Qed.
+
 Lemma not_ctr0 s : s != last_slot -> 'ctr_s != ord0.
 Proof.
 move=> ns.

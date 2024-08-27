@@ -269,7 +269,7 @@ case: ifP => [it /=|/negbFE /eqP nit//].
 - by rewrite nit S.last_ctr_eq0/= muln0/= sub0n inordK// ?G_rational// tws.
 Qed.
 
-(* Relations, inspired by mech.v but adapted to uniq and osition-dependant bids. *)
+(* Relations, inspired by mech.v but adapted to uniq and position-dependant bids. *)
 
 Definition tlabel_o bs o := Outcome (uniq_map_o bs o).
 
@@ -318,8 +318,7 @@ Lemma S_biddings : G_biddings a1s_of = biddings as2.
 Proof.
 apply: eq_from_tnth => j.
 rewrite !tnth_map !tnth_ord_tuple. 
-apply: eq_ffun => o.
-rewrite ffunE /t_bidding /= /bid_in.
+apply: eq_ffun => o; rewrite ffunE /t_bidding /= /bid_in.
 have [//|/negbTE njo] := boolP (j \in o).
 by rewrite slot_not_in// ?S.last_ctr_eq0/= ?muln0.
 Qed.
@@ -374,12 +373,10 @@ Proof. by rewrite G_oStar_instance G_oStar_G_biddings. Qed.
 
 Lemma eq_winners : O1_winners a1s_of = O2_winners as2.
 Proof.
-apply: val_inj => /=. 
-apply: eq_from_tnth => s. 
+apply/val_inj/eq_from_tnth => s. 
 rewrite !tnth_map tnth_ord_tuple /O1_winners G_oStar_G_biddings !tnth_map.
 congr tnth.
-apply: val_inj => /=.
-by rewrite tnth_ord_tuple.
+by apply/val_inj; rewrite tnth_ord_tuple.
 Qed.
 
 Lemma eq_prices : O1_prices a1s_of = O2_prices as2. 
@@ -391,16 +388,15 @@ rewrite eq_winners.
 set i := (tnth _ _). 
 rewrite  S_biddings eq_instance_VCG_price ?sorted_relabelled_biddings ?uniq_ctrs//.
 rewrite /instance_biddings /instance_bidding /biddings /bidding /t_bidding /bid_in.
-have injx :=  idxa_inj as2.
 congr (_ - _). 
 - apply/eqP; rewrite eqn_leq; apply/andP; split. 
   - apply/bigmax_leqP => o _. 
     under [X in X <= _]eq_bigr => j _. rewrite tnth_map ffunE !tnth_ord_tuple. by over.
     rewrite (bigmax_sup (tidxa_o as2 o))//.
+    have ij := idxa_inj as2.
     under [X in _ <= X]eq_bigr => j _.
-      rewrite tnth_map ffunE !tnth_ord_tuple. 
-      rewrite (labelling_spec_idxa as2) slot_inj ?in_inj_o//.
-    by over.
+      rewrite tnth_map ffunE !tnth_ord_tuple (labelling_spec_idxa as2) slot_inj ?in_inj_o//. 
+    by over => //.
     by [].
   - apply/bigmax_leqP => o _.
     under [X in X <= _]eq_bigr => j _. rewrite tnth_map ffunE !tnth_ord_tuple. by over.
@@ -420,8 +416,7 @@ congr (_ - _).
     congr G.oStar.
     apply: eq_from_tnth => j.
     rewrite !tnth_map !tnth_ord_tuple.
-    apply/ffunP => o.
-    rewrite !ffunE.
+    apply/ffunP => o; rewrite !ffunE.
     case: ifP => io //=.  
     by rewrite slot_not_in// ?S.last_ctr_eq0/= ?muln0.
   apply: eq_bigr => j _.

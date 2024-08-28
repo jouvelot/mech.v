@@ -775,6 +775,12 @@ move: (OStar.le_welfare_o_oStar bs o).
 by rewrite /OStar.max_welfare /OStar.welfare -bidSum_slot valid_bidSum.
 Qed.
 
+(* We prove that, for uniq bids and ctrs, there is unicity of the optimal outcomes, 
+   except for last_slot, since its ctr being 0, any agent can be used there.
+
+  For non-uniq bids or ctrs, unicity is lost since two agents can be swapped without changing 
+  bidSum, i.e., the welfare. *)
+
 Definition bidSum_extremum_rel := 
   forall (o1 o2 : O) (mx1 : max_bidSum_spec o1) (mx2 : max_bidSum_spec o2),
     uniq bs -> uniq cs -> forall s, 'ctr_s != ctr0 -> tnth o1 s = tnth o2 s.
@@ -939,6 +945,9 @@ rewrite leq_eqVlt => /orP [/eqP o2o1|l21].
     move: (lt_bidSum_out l21 out2 ns0); rewrite -/o2'.
     by case: mx2 => x2 _ /(_ o2' erefl) /=; last by rewrite ltnNge => ->.
 Qed.
+
+(* We focus on sorted bids, since this is how one can better relate bidSum to the VCG for
+   its VCG for Search-specific variant. *)
 
 Variable sorted_bs : sorted_bids bs.
 

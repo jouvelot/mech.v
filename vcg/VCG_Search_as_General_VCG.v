@@ -781,9 +781,25 @@ Qed.
   For non-uniq bids or ctrs, unicity is lost since two agents can be swapped without changing 
   bidSum, i.e., the welfare. *)
 
+Notation diff_last o1 o2 := (forall s : slot, 'ctr_s != ctr0 -> tnth o1 s = tnth o2 s).
+
+Lemma max_bidSum_diff_last (o1 o : O) (mx1 : max_bidSum_spec o1) :
+  diff_last o o1 -> max_bidSum_spec o.
+Proof.
+move=> dif.
+apply: ExtremumSpec => [//|o' _ /=].
+rewrite (@leq_trans (bidSum o1))//; first by move: mx1 => [o1'] _ /(_ o' erefl).
+rewrite leq_eqVlt; apply/orP; left; apply/eqP.
+rewrite !bidSum_slot.
+apply: eq_bigr => s _.
+rewrite /bidding !ffunE /t_bidding /bid_in !cancel_slot. 
+have [/eqP ->|/not_ctr0/dif oo1] := boolP (s == last_slot); last by rewrite !mem_tnth oo1.
+by rewrite !last_ctr_eq0 !muln0 !if_same.
+Qed.
+
 Definition bidSum_extremum_rel := 
   forall (o1 o2 : O) (mx1 : max_bidSum_spec o1) (mx2 : max_bidSum_spec o2),
-    uniq bs -> uniq cs -> forall s, 'ctr_s != ctr0 -> tnth o1 s = tnth o2 s.
+    uniq bs -> uniq cs -> diff_last o1 o2.
 
 Lemma eq_bidSum_out (o : O) s  s' :
   let o' := Outcome (tuple_tperm_uniq s' s (ouniq o)) in

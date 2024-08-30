@@ -288,9 +288,32 @@ move=> as2 i.
 by apply: eq_sig_hprop => [f|//=]; first exact: Classical_Prop.proof_irrelevance.  
 Qed.
 
-(* There are multiple optimal outcomes oStar in General VCG for VCG for Search, since the
-   last slot has a 'ctr_last_slot equal to 0, which allows any agent to be used for that
-   slot in oStar. We impose here the choice that is defined in VCG_for_Search_as_General_VCG. *)
+(* We prove that, for uniq bids and ctrs, there is unicity of the optimal outcome, 
+   except for last_slot, since its ctr being 0, any agent can be used there.
+
+  For non-uniq bids or ctrs, unicity is lost since two agents can be swapped without 
+  changing bidSum, i.e., the welfare. *)
+
+Notation diff_last o1 o2 := (forall s : slot, 'ctr_s != ctr0 -> tnth o1 s = tnth o2 s).
+
+Lemma max_bidSum_diff_last (a2s : A2s) (o1 o : S.O) (mx1 : max_bidSum_spec a2s o1) :
+  diff_last o o1 -> max_bidSum_spec a2s o.
+Proof.
+move=> dif.
+apply: ExtremumSpec => [//|o' _ /=].
+rewrite (@leq_trans (bidSum a2s o1))//; first by move: mx1 => [o1'] _ /(_ o' erefl).
+rewrite leq_eqVlt; apply/orP; left; apply/eqP.
+rewrite !bidSum_slot.
+apply: eq_bigr => s _.
+rewrite /bidding !ffunE /t_bidding /bid_in !cancel_slot. 
+have [/eqP ->|/not_ctr0/dif oo1] := boolP (s == last_slot); last by rewrite !mem_tnth oo1.
+by rewrite !S.last_ctr_eq0 !muln0 !if_same.
+Qed.
+
+(* There are thus multiple optimal outcomes oStar in General VCG for VCG for Search, 
+   since the last slot has a 'ctr_last_slot equal to 0, which allows any agent to be used
+   for that slot in oStar. We impose here the choice that is defined in 
+   VCG_for_Search_as_General_VCG. *)
 
 Hypothesis G_oStar_instance_biddings_last : 
   forall as2 : A2s, tnth (G.oStar S.o0 (instance_biddings as2)) last_slot = 

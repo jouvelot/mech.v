@@ -425,14 +425,7 @@ congr (_ - _).
   set oS := (G.oStar _ _); set ioS := (G.oStar _ _).
   under [in LHS]eq_bigr => j _. rewrite tnth_map ffunE !tnth_ord_tuple. by over.
   under [in RHS]eq_bigr => j _. rewrite tnth_map ffunE !tnth_ord_tuple. by over.
-  have -> : oS = tlabel_o as2 ioS. 
-    rewrite -relabel_oS.
-    congr G.oStar.
-    apply: eq_from_tnth => j.
-    rewrite !tnth_map !tnth_ord_tuple.
-    apply/ffunP => o; rewrite !ffunE.
-    case: ifP => io //=.  
-    by rewrite slot_not_in// ?S.last_ctr_eq0/= ?muln0.
+  have -> : oS = tlabel_o as2 ioS by rewrite -relabel_oS S_biddings.
   apply: eq_bigr => j _.
   case: ifP => io; first by rewrite relabel_slot// labelling_in io// (labelling_spec_idxa as2).
   by rewrite labelling_in io.

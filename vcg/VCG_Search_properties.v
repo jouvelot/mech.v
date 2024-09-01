@@ -292,8 +292,8 @@ Qed.
 (* We prove that, for uniq bids and ctrs, there is unicity of the optimal outcome, 
    except for last_slot, since its ctr being 0, any agent can be used there.
 
-  For non-uniq bids or ctrs, unicity is lost since two agents can be swapped without 
-  changing bidSum, i.e., the welfare. *)
+   For non-uniq bids or ctrs, unicity is lost since two agents can be swapped without 
+   changing bidSum, i.e., the welfare. *)
 
 Notation diff_last o1 o2 := (forall s : slot, 'ctr_s != ctr0 -> tnth o1 s = tnth o2 s).
 
@@ -313,12 +313,16 @@ Qed.
 
 (* There are thus multiple optimal outcomes oStar in General VCG for VCG for Search, 
    since the last slot has a 'ctr_last_slot equal to 0, which allows any agent to be used
-   for that slot in oStar. We impose here the choice that is defined in 
-   VCG_for_Search_as_General_VCG. *)
+   for that slot in oStar. We impose here in the tuple of agents in the outcome the choice 
+   that is defined in VCG_for_Search_as_General_VCG. 
+
+   Note that this choice is compatible with the uniqueness required of the outcomes, as proven
+   by the lemmas G_oStar_* lemmas below. *)
 
 Hypothesis G_oStar_instance_biddings_last : 
   forall as2 : A2s, tnth (G.oStar S.o0 (instance_biddings as2)) last_slot = 
            tnth oStar last_slot.
+
 Hypothesis G_oStar_biddings_last :
   forall as2 : A2s , tnth (G.oStar S.o0 (biddings as2)) last_slot = 
            tnth (tlabel_o as2 oStar) last_slot.

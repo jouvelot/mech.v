@@ -175,7 +175,7 @@ Definition externality (bs : bids) s :=
 (* Price per impression (divide by [ctr_slot_won] for price per click). *)
 
 Definition price :=
-  if i' < k' then \sum_(s < k | i'.+1 <= s) externality bs s else 0.
+  if is_winner then \sum_(s < k | i'.+1 <= s) externality bs s else 0.
 
 End VCGforSearchAlgorithm.
 
@@ -1401,9 +1401,9 @@ Qed.
 Lemma eq_sorted_VCG_price_loses :  
   price bs i = @G.price [finType of O] o0 i (biddings bs).
 Proof.
-rewrite /price tsortK ?idxaK // /price /externality G.eq_price'' /G.price''.
+rewrite /price /is_winner tsortK ?idxaK // /price /externality G.eq_price'' /G.price''.
 rewrite -/welfare_without_i'' -/welfare_with_i.
-rewrite eq_welfare_without_i'' eq_welfare_with_i. 
+rewrite eq_welfare_without_i'' eq_welfare_with_i.
 by rewrite ifF ?subnn // ltnNge leq_eqVlt (not_in_oStar_inv not_i_in_oStar) orbT.
 Qed.
 
@@ -1879,8 +1879,8 @@ Qed.
 Lemma eq_sorted_VCG_price_wins :  
   price bs i = @G.price [finType of O] o0 i (biddings bs).
 Proof.
-rewrite /price tsortK ?idxaK //.
-rewrite /price /externality G.eq_price'' /G.price''.
+rewrite /price /is_winner tsortK ?idxaK //. 
+rewrite /price /is_winner /externality G.eq_price'' /G.price''.
 rewrite -/welfare_without_i'' -/welfare_with_i.
 rewrite eq_welfare_without_i'' eq_welfare_with_i.
 rewrite -/bs subnDl.  
@@ -1965,7 +1965,7 @@ Proof. by apply/sorted_bids_sorted/sort_sorted/total_geq_bid. Qed.
 
 Lemma eq_relabelled_price : price bs' i' = price bs i.
 Proof.
-rewrite /price tsortK //; last exact: sorted_bids_sorted. 
+rewrite /price /is_winner tsortK //; last exact: sorted_bids_sorted. 
 rewrite idxaK //; last exact: sorted_bids_sorted.
 Qed.
 

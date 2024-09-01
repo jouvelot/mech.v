@@ -54,7 +54,7 @@ Lemma nth0_prefix b (sb : sorted <=%O b) (n : nat) (ltnb : n < size b)
   (leb : nth t0 (drop n b) 0 <= v) :
   nth t0 b (1 + n) <= nth t0 s 0.
 Proof.
-set t := drop n b. 
+bset t := drop n b. 
 have lt1s1 : (1 < (size s).+1)%N by rewrite ltnS.
 have -> : nth t0 b (1 + n) = nth t0 t 1 by rewrite nth_drop addnC.
 have := (sorted_ltn_nth le_trans t0 svs 0 1).  

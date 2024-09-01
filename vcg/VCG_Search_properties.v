@@ -654,7 +654,7 @@ Proof. by rewrite /price ifT // (@ltn_trans k'). Qed.
 Lemma eq_price_bs'_over : 
   price bs' a = \sum_(s < k | i' < s <= i) externality (tsort bs') s + price bs a.
 Proof.
-rewrite /price /externality ifT; last by exact: iwins'.
+rewrite /price /is_winner /externality ifT; last by exact: iwins'.
 rewrite ifT; last by rewrite iwins.
 rewrite (split_sum_ord lt_i'_i).  
 congr (_ + _).
@@ -763,7 +763,7 @@ Qed.
 
 Lemma eq_price_bs'_under : price bs' a = \sum_(s < k | i' < s) externality (tsort bs) s.
 Proof.
-rewrite /price ifT; last by rewrite iwins'.
+rewrite /price /is_winner ifT; last by rewrite iwins'.
 apply: eq_bigr => s lti's.
 rewrite /externality.
 set j := slot_as_agent s.
@@ -782,7 +782,7 @@ Qed.
 Lemma eq_price_bs_under : 
   price bs a = \sum_(s < k | i < s <= i') externality (tsort bs) s + price bs' a.
 Proof.
-rewrite /(price bs) ifT; last by rewrite iwins.
+rewrite /(price bs) /is_winner ifT; last by rewrite iwins.
 by rewrite (split_sum_ord lt_i_i') eq_price_bs'_under addnC.
 Qed.
 
@@ -830,7 +830,7 @@ rewrite swap_dist_subr // ?S.sorted_ctrs //=.
 - by rewrite eq_price_bs_under leq_addl.
 - move: iwins iwins' => iw iw'.
   rewrite /is_winner in iw iw'.
-  rewrite /price -/i -/i' iw iw'.
+  rewrite /price /is_winner -/i -/i' iw iw'.
   have eq_ends : \sum_(s < k | i' < s) externality (tsort bs') s = 
                  \sum_(s < k | i' < s) externality (tsort bs) s.
     by rewrite -eq_price_bs'_under // /price ifT //  (@ltn_trans k').

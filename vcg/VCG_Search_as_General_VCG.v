@@ -175,7 +175,7 @@ Definition externality (bs : bids) s :=
 (* Price per impression (divide by [ctr_slot_won] for price per click). *)
 
 Definition price :=
-  if i' < k then \sum_(s < k | i'.+1 <= s) externality bs s else 0.
+  if i' < k' then \sum_(s < k | i'.+1 <= s) externality bs s else 0.
 
 End VCGforSearchAlgorithm.
 
@@ -1404,7 +1404,7 @@ Proof.
 rewrite /price tsortK ?idxaK // /price /externality G.eq_price'' /G.price''.
 rewrite -/welfare_without_i'' -/welfare_with_i.
 rewrite eq_welfare_without_i'' eq_welfare_with_i. 
-by rewrite ifF ?subnn // ltnNge (not_in_oStar_inv not_i_in_oStar).
+by rewrite ifF ?subnn // ltnNge leq_eqVlt (not_in_oStar_inv not_i_in_oStar) orbT.
 Qed.
 
 End Loses.
@@ -1890,11 +1890,30 @@ rewrite -/bs subnDl.
   have ->: ord0 = last_slot by exact: val_inj.
   by rewrite if_same last_ctr_eq0 /= ?muln0 // eq0k'. 
 - have iisslot := (mem_oStar_inv i_in_oStar).
-  rewrite -lt0n iisslot => lt0k'. 
+  rewrite -lt0n => lt0k'. 
   under eq_bigr do rewrite mulnBr.
   under big_split_subn => s ltis.
     rewrite leq_mul2l; apply/orP; right. 
     by apply: sorted_ctrs; rewrite leq_pred.
+  case: ifP => ltik'; last first.
+    have eqik' /= : i = inord k'.
+      apply: val_inj => /=.
+      rewrite inordK ?(ltn_trans _ lt_k_n)//.
+      move: iisslot => /ltnSE.
+      by rewrite leq_eqVlt ltik' orbF => /eqP.
+    set t := (X in _ = X - _).
+    have -> : t = \sum_(s < k | k' == s) 0.
+      apply: eq_big => [s|s leis].
+      - rewrite leq_eqVlt eqik' inordK ?(ltn_trans _ lt_k_n)//.
+        by move: (leq_ord s); rewrite leqNgt => /negPf ->; rewrite orbF.
+      - have -> : s = last_slot. 
+          apply: val_inj => /=.
+          move: leis.
+          rewrite eqik' inordK ?(ltn_trans _ lt_k_n)//.
+          move: (leq_ord s).
+          by rewrite leq_eqVlt ltnNge => /orP [/eqP ->//|/negPf ->].
+        by rewrite last_ctr_eq0/= muln0.
+     by rewrite sum_nat_const muln0.
   set t := (X in _ - X = _).
   apply/eqP; rewrite -(eqn_add2r t); apply/eqP.
   rewrite !subnK; last first.

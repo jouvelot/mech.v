@@ -17,7 +17,7 @@
 
   Authors: Pierre Jouvelot(+), Lucas Sguerra(+), Emilio Gallego Arias(++).
 
-  Date: October, 2021- 2024.
+  Date: October, 2021-2024.
 
   (+) Mines Paris, PSL University, France
   (++) Inria, France
@@ -83,7 +83,7 @@ Definition utility := value - price bs a.
 
 Theorem VCG_for_Search_rational : price bs a  <= value.
 Proof.
-rewrite /price -value_is_bid /externality /bid_in ifT; last by rewrite (@ltn_trans k'). 
+rewrite /price -value_is_bid /externality /bid_in ifT; last by exact: awins.
 set S := (X in X <= _). 
 have : S <= \sum_(s < k | i < s) 
              tnth bs' (slot_as_agent (inord i)) * ('ctr_ (slot_pred s) - 'ctr_ s).
@@ -173,8 +173,9 @@ Definition is_winner2 w2 i := slot_of i w2 != last_slot.
 Definition p2 : prefs.type m2 :=
   prefs.new v2 
             (fun i (o2 : mech.O m2) => 
-               if is_winner2 o2.1 i then 
-                 v2 i * 'ctr_(slot_of i o2.1) - tnth o2.2 (slot_of i o2.1) else 0)
+               let: s := slot_of i o2.1 in
+               if is_winner2 o2.1 i then v2 i * 'ctr_s - tnth o2.2 s 
+               else 0)
             v2.
 
 (* Mech1 = General VCG *)
@@ -216,8 +217,8 @@ Definition p1 : prefs.type m1 :=
   prefs.new 
     v1
     (fun i (o1 : mech.O m1) =>
-       if is_winner2 o1.1 i then
-         v2 i * 'ctr_(slot_of i o1.1) - tnth o1.2 (slot_of i o1.1) else 0)
+       if is_winner2 o1.1 i then v2 i * 'ctr_(slot_of i o1.1) - tnth o1.2 (slot_of i o1.1) 
+       else 0)
     v1.
 
 (* Truthfulness theorem for m1. *)
@@ -618,7 +619,7 @@ have -> //:  'ctr_sw - 'ctr_last_slot = \sum_(s < k | sw < s) ('ctr_(slot_pred s
   under eq_bigl=> s.
   have -> : (sw < s) = (sw < s <= (last_ord k')). by rewrite leq_ord andbT. over.
   by rewrite sum_diffs // => x y; exact: S.sorted_ctrs.
-rewrite big_distrr /= /price /externality (ltn_trans _ (ltnSn k')) //. 
+rewrite big_distrr /= /price /externality// ifT; last by exact: iwins'.
 rewrite mini' leq_sum // => s lti's.
 by rewrite -tv leq_mul // leq_value_loses.
 Qed.
@@ -653,8 +654,8 @@ Proof. by rewrite /price ifT // (@ltn_trans k'). Qed.
 Lemma eq_price_bs'_over : 
   price bs' a = \sum_(s < k | i' < s <= i) externality (tsort bs') s + price bs a.
 Proof.
-rewrite /price /externality ifT; last by rewrite (@ltn_trans k').
-rewrite ifT; last by rewrite (@ltn_trans k').
+rewrite /price /externality ifT; last by exact: iwins'.
+rewrite ifT; last by rewrite iwins.
 rewrite (split_sum_ord lt_i'_i).  
 congr (_ + _).
 apply: eq_bigr => s ltis.
@@ -762,7 +763,7 @@ Qed.
 
 Lemma eq_price_bs'_under : price bs' a = \sum_(s < k | i' < s) externality (tsort bs) s.
 Proof.
-rewrite /price ifT; last by rewrite (@ltn_trans k').
+rewrite /price ifT; last by rewrite iwins'.
 apply: eq_bigr => s lti's.
 rewrite /externality.
 set j := slot_as_agent s.
@@ -781,7 +782,7 @@ Qed.
 Lemma eq_price_bs_under : 
   price bs a = \sum_(s < k | i < s <= i') externality (tsort bs) s + price bs' a.
 Proof.
-rewrite /(price bs) ifT; last by rewrite (@ltn_trans k').
+rewrite /(price bs) ifT; last by rewrite iwins.
 by rewrite (split_sum_ord lt_i_i') eq_price_bs'_under addnC.
 Qed.
 
@@ -829,9 +830,7 @@ rewrite swap_dist_subr // ?S.sorted_ctrs //=.
 - by rewrite eq_price_bs_under leq_addl.
 - move: iwins iwins' => iw iw'.
   rewrite /is_winner in iw iw'.
-  rewrite /price -/i -/i'.
-  have -> : i < k by exact: (ltn_trans iw (ltnSn k')).
-  have -> : i' < k by exact: (ltn_trans iw' (ltnSn k')). 
+  rewrite /price -/i -/i' iw iw'.
   have eq_ends : \sum_(s < k | i' < s) externality (tsort bs') s = 
                  \sum_(s < k | i' < s) externality (tsort bs) s.
     by rewrite -eq_price_bs'_under // /price ifT //  (@ltn_trans k').
@@ -873,7 +872,7 @@ move: diff; rewrite /differ_on /action_on => d.
 have -> : slot_won bs' a = slot_won bs a.
   apply: val_inj => /=.  
   by rewrite (_ : S.idxa bs' a = i') // (_ : S.idxa bs a = i) // -/i -/i' eq_i_i'.
-rewrite leq_sub // /price !ifT 1?(@ltn_trans k') // eq_leq //.
+rewrite leq_sub // /price !ifT ?iwins' // eq_leq //.
 rewrite (@eq_big _ _ _ _ _ (fun s : slot => i < s) (fun s : slot => i' < s)
                  _ (externality (tsort bs'))) => // [s|s ltis];
   first by rewrite eq_i_i'.

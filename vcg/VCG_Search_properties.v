@@ -956,13 +956,15 @@ Section Surplus.
 
 (* 3 hypotheses to map VCG for Search into Second Prize. *)
 
-Hypothesis a_single_slot_is_auctionned : S.k' = 0.
+Hypothesis a_single_slot_is_auctionned : S.k' = 0. 
 
 Hypothesis max_ctr_is_1 : S.q' = 1.
 
-Lemma lt1q : 1 < q.
-Proof. by rewrite /q max_ctr_is_1. Qed.
-Definition ctr1 := Ordinal lt1q.
+Definition ctr1 : 'I_q.  
+have lt1q : 1 < q by rewrite /q max_ctr_is_1. 
+exact: (Ordinal lt1q).
+Defined.
+
 Hypothesis all_ctrs_are_1 : forall s, 'ctr_s = ctr1.
 
 (*  A second-price Vickrey auction maximizes surplus, when bidding truthfully, i.e.,

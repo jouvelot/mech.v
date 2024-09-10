@@ -295,19 +295,19 @@ Qed.
    For non-uniq bids or ctrs, unicity is lost since two agents can be swapped without 
    changing bidSum, i.e., the welfare. *)
 
-Notation diff_last o1 o2 := (forall s : slot, 'ctr_s != ctr0 -> tnth o1 s = tnth o2 s).
+Notation diff_last o1 o2 := (forall s : slot, s != last_slot -> tnth o1 s = tnth o2 s).
 
-Lemma max_bidSum_diff_last (a2s : A2s) (o1 o : S.O) (mx1 : max_bidSum_spec a2s o1) :
-  diff_last o o1 -> max_bidSum_spec a2s o.
+Lemma max_bidSum_diff_last (a2s : A2s) (o1 o : S.O) (d : diff_last o o1 ) :
+  max_bidSum_spec a2s o1 -> max_bidSum_spec a2s o.
 Proof.
-move=> dif.
+move=> mx1.
 apply: ExtremumSpec => [//|o' _ /=].
 rewrite (@leq_trans (bidSum a2s o1))//; first by move: mx1 => [o1'] _ /(_ o' erefl).
 rewrite leq_eqVlt; apply/orP; left; apply/eqP.
 rewrite !bidSum_slot.
 apply: eq_bigr => s _.
 rewrite /bidding !ffunE /t_bidding /bid_in !cancel_slot. 
-have [/eqP ->|/not_ctr0/dif oo1] := boolP (s == last_slot); last by rewrite !mem_tnth oo1.
+have [/eqP ->|] := boolP (s == last_slot); last by rewrite !mem_tnth => /d ->.
 by rewrite !S.last_ctr_eq0 !muln0 !if_same.
 Qed.
 

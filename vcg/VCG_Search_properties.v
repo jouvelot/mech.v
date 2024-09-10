@@ -320,12 +320,12 @@ Qed.
    by the lemmas G_oStar_* lemmas below. *)
 
 Hypothesis G_oStar_instance_biddings_last : 
-  forall as2 : A2s, tnth (G.oStar S.o0 (instance_biddings as2)) last_slot = 
-           tnth oStar last_slot.
+  forall as2 : A2s, 
+    tnth (G.oStar S.o0 (instance_biddings as2)) last_slot = slot_as_agent last_slot.
 
 Hypothesis G_oStar_biddings_last :
-  forall as2 : A2s , tnth (G.oStar S.o0 (biddings as2)) last_slot = 
-           tnth (tlabel_o as2 oStar) last_slot.
+  forall as2 : A2s , 
+    tnth (G.oStar S.o0 (biddings as2)) last_slot = tnth (tlabel as2) (slot_as_agent last_slot).
 
 Section Outcome.
 
@@ -352,8 +352,8 @@ move: (@bidSum_extremums as2') =>
       /(_ _ _ (VCG_oStar_extremum as2') (oStar_extremum as2') uas2' uniq_ctrs) => teq.
 set bds2' := (X in _ (G.oStar _ X) = _).
 apply: eq_from_tnth => s.
-have [/eqP ->|/not_ctr0 c0] := boolP (s == last_slot); 
-                               first by rewrite G_oStar_instance_biddings_last.
+have [/eqP ->|/not_ctr0 c0] := boolP (s == last_slot);
+  first by rewrite G_oStar_instance_biddings_last tnth_map tnth_ord_tuple widen_slot_as_agent.
 rewrite /VCG_oStar /biddings /bidding /t_bidding /bid_in in teq.
 move: (teq s c0).
 set bd2 := (X in G.oStar _ X). 
@@ -378,12 +378,10 @@ Proof.
 rewrite S_biddings.
 move: (@bidSum_extremums as2) => 
       /(_ _ _ (VCG_oStar_extremum as2) (oStar_extremum as2) uniq_bs uniq_ctrs) => teq.
-apply/val_inj/eq_from_tnth => s.
-have [/eqP ->|/not_ctr0 c0] := boolP (s == last_slot); 
-                               first by rewrite G_oStar_biddings_last.
-rewrite teq ?tnth_map //.
-congr tnth.
-by apply: val_inj.
+apply/val_inj/eq_from_tnth => s/=.
+have [/eqP ->|/not_ctr0 c0] := boolP (s == last_slot);
+  last by rewrite teq ?tnth_map // widen_slot_as_agent.
+by rewrite G_oStar_biddings_last/= !tnth_map tnth_ord_tuple widen_slot_as_agent.
 Qed.
 
 Lemma relabel_oS : 
@@ -496,8 +494,6 @@ rewrite -hu -hu'.
 by apply/h1; [apply/fRdP|apply/fRviP].
 Qed.
 
-(* Truthfulness of m2 with uniq bids. *)
-
 Lemma VCG_for_Search_uniq_truthful_rel : uniq_truthful p2.
 Proof. apply MP; exact: truthful_General_VCG. Qed.
 
@@ -506,7 +502,7 @@ End Relational.
 Check VCG_for_Search_uniq_truthful_rel.
 Print Assumptions VCG_for_Search_uniq_truthful_rel.
 
-(* A direct proof attemps of thruthfulness. *)
+(* WIP: a direct proof attemps of thruthfulness. *)
 
 Let geq_bid := @geq_bid p'.
 

@@ -986,6 +986,7 @@ Definition surplus c := \sum_(i < n) v i * tnth c i.
 Definition iw := tnth (tlabel bs) ord0.       (* winning agent in SP. *)
 
 Notation sw := (set_nth 0 [tuple 0 | i < n] iw 1).
+
 Local Lemma szn : size sw = n.
 Proof.
 rewrite size_set_nth /= size_map size_enum_ord.
@@ -995,16 +996,16 @@ Qed.
 
 Definition vw := tcast szn (in_tuple sw).
 
-Lemma isCvw : sumn vw = 1. 
-Proof.
-rewrite val_tcast sumn_set_nthE /sumn size_map /= !(nth_map iw) ?size_enum_ord ?ltn_ord //.
-rewrite leqNgt ltn_ord /= mul0n subn0 addn0 foldrE (big_nth 0) big_nat.
-under eq_bigr => i /andP [_ ltin].
-  rewrite (nth_map iw). over.
-  by rewrite size_map in ltin.
-by rewrite big1_eq.
-Qed. 
-Definition cw := new isCvw.
+Definition cw : C.  
+have isCvw : sumn vw = 1. 
+  rewrite val_tcast sumn_set_nthE /sumn size_map /= !(nth_map iw) ?size_enum_ord ?ltn_ord //.
+  rewrite leqNgt ltn_ord /= mul0n subn0 addn0 foldrE (big_nth 0) big_nat.
+  under eq_bigr => i /andP [_ ltin].
+    rewrite (nth_map iw). over.
+    by rewrite size_map in ltin.
+  by rewrite big1_eq.
+exact (new isCvw).
+Defined.
 
 Lemma eq_surplus : surplus cw = v iw.
 Proof.
@@ -1037,5 +1038,3 @@ by apply: val_inj => /=; rewrite inordK.
 Qed.
 
 End Surplus.
-
-

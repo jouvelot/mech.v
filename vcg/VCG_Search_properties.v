@@ -292,8 +292,8 @@ Qed.
 (* We prove that, for uniq bids and ctrs, there is unicity of the optimal outcome, 
    except for last_slot, since its ctr being 0, any agent can be used there.
 
-   For non-uniq bids or ctrs, unicity is lost since two agents can be swapped without 
-   changing bidSum, i.e., the welfare. *)
+   For non-uniq bids or ctrs, unicity is lost since two agents with equal bids or ctrs
+   can be swapped without changing bidSum, i.e., the welfare. *)
 
 Notation diff_last o1 o2 := (forall s : slot, s != last_slot -> tnth o1 s = tnth o2 s).
 

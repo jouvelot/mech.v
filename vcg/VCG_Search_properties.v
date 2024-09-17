@@ -138,6 +138,10 @@ Section Relational.
 Notation agent := 'I_n.
 Notation agents := (ord_tuple n).
 
+Definition tlabel_o bs o := Outcome (uniq_map_o bs o).
+
+Definition tidxa_o bs o := Outcome (uniq_to_idxa bs (ouniq o)). 
+
 (* prices and winners *)
 
 (* Type for prices, and, via rationality, prices are always less than bids times ctrs. *)
@@ -263,10 +267,6 @@ Qed.
 
 (* Relations, inspired by mech.v but adapted to uniq and position-dependant bids. *)
 
-Definition tlabel_o bs o := Outcome (uniq_map_o bs o).
-
-Definition tidxa_o bs o := Outcome (uniq_to_idxa bs (ouniq o)). 
-
 Definition Ra (as2 : A2s) (i : agent) (a1 : A1) (a2 : A2) : Prop :=
    forall o1 : O1, f_of_a1 a1 o1 = a2 * 'ctr_(slot_of i o1.1).
 
@@ -319,13 +319,29 @@ Qed.
    Note that this choice is compatible with the uniqueness required of the outcomes, as proven
    by the lemmas G_oStar_* lemmas below. *)
 
-Hypothesis G_oStar_instance_biddings_last : 
-  forall as2 : A2s, 
-    tnth (G.oStar S.o0 (instance_biddings as2)) last_slot = slot_as_agent last_slot.
-
 Hypothesis G_oStar_biddings_last :
   forall as2 : A2s , 
     tnth (G.oStar S.o0 (biddings as2)) last_slot = tnth (tlabel as2) (slot_as_agent last_slot).
+
+Lemma G_oStar_instance_biddings_last (as2 : A2s) :
+    tnth (G.oStar S.o0 (instance_biddings as2)) last_slot = slot_as_agent last_slot.
+Proof.
+move: (G_oStar_biddings_last (tsort as2)).
+rewrite (@G.eq_oStar _ _ _ 
+           [tuple [ffun o : S.O => t_bidding (tsort as2) (idxa as2 j) o]  | j < n]) => [->|].
+- by rewrite sorted_tlabel ?tnth_ord_tuple//= sort_sorted.
+- apply/tuple_permP.
+  pose tri := @transitive_geq_bid S.p'.
+  pose toti := @total_geq_bid S.p'.
+  pose ai := @anti_geq_bid S.p'.
+  exists (@perm _ _ (@labelling.idxa_inj _ _ _ as2 tri toti ai)).
+  apply: (@eq_from_nth _ [ffun o => 0])=> [|j lj /=]; first by rewrite !size_map.
+  rewrite !size_map -enumT size_enum_ord in lj.
+  rewrite (nth_map ord0) ?size_enum_ord//.
+  rewrite [RHS](nth_map ord0) ?tnth_map ?size_enum_ord//.
+  apply: eq_ffun => j'.
+  by rewrite permE tnth_ord_tuple. 
+Qed.
 
 Section Outcome.
 

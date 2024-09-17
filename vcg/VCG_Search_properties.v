@@ -316,8 +316,11 @@ Qed.
    for that slot in oStar. We impose here in the tuple of agents in the outcome the choice 
    that is defined in VCG_for_Search_as_General_VCG. 
 
+   Recall that, for any bids bs, with VCG_oStar := G.oStar S.o0 (biddings bs), we have
+   the lemma VCG_oStar_extremum : max_bidSum_spec VCG_oStar.
+
    Note that this choice is compatible with the uniqueness required of the outcomes, as proven
-   by the lemmas G_oStar_* lemmas below. *)
+   by the lemmas G_oStar_G_biddings lemmas below. *)
 
 Hypothesis G_oStar_biddings_last :
   forall as2 : A2s , 

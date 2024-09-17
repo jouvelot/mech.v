@@ -326,24 +326,27 @@ Hypothesis G_oStar_biddings_last :
   forall as2 : A2s , 
     tnth (G.oStar S.o0 (biddings as2)) last_slot = tnth (tlabel as2) (slot_as_agent last_slot).
 
-Lemma G_oStar_instance_biddings_last (as2 : A2s) :
-    tnth (G.oStar S.o0 (instance_biddings as2)) last_slot = slot_as_agent last_slot.
+Lemma perm_instance_tsort_biddings (as2 : A2s) :
+  perm_eq (instance_biddings as2) (biddings (tsort as2)).
 Proof.
-move: (G_oStar_biddings_last (tsort as2)).
-rewrite (@G.eq_oStar _ _ _ 
-           [tuple [ffun o : S.O => t_bidding (tsort as2) (idxa as2 j) o]  | j < n]) => [->|].
-- by rewrite sorted_tlabel ?tnth_ord_tuple//= sort_sorted.
-- apply/tuple_permP.
-  pose tri := @transitive_geq_bid S.p'.
-  pose toti := @total_geq_bid S.p'.
-  pose ai := @anti_geq_bid S.p'.
-  exists (@perm _ _ (@labelling.idxa_inj _ _ _ as2 tri toti ai)).
-  apply: (@eq_from_nth _ [ffun o => 0])=> [|j lj /=]; first by rewrite !size_map.
-  rewrite !size_map -enumT size_enum_ord in lj.
-  rewrite (nth_map ord0) ?size_enum_ord//.
-  rewrite [RHS](nth_map ord0) ?tnth_map ?size_enum_ord//.
-  apply: eq_ffun => j'.
-  by rewrite permE tnth_ord_tuple. 
+apply/tuple_permP.
+pose tri := @transitive_geq_bid S.p'.
+pose toti := @total_geq_bid S.p'.
+pose ai := @anti_geq_bid S.p'.
+exists (perm (@labelling.idxa_inj _ _ _ as2 tri toti ai)).
+apply: (@eq_from_nth _ [ffun o => 0])=> [|j lj /=]; first by rewrite !size_map.
+rewrite !size_map -enumT size_enum_ord in lj.
+rewrite (nth_map ord0) ?size_enum_ord// [RHS](nth_map ord0) ?tnth_map ?size_enum_ord//.
+by apply: eq_ffun => j'; rewrite permE tnth_ord_tuple. 
+Qed.
+
+Lemma G_oStar_instance_biddings_last (as2 : A2s) :
+    tnth (G.oStar S.o0 (instance_biddings as2)) last_slot  = slot_as_agent last_slot.
+Proof. 
+move: (G_oStar_biddings_last (tsort as2)). 
+rewrite (@G.eq_oStar _ _ _ (instance_biddings as2)) => [->|]; 
+  last exact: perm_instance_tsort_biddings.
+by rewrite sorted_tlabel ?tnth_ord_tuple//= sort_sorted.
 Qed.
 
 Section Outcome.
@@ -363,33 +366,19 @@ Qed.
 
 Lemma G_oStar_instance : G.oStar S.o0 (instance_biddings as2) = oStar. 
 Proof.
-rewrite /instance_biddings /instance_bidding /t_bidding /bid_in /oStar /t_oStar.
-apply: val_inj => /=.
-pose as2' := tsort as2. 
+apply: val_inj => /=. 
+pose as2' := tsort as2.  
 have uas2' : uniq as2' by rewrite sort_uniq uniq_bs.
 move: (@bidSum_extremums as2') => 
       /(_ _ _ (VCG_oStar_extremum as2') (oStar_extremum as2') uas2' uniq_ctrs) => teq.
-set bds2' := (X in _ (G.oStar _ X) = _).
 apply: eq_from_tnth => s.
 have [/eqP ->|/not_ctr0 c0] := boolP (s == last_slot);
-  first by rewrite G_oStar_instance_biddings_last tnth_map tnth_ord_tuple widen_slot_as_agent.
-rewrite /VCG_oStar /biddings /bidding /t_bidding /bid_in in teq.
+  first by rewrite G_oStar_instance_biddings_last tnth_map tnth_ord_tuple widen_slot_as_agent. 
+rewrite /VCG_oStar in teq.
 move: (teq s c0).
-set bd2 := (X in G.oStar _ X). 
-rewrite (@G.eq_oStar _ _ _ [tuple tnth bd2 (idxa as2 j) | j < n]).
-have -> : [tuple tnth bd2 (idxa as2 j)  | j < n] = bds2'.
-  apply: eq_from_tnth => j.
-  rewrite !tnth_map.
-  apply/ffunP => o.
-  by rewrite !ffunE !tnth_ord_tuple.
-move=> ->.
-rewrite eq_oStar_iota//; exact: sorted_bids_sorted.
-apply/tuple_permP.
-exists (perm (idxa_inj as2)).
-apply: (@eq_from_nth _ [ffun o => 0]) => [|j jn /=]; first by rewrite !size_tuple.
-rewrite size_tuple in jn.
-rewrite !(@nth_map _ ord0) -?enumT ?size_enum_ord//. 
-by rewrite (permE (idxa_inj as2) (nth ord0 (enum (ordinal_finType n)) j)).
+rewrite (@G.eq_oStar _ _ _ (instance_biddings as2)); last by rewrite perm_instance_tsort_biddings.
+rewrite eq_oStar_iota//.
+exact: sorted_bids_sorted.
 Qed.
 
 Lemma G_oStar_G_biddings : G.oStar S.o0 (G_biddings a1s_of) = tlabel_o as2 oStar.

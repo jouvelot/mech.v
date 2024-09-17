@@ -392,10 +392,6 @@ have [/eqP ->|/not_ctr0 c0] := boolP (s == last_slot);
 by rewrite G_oStar_biddings_last/= !tnth_map tnth_ord_tuple widen_slot_as_agent.
 Qed.
 
-Lemma relabel_oS : 
-  G.oStar S.o0 (G_biddings a1s_of) = tlabel_o as2 (G.oStar S.o0 (instance_biddings as2)).
-Proof. by rewrite G_oStar_instance G_oStar_G_biddings. Qed.
-
 Lemma eq_winners : O1_winners a1s_of = O2_winners as2.
 Proof.
 apply/val_inj/eq_from_tnth => s. 
@@ -436,7 +432,8 @@ congr (_ - _).
   set oS := (G.oStar _ _); set ioS := (G.oStar _ _).
   under [in LHS]eq_bigr => j _. rewrite tnth_map ffunE !tnth_ord_tuple. by over.
   under [in RHS]eq_bigr => j _. rewrite tnth_map ffunE !tnth_ord_tuple. by over.
-  have -> : oS = tlabel_o as2 ioS by rewrite -relabel_oS S_biddings.
+  have -> : oS = tlabel_o as2 ioS. 
+    by rewrite /ioS G_oStar_instance -G_oStar_G_biddings S_biddings.
   apply: eq_bigr => j _.
   case: ifP => io; first by rewrite relabel_slot// labelling_in io// (labelling_spec_idxa as2).
   by rewrite labelling_in io.

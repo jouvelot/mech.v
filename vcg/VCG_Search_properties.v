@@ -45,10 +45,6 @@ Module G := VCG.
 Let k' := S.k'.
 Let p' := S.p'.
 
-(* We assume that ctrs are unique. *)
-
-Variable uniq_ctrs : uniq S.cs.
-
 (** No positive transfer. *)
 
 Section No_positive_transfer.
@@ -351,7 +347,7 @@ Qed.
 
 Section Outcome.
 
-Variable (as2 : A2s) (uniq_bs : uniq as2).
+Variable (as2 : A2s) (uniq_bs : uniq as2) (uniq_ctrs : uniq S.cs).
 
 Definition a1s_of := [tuple sig_b i (tnth as2 i) | i < n]. 
 
@@ -488,19 +484,19 @@ rewrite /Ro in o12.
 by rewrite !o12.
 Qed.
 
-Lemma MP : truthful p1 -> uniq_truthful p2.
+Lemma MP (uniq_ctrs : uniq S.cs) : truthful p1 -> uniq_truthful p2.
 Proof. 
 move=> h1 as2 u2 as2' u2' i hd1 ht1.
-have ho := MR (fRiP u2).
-have ho' := MR (fRiP u2').
+have ho := MR (fRiP u2 uniq_ctrs).
+have ho' := MR (fRiP u2' uniq_ctrs).
 have hu := RelFP ho.
 have hu' := RelFP ho'.
 rewrite -hu -hu'.
 by apply/h1; [apply/fRdP|apply/fRviP].
 Qed.
 
-Lemma VCG_for_Search_uniq_truthful_rel : uniq_truthful p2.
-Proof. apply MP; exact: truthful_General_VCG. Qed.
+Lemma VCG_for_Search_uniq_truthful_rel (uniq_ctrs : uniq S.cs) : uniq_truthful p2.
+Proof. by apply: MP=> //; exact: truthful_General_VCG. Qed.
 
 End Relational.
  

@@ -104,7 +104,6 @@ Variable (cs : ctrs).
 Notation "'ctr_ s" := (tnth cs s) (at level 10).
 
 Hypothesis sorted_ctrs : sorted_tuple cs.
-Hypothesis positive_ctrs : forall s : slot, s < k' -> 0 < 'ctr_ s. 
 Hypothesis last_ctr_eq0 : 'ctr_(last_slot) = ctr0.
 
 (* Agents submit bids for slots. *)
@@ -372,13 +371,6 @@ Qed.
 Lemma in_inj_o (T : eqType) (f : A -> T) (injf : injective f) (o : O) j : 
   (f j \in (map_tuple f o)) = (j \in o). 
 Proof. by rewrite -(mem_map injf). Qed.
-
-Lemma not_ctr0 s : s != last_slot -> 'ctr_s != ord0.
-Proof.
-move=> ns.
-move: (leq_ord s); rewrite -(inj_eq val_inj)/=.
-by rewrite leq_eqVlt -(negbK (s == k' :> nat)) ns/= => /positive_ctrs/gtn_eqF ->.
-Qed.
 
 End SlotOf.
 

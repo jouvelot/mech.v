@@ -349,6 +349,24 @@ Section Outcome.
 
 Variable (as2 : A2s) (uniq_bs : uniq as2) (uniq_ctrs : uniq S.cs).
 
+Lemma positive_ctrs (s : slot) : s < last_slot -> 0 < 'ctr_ s. 
+Proof.
+apply: contra_ltn. 
+rewrite leqn0.
+move: S.last_ctr_eq0 => /eqP.
+rewrite -(inj_eq val_inj)/= !(tnth_nth ord0) => /eqP <- /eqP eqnn.
+move: uniq_ctrs => /(uniqP ord0)/(_ s S.last_slot).
+rewrite !inE !size_tuple => /(_ (ltn_ord s) (ltn_ord S.last_slot)) => ->//=.
+exact: val_inj.
+Qed.
+
+Lemma not_ctr0 s : s != last_slot -> 'ctr_s != ord0.
+Proof.
+move=> ns.
+move: (leq_ord s); rewrite -(inj_eq val_inj)/=.
+by rewrite leq_eqVlt -(negbK (s == k' :> nat)) ns/= => /positive_ctrs/gtn_eqF ->.
+Qed.
+
 Definition a1s_of := [tuple sig_b i (tnth as2 i) | i < n]. 
 
 Lemma S_biddings : G_biddings a1s_of = biddings as2.

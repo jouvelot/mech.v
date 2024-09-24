@@ -69,9 +69,12 @@ Definition value := true_value a * 'ctr_(slot_won bs a).
 Notation bs' := (tsort bs). 
 Notation i := (idxa bs a).
 
-Variable (awins : i < S.k').
+Variable (awins : is_winner bs a).
 
-Variable (value_is_bid : bid_in bs' i (slot_won bs a) = value).
+Variable (true_value_is_bid : tnth bs a = true_value a).
+
+Lemma value_is_bid : bid_in bs' i (slot_won bs a) = value.
+Proof. by congr (_ * _); rewrite -true_value_is_bid (labelling_spec_idxa bs). Qed.
 
 Definition utility := value - price bs a.
 
@@ -557,12 +560,6 @@ Local Definition i' := idxa bs' a.
 
 Variable (bid_true_value : action_on bs a = true_value a).
 
-Lemma rational (awins : i < k') : price bs a <= value bs a.
-Proof. 
-apply: VCG_for_Search_rational => //.
-by rewrite /bid_in /value -bid_true_value (labelling_spec_idxa bs).
-Qed.
-
 Definition l := tlabel bs.
 
 Lemma l_inj : injective (tnth l).
@@ -743,7 +740,7 @@ Lemma truthful_over : utility bs' a <= utility bs a.
 Proof.
 rewrite /utility /value.
 have mini : minn i k' = i by rewrite /minn ifT. 
-rewrite swap_dist_subl // ?S.sorted_ctrs //= ?rational //. 
+rewrite swap_dist_subl // ?S.sorted_ctrs //= ?VCG_for_Search_rational //. 
 - have ->:  minn i' k' = i' by rewrite /minn ifT.
   by rewrite mini // ltnW.
 - by rewrite eq_price_bs'_over leq_addl.

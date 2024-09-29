@@ -309,8 +309,8 @@ Qed.
 
 (* In fact, for a fixed choice of the agent assigned to the last slot, we have proven (see
    lemma bidSum_extremums) that the optimal outcome is then uniq, as long as the bids and
-   ctrs are uniq. For non-uniq bids or ctrs, there can be other ways to defined optimal outcomes,
-   since two agents with equal bids or ctrs can be swapped without changing bidSum, 
+   ctrs are uniq. For non-uniq bids or ctrs, there can be other ways to defined optimal 
+   outcomes, since two agents with equal bids or ctrs can be swapped without changing bidSum, 
    i.e., the welfare. 
 
    Thus, recalling that ... *)
@@ -328,8 +328,8 @@ Hypothesis G_oStar_biddings_last :
     tnth (G.oStar S.o0 (biddings as2)) last_slot = tnth (tlabel as2) (slot_as_agent last_slot).
 
 (* Note that this choice of the last_slot's agent is compatible with 
-   the uniqueness required of the agents in outcomes, as proven by the lemma
-   G_oStar_G_biddings lemmas below. *)
+   the uniqueness required of the agents in outcomes, as proven by the
+   G_oStar_G_biddings and S_biddings lemmas below. *)
 
 Lemma perm_instance_tsort_biddings (as2 : A2s) :
   perm_eq (instance_biddings as2) (biddings (tsort as2)).

@@ -288,11 +288,8 @@ move=> as2 i.
 by apply: eq_sig_hprop => [f|//=]; first exact: Classical_Prop.proof_irrelevance.  
 Qed.
 
-(* We prove that, for uniq bids and ctrs, there is unicity of the optimal outcome, 
-   except for last_slot, since its ctr being 0, any agent can be used there.
-
-   For non-uniq bids or ctrs, unicity is lost since two agents with equal bids or ctrs
-   can be swapped without changing bidSum, i.e., the welfare. *)
+(* We prove that there are multiple optimal outcomes for VCG for Search, since the agent 
+   assigned to the last slot is arbitrary (its ctr being 0, any agent can be used there). *)
 
 Notation diff_last o1 o2 := (forall s : slot, s != last_slot -> tnth o1 s = tnth o2 s).
 
@@ -300,7 +297,7 @@ Lemma max_bidSum_diff_last (a2s : A2s) (o1 o : S.O) (d : diff_last o o1 ) :
   max_bidSum_spec a2s o1 -> max_bidSum_spec a2s o.
 Proof.
 move=> mx1.
-apply: ExtremumSpec => [//|o' _ /=].
+apply: ExtremumSpec => [//|o' _ /=]. 
 rewrite (@leq_trans (bidSum a2s o1))//; first by move: mx1 => [o1'] _ /(_ o' erefl).
 rewrite leq_eqVlt; apply/orP; left; apply/eqP.
 rewrite !bidSum_slot.
@@ -310,20 +307,29 @@ have [/eqP ->|] := boolP (s == last_slot); last by rewrite !mem_tnth => /d ->.
 by rewrite !S.last_ctr_eq0 !muln0 !if_same.
 Qed.
 
-(* There are thus multiple optimal outcomes oStar in General VCG for VCG for Search, 
-   since the last slot has a 'ctr_last_slot equal to 0, which allows any agent to be used
-   for that slot in oStar. We impose here in the tuple of agents in the outcome the choice 
-   that is defined in VCG_for_Search_as_General_VCG. 
+(* In fact, for a fixed choice of the agent assigned to the last slot, we have proven (see
+   lemma bidSum_extremums) that the optimal outcome is then uniq, as long as the bids and
+   ctrs are uniq. For non-uniq bids or ctrs, there can be other ways to defined optimal outcomes,
+   since two agents with equal bids or ctrs can be swapped without changing bidSum, 
+   i.e., the welfare. 
 
-   Recall that, for any bids bs, with VCG_oStar := G.oStar S.o0 (biddings bs), we have
-   the lemma VCG_oStar_extremum : max_bidSum_spec VCG_oStar.
+   Thus, recalling that ... *)
 
-   Note that this choice is compatible with the uniqueness required of the outcomes, as proven
-   by the lemmas G_oStar_G_biddings lemmas below. *)
+Lemma G_oStar_max_bidSum_spec : 
+  ∀ as2 : n.-tuple bid, max_bidSum_spec as2 (G.oStar S.o0 (biddings as2)).
+Proof. by move=> as2; exact: VCG_oStar_extremum. Qed.
+
+(* ..., there are thus, even with uniq bids and ctrs, multiple optimal outcomes in the 
+   General VCG version for VCG for Search. We impose, in the tuple of agents in 
+   G.oStar, the agent that is picked in VCG_for_Search_as_General_VCG. *)
 
 Hypothesis G_oStar_biddings_last :
   forall as2 : A2s , 
     tnth (G.oStar S.o0 (biddings as2)) last_slot = tnth (tlabel as2) (slot_as_agent last_slot).
+
+(* Note that this choice of the last_slot's agent is compatible with 
+   the uniqueness required of the agents in outcomes, as proven by the lemma
+   G_oStar_G_biddings lemmas below. *)
 
 Lemma perm_instance_tsort_biddings (as2 : A2s) :
   perm_eq (instance_biddings as2) (biddings (tsort as2)).
@@ -431,11 +437,11 @@ congr (_ - _).
   - apply/bigmax_leqP => o _. 
     under [X in X <= _]eq_bigr => j _. rewrite tnth_map ffunE !tnth_ord_tuple. by over.
     rewrite (bigmax_sup (tidxa_o as2 o))//.
-    have ij := idxa_inj as2.
     under [X in _ <= X]eq_bigr => j _.
-      rewrite tnth_map ffunE !tnth_ord_tuple (labelling_spec_idxa as2) slot_inj ?in_inj_o//. 
-    by over => //.
-    by [].
+      have ij := idxa_inj as2.
+      rewrite tnth_map ffunE !tnth_ord_tuple (labelling_spec_idxa as2) slot_inj ?in_inj_o//.
+    over.
+    exact: leqnn.
   - apply/bigmax_leqP => o _.
     under [X in X <= _]eq_bigr => j _. rewrite tnth_map ffunE !tnth_ord_tuple. by over.
     rewrite (bigmax_sup (tlabel_o as2 o))//.

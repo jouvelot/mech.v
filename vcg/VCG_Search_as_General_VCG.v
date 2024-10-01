@@ -223,6 +223,9 @@ apply: (labelling_inj bs) => //.
 exact: (tlabelP bs).
 Qed.
 
+Definition tlabel_o bs o := Outcome (uniq_map_o bs o).
+Definition tidxa_o bs o := Outcome (uniq_to_idxa bs (ouniq o)). 
+
 Definition set_o (o : O) (s : 'I_k) (a : A) :=
   mktuple (fun s' => if s == s' then a else tnth o s').
 
@@ -480,13 +483,11 @@ rewrite !cancel_slot ifT; last by exact: mem_tnth.
 by rewrite !leq_mul2r /oStar /= /t_oStar tnth_map tnth_ord_tuple leq_bid ?orbT // le_ioStar_io.
 Qed.
 
-Definition idxas o := Outcome (uniq_to_idxa bs (ouniq o)).
-
 Lemma itperm_id o s : o = Outcome (it_aperm_uniq s s (ouniq o)).
 Proof. apply: val_inj => /=; rewrite apermE permE; exact: tuple_tperm_id. Qed.
 
 Lemma le_transposed_welfare (x : 'I_k * 'I_k) (o : O) :
-  uniq_is_bubble (idxas o) x ->
+  uniq_is_bubble (tidxa_o bs o) x ->
   welfare o <= welfare (Outcome (it_aperm_uniq x.1 x.2 (ouniq o))).
 Proof.
 rewrite (surjective_pairing x) /= => /orP [/eqP -> /=|/andP [ltx1x2 ltt2t1]];
@@ -522,10 +523,10 @@ Qed.
 Lemma le_welfare_o_oStar (o : O) : welfare o <= max_welfare.
 Proof.
 suff {o}: forall xs o,
-    let xo := uswap (idxas o) xs in
-    let uxo := ububble_uniq (ouniq (idxas o)) xs in
+    let xo := uswap (tidxa_o bs o) xs in
+    let uxo := ububble_uniq (ouniq (tidxa_o bs o)) xs in
     xo.1 -> welfare o <= welfare (Outcome (uniq_from_idxa bs uxo)).
-  move: (uniq_bubble_sort_spec (ouniq (idxas o))) => [xs] [bx sortedxo] /(_ xs o bx).
+  move: (uniq_bubble_sort_spec (ouniq (tidxa_o bs o))) => [xs] [bx sortedxo] /(_ xs o bx).
   set mo := (X in _ <= welfare X) => ltwo.
   have/le_welfare_sorted_o_oStar : sorted_o mo.   
     move=> s1 s2.
@@ -540,7 +541,8 @@ elim=> [o _ //=|x xs IH o /= /andP [bi xoi]].
   congr (t_bidding _ _ _).
   apply: eq_from_tnth => s'.
   by rewrite !tnth_map cancel_idxa.
-- pose uxoi := ububble_uniq (ouniq (idxas o)) xs; pose ouxoi := Outcome (uniq_from_idxa bs uxoi).
+- pose uxoi := ububble_uniq (ouniq (tidxa_o bs o)) xs; 
+               pose ouxoi := Outcome (uniq_from_idxa bs uxoi).
   move: (@le_transposed_welfare x ouxoi) => /=. 
   rewrite !cancel_inv_map_idxa => /(_ bi) /=.  
   move: (IH o xoi) => le1 le2.

@@ -137,10 +137,6 @@ Section Relational.
 Notation agent := 'I_n.
 Notation agents := (ord_tuple n).
 
-Definition tlabel_o bs o := Outcome (uniq_map_o bs o).
-
-Definition tidxa_o bs o := Outcome (uniq_to_idxa bs (ouniq o)). 
-
 (* prices and winners *)
 
 (* Type for prices, and, via rationality, prices are always less than bids times ctrs. *)

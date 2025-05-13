@@ -127,6 +127,7 @@ Qed.
 
 End Rationality.
 
+
 Check VCG_for_Search_rational.
 Print Assumptions VCG_for_Search_rational.
 
@@ -932,6 +933,9 @@ have [] := boolP (is_winner bs' a) => [iw'|].
 Qed.
 
 End TruthfulnessCases.
+
+Check truthful_VCG_for_Search_dir.
+Print Assumptions truthful_VCG_for_Search_dir.
 
 (** SP is a special case of VCG for Search.
 

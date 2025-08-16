@@ -429,7 +429,6 @@ Qed.
 
 Definition oStar := Outcome oStar_uniq.
 
-Notation "'b* s" := (bidding ('a* s) oStar) (at level 10).
 Notation "'idxa j" := (idxa bs j) (at level 10).
 
 Definition sorted_o o := ∀ s1 s2 : slot, s1 <= s2 → 'idxa (tnth o s1) <= 'idxa (tnth o s2).
@@ -749,8 +748,6 @@ Qed.
 Definition VCG_oStar := @G.oStar O_finType o0 (biddings bs).
 
 Notation "'a* s" := (tnth OStar.oStar s) (at level 10).
-
-Notation "'b* s" := (bidding bs ('a* s) OStar.oStar) (at level 10).
 
 Lemma bidsSum_sumBid (P : A -> bool) (o : O) :
   forall bs, \sum_(j < n | P j) tnth (biddings bs) j o = \sum_(j < n | P j) bidding bs j o.

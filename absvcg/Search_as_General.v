@@ -713,8 +713,6 @@ Proof. by rewrite slot_in_oStar ?wonE; last by rewrite mem_oStar // (@ltn_trans 
 
 End OStarSorted.
 
-Module EqualPrice.
-
 Definition o0 := oStar.
 
 (** Properties for [bidSum] function in General VCG. *)
@@ -1793,13 +1791,13 @@ Let bs' := tsort bs.
 Let i' := idxa bs i.
 Let l' := tlabel bs. (* not used *)
 
-Lemma sorted_bids_sorted : sorted_bids bs'.
+Lemma tsorted_bids_sorted : sorted_bids bs'.
 Proof. by apply/sorted_bids_sorted/sort_sorted/total_geq_bid. Qed.
 
 Lemma eq_relabelled_price : price bs' i' = price bs i.
 Proof.
-rewrite /price /is_winner tsortK //; last exact: sorted_bids_sorted. 
-rewrite idxaK //; last exact: sorted_bids_sorted.
+rewrite /price /is_winner tsortK //; last exact: tsorted_bids_sorted. 
+rewrite idxaK //; last exact: tsorted_bids_sorted.
 Qed.
 
 Definition instance_bidding bs (j : A) := 
@@ -1809,16 +1807,13 @@ Definition instance_biddings bs := [tuple instance_bidding bs j | j < n].
 
 Lemma relabelled_bidding j o': instance_bidding bs' (idxa bs j) o' = instance_bidding bs j o'.
 Proof.
-rewrite!ffunE.
-rewrite/t_bidding.
-rewrite !(idxaK sorted_bids_sorted).
-rewrite !(tsortK sorted_bids_sorted).
-by [].
+rewrite !ffunE /t_bidding.
+by rewrite !(idxaK tsorted_bids_sorted) !(tsortK tsorted_bids_sorted).
 Qed.
 
 Lemma sorted_relabelled_bidding j o': instance_bidding bs' j o' = bidding bs' j o'.
 Proof.
-have sbs' := sorted_bids_sorted.
+have sbs' := tsorted_bids_sorted.
 rewrite !ffunE /t_bidding. 
 congr (if _ then _ else _).
 by rewrite idxaK.
@@ -1888,26 +1883,23 @@ Qed.
 (** Price equality, in all cases. *)
  
 Theorem eq_instance_VCG_price :
-  price bs i = @VCG.price O_finType i (instance_biddings bs) (instance_stable_choice).
+  price bs i = VCG.price i (instance_stable_choice).
 Proof.
 rewrite -eq_relabelled_price.
 rewrite -/instance_vcg_price.
 rewrite -eq_instance_vcg_price //.
 rewrite eq_sorted_VCG_price //; last first.
-- exact: sorted_bids_sorted.
-rewrite/EqualPrice.bs/stable_choice/=.
-rewrite/instance_vcg_price'/instance_stable_choice'.
+- exact: tsorted_bids_sorted.
+rewrite /stable_choice/= /instance_vcg_price' /instance_stable_choice'.
 rewrite/VCG.price/VCG.welfare_with_i/VCG.o/=.
 rewrite ?sorted_relabelled_biddings.
 have eq_bs' : (Tuple (sort_tupleP geq_bid bs)) = bs' by [].
-rewrite eq_bs'.
-by [].
+by rewrite eq_bs'.
 Qed.
+
 End VCGforSearchPrice.
 
-End EqualPrice.
-
-Check EqualPrice.eq_instance_VCG_price.  
-Print Assumptions EqualPrice.eq_instance_VCG_price.
+Check eq_instance_VCG_price.  
+Print Assumptions eq_instance_VCG_price.
 
 

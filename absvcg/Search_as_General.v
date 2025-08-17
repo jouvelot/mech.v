@@ -36,7 +36,7 @@ From mathcomp Require Import all_ssreflect order.
 From mathcomp.fingroup Require Import perm.
 
 From mech.lib Require Import lib labelling mech.
-From mech.vcgs Require Import General. 
+From mech.absvcg Require Import General. 
 
 Set Implicit Arguments.
 Unset Strict Implicit.

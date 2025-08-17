@@ -1,6 +1,6 @@
 (coq.theory
  (package coq-mech)
- (name mech.vcgs)
+ (name mech.absvcg)
  (theories mech.lib)
  (flags
    :standard

@@ -1,1 +1,2 @@
--Q _build/default/mech mech.lib -Q _build/default/vcg mech.vcg -Q _build/default/auction/ mech.auction -Q _build/default/matching/ mech.matching
+-Q _build/default/mech mech.lib -Q _build/default/vcg mech.vcg -Q _build/default/auction/ mech.auction -Q _build/default/matching/ mech.matching \\
+-Q _build/default/vcgs/ mech.vcgs

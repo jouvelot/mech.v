@@ -1,0 +1,236 @@
+Section EqualSwap.
+(**
+for execution, i replace "utility" by "utility_local"
+and "sorted_ctrs" by "S.sorted_ctrs"
+*)
+Variable bs0 : bids.
+
+Variable a1 a2 : A. (* i1 et i2 *)
+
+Hypothesis eq_bid0 : tnth bs0 a1 = tnth bs0 a2.
+
+Let rho : {perm A} := tperm a1 a2.
+
+Let bs0' := [tuple (tnth bs0 (rho k)) | k < n].
+
+Lemma bids0_swap_eqI : bs0 = bs0'.
+Proof.
+apply eq_from_tnth => x; rewrite tnth_map tnth_ord_tuple.
+have [/eqP ->|x1] := boolP (x == a1); first by rewrite tpermL eq_bid0.
+have [/eqP ->|x2] := boolP (x == a2); first by rewrite tpermR eq_bid0.
+by rewrite tpermD 1?eq_sym.
+Qed.
+Check bids0_swap_eqI.
+Print Assumptions bids0_swap_eqI.
+
+Let bs := tsort bs0.
+
+Let i := idxa bs0 a1.
+
+Let j := idxa bs0 a2.
+
+Lemma eq_bid : tnth bs i  = tnth bs j.
+Proof.
+by rewrite /bs/i/j !labelling.labelling_spec_idxa eq_bid0.
+Qed.
+
+(**
+Let bs' := tsort bs0'.
+*)
+
+Lemma bs_sorted: sorted_bids bs.
+Proof. 
+by apply/sorted_bids_sorted.
+Qed.
+
+Let sorted_bs := bs_sorted.
+
+(**
+Lemma bids_sorted_eqI : bs = bs'.
+Proof.
+by rewrite /bs/bs' bids0_swap_eqI.
+Qed.
+
+Lemma bs'_sorted : sorted_bids bs'.
+Proof.
+move: sorted_bs.
+by rewrite bids_sorted_eqI.
+Qed.
+*)
+
+Variable true_click_value : A -> nat.
+
+Definition U a v := if is_winner bs0 a then v - price bs0 a else 0.
+
+Definition utility_local a := U a (true_click_value a * 'ctr_(slot_won bs0 a)).
+Definition utility_swap a := U (rho a) (true_click_value a * 'ctr_(slot_won bs0 (rho a))).
+
+Corollary stableUtility_notijf a : 
+ a1 != a /\ a2 != a -> utility_local a = utility_swap a.
+Proof.
+rewrite /utility_local/utility_swap/U/is_winner; move=> [ai aj].
+by rewrite !tpermD.
+Qed.
+
+Hypothesis a1a2 : a1 < a2.
+Print A. (* A :=  'I_n mais il faut definir une relation *)
+Lemma stable_sort : i < j.
+Proof.
+move: a1a2; apply: contraLR.
+rewrite -!leqNgt.
+apply: labelling.idxa_eq_mon; last by [].
+exact: reflexive_geq_bid.
+Qed.
+
+Let ij := stable_sort.
+
+Lemma slot_as_agentK F (P : slot -> bool) : 
+ (forall s : slot, P s -> i <= s <= j) ->
+ \sum_(s < k | P s) tnth bs (slot_as_agent s) * F s = tnth bs i * \sum_(s < k | P s) F s.
+Proof.
+move=> Hij.
+rewrite big_distrr/=.
+apply: eq_bigr => //= i0 Pi0.
+apply/eqP; rewrite eqn_mul2r; apply/orP; right.
+rewrite eq_sym eqn_leq {1}eq_bid.
+move: (Hij i0 Pi0) => /andP [ii0 i0j].
+by apply/andP; split; apply: sorted_bs.
+Qed.
+
+Lemma anti_monotonous_ctrs : antimonotone (λ s : 'I_k'.+1, 'ctr_ s).
+Proof.  by rewrite /antimonotone => x y; exact: S.sorted_ctrs. Qed.
+
+Let ac := anti_monotonous_ctrs.
+
+Lemma a_winner a : is_winner bs0 a = (idxa bs0 a < k').
+Proof. 
+by rewrite /is_winner.
+Qed.
+
+Lemma a1winsi : i < S.k' -> slot_won bs i = slot_won bs0 a1.
+Proof.
+by move=> a1wins; rewrite !wonE -/i ?inordK// ?idxaK// 1?(ltn_trans a1wins).
+Qed.
+
+Lemma a2winsj : j < S.k' -> slot_won bs j = slot_won bs0 a2.
+Proof.
+move=> a2wins; rewrite !wonE -/j ?inordK// ?idxaK// 1?(ltn_trans a2wins).
+Qed.
+
+Lemma Uterm : U a1 (tnth bs0 a1 * 'ctr_ (slot_won bs0 a1)) =
+U a2 (tnth bs0 a2 * 'ctr_ (slot_won bs0 a2)).
+rewrite -eq_bid0/U/is_winner  -/i -/j.
+have [] := boolP (is_winner bs0 a1); rewrite a_winner -/i => a1wins.
+- rewrite {1}/price /is_winner -/i a1wins.
+  have [] := boolP (is_winner bs0 a2); rewrite a_winner; [|rewrite -leqNgt -/j]=> a2wins.
+  - rewrite (split_sum_ord ij) slot_as_agentK=> [|s /andP [lis ->]]; last by rewrite ltnW.
+    rewrite addnC subnDAC.
+    under eq_bigl=> i0.
+      have -> : (i < i0 <= j) = (slot_won bs i < i0 <= slot_won bs j).
+        by rewrite !wonE !idxaK ?inordK// 1?(ltn_trans a1wins) // 1?(ltn_trans a2wins).
+    over.
+    rewrite sum_diffs //=; last by rewrite !idxaK// /minn !ifT.
+    rewrite mulnBr subnA //; last first.
+    - rewrite labelling.labelling_spec_idxa
+      leq_mul2l; apply/orP; right; apply: S.sorted_ctrs.
+      by rewrite a1winsi.
+    - rewrite leq_mul2l//; apply/orP; right. 
+      rewrite !wonE// !idxaK//; apply: S.sorted_ctrs.
+      by rewrite !inordK 1?(ltnW ij)// ?(ltn_trans jwins (ltnSn k'))// 1?(@ltn_trans k').
+    - rewrite a2wins labelling.labelling_spec_idxa.
+      by rewrite a1winsi // subnn add0n /price /is_winner -/j a2wins a2winsj.
+  - rewrite /externality.
+    rewrite slot_as_agentK => [|s lis]; last by rewrite ltnW// andTb (@leq_trans k')// leq_ord.
+    rewrite labelling.labelling_spec_idxa -mulnBr ltnNge a2wins//=.
+    apply/eqP; rewrite muln_eq0; apply/orP; right.
+    under eq_bigl=> i0.
+      have -> : (i < i0) = (slot_won bs i < i0 <= last_slot).
+        by rewrite leq_ord andbT wonE idxaK // inordK // (ltn_trans a1wins).
+    over.
+    rewrite sum_diffs //=; last by rewrite idxaK // /minn ifT.
+    by rewrite S.last_ctr_eq0 subn0 a1winsi// subnn.
+- rewrite -(negbK (i < S.k')) a1wins//= ifF//.
+  apply: negbTE; rewrite -leqNgt leq_eqVlt;  apply/orP; right. 
+  by rewrite (leq_ltn_trans _ ij)// leqNgt.
+Qed.
+
+Lemma utility_swap_invariant_a1 :
+  true_click_value a1 = tnth bs0 a1 -> utility_local a1 = utility_swap a1.
+Proof.
+move=> vb.
+rewrite/utility_local/utility_swap vb {2}eq_bid0 tpermL.
+exact: Uterm.
+Qed.
+
+Lemma utility_swap_invariant_a2 : 
+  true_click_value a2 = tnth bs0 a2 -> utility_swap a2 = utility_local a2.
+Proof.
+move=> vb.
+rewrite/utility_local/utility_swap vb -{1}eq_bid0 tpermR.
+exact: Uterm.
+Qed.
+
+Lemma truthful_utility_swap_invariant a :
+  true_click_value a = tnth bs0 a -> utility_local a = utility_swap a.
+Proof.
+have [/eqP|] := boolP (a1 == a) => ifa1; first by
+  rewrite -ifa1; apply utility_swap_invariant_a1.
+- have [/eqP|] := boolP (a2 == a) => ifa2. 
+  - rewrite -ifa2 => truthfula2.
+    apply/eqP; rewrite eq_sym; apply/eqP.
+    move: truthfula2.
+    apply utility_swap_invariant_a2.
+- by rewrite stableUtility_notijf.
+Qed.
+
+Lemma leq_price_bid a : 
+  price bs0 a <= tnth bs0 a * 'ctr_ (slot_won bs0 a).
+Proof.
+rewrite/price.
+have [] := boolP (is_winner bs0 a); rewrite a_winner; [|rewrite -leqNgt] => awins //.
+Admitted.
+
+Lemma underbid_utility_swap_inferior_a1 :
+  tnth bs0 a1 < true_click_value a1 -> utility_swap a1 <= utility_local a1.
+Proof.
+move=> underbida1.
+rewrite/utility_local/utility_swap tpermL/U.
+have [] := boolP (is_winner bs0 a1); rewrite a_winner -/i; [|rewrite -leqNgt] => a1wins.
+- have [] := boolP (is_winner bs0 a2); last by [].
+  rewrite a_winner -/j => a2wins.
+  (* LHS *)
+  rewrite -(@subn0 (true_click_value a1 * 'ctr_ (slot_won bs0 a2))).
+  rewrite -(@subnn (tnth bs0 a2 * 'ctr_ (slot_won bs0 a2))).
+  rewrite subnA //; last first.
+    rewrite leq_pmul2r.
+      by rewrite -eq_bid0; apply: ltnW.
+    apply: S.positive_ctrs.
+    by rewrite wonE -/j ?inordK //; apply: (ltn_trans a2wins); rewrite ltnSn.
+  (* RHS *)
+  rewrite -(@subn0 (true_click_value a1 * 'ctr_ (slot_won bs0 a1))).
+  rewrite -(@subnn (tnth bs0 a1 * 'ctr_ (slot_won bs0 a1))).
+  rewrite subnA //; last first.
+    rewrite leq_pmul2r.
+      exact: ltnW.
+    apply: S.positive_ctrs.
+    by rewrite wonE -/i ?inordK //; apply: (ltn_trans a1wins); rewrite ltnSn.
+  rewrite -!mulnBl -addnBA; last by apply: leq_price_bid.
+  rewrite -addnBA; last by apply: leq_price_bid.
+  apply: leq_add.
+  - rewrite -eq_bid0.
+    rewrite leq_mul2l; apply/orP; right.
+    apply: ac.
+    rewrite !wonE // -/i-/j !inordK ltnW //.
+  - rewrite leq_eqVlt; apply/orP; left.
+    move/eqP: Uterm.
+    by rewrite {1}eq_sym/U !ifT.
+- rewrite ifF // a_winner -/j.
+  apply: negbTE; rewrite -leqNgt.
+  by apply: (leq_trans a1wins); apply: ltnW.
+Qed.
+
+Lemma overbid_utility_swap_superior_a1 : 
+  true_click_value a1 < tnth bs0 a1 -> utility_local a1 <= utility_swap a1.
+Admitted.
+
+End EqualSwap.

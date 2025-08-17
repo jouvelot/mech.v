@@ -589,6 +589,23 @@ Qed.
 
 End SumOfDifferences.
 
+Section NatMaximas.
+
+Variables (I : finType) (P : pred I) (F : I -> nat).
+
+Definition arg_maxs := [set i | P i & [forall (j | P j), F i >= F j]]. 
+
+Lemma bigmax_eq_args ix : ix \in arg_maxs -> \max_(i | P i) F i = F ix. 
+Proof.
+rewrite inE => /andP [Pix /forallP ixx].
+apply/eqP; rewrite eqn_leq.
+apply/andP; split; last by rewrite leq_bigmax_cond.
+apply/bigmax_leqP => j Pj. 
+by have/implyP -> := ixx j.
+Qed.
+
+End NatMaximas.
+
 End BigOp.
 
 (** Sorting lemmas *)

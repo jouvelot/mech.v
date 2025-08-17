@@ -1885,16 +1885,10 @@ Qed.
 Theorem eq_instance_VCG_price :
   price bs i = VCG.price i (instance_stable_choice).
 Proof.
-rewrite -eq_relabelled_price.
-rewrite -/instance_vcg_price.
-rewrite -eq_instance_vcg_price //.
-rewrite eq_sorted_VCG_price //; last first.
-- exact: tsorted_bids_sorted.
+rewrite -eq_relabelled_price -/instance_vcg_price -eq_instance_vcg_price //.
+rewrite eq_sorted_VCG_price //; last by exact: tsorted_bids_sorted.
 rewrite /stable_choice/= /instance_vcg_price' /instance_stable_choice'.
-rewrite/VCG.price/VCG.welfare_with_i/VCG.o/=.
-rewrite ?sorted_relabelled_biddings.
-have eq_bs' : (Tuple (sort_tupleP geq_bid bs)) = bs' by [].
-by rewrite eq_bs'.
+by rewrite /VCG.price /VCG.welfare_with_i/VCG.o/= ?sorted_relabelled_biddings.
 Qed.
 
 End VCGforSearchPrice.

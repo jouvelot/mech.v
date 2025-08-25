@@ -115,24 +115,18 @@ Section Truthfulness.
 
 Variable (O : finType) (o0 : O).
 
-Lemma arg_OStar_oin bs : [arg max_(o > o0) (bidSum bs o)] \in VCG.oStars bs.
-Proof.
-rewrite inE andTb. 
-apply/forallP => a.
-by apply/implyP => _; rewrite -bigmax_eq_arg // leq_bigmax.
-Qed.
-
-Definition arg_OStar bs := mkOStar (arg_OStar_oin bs).
+Variable oStar_choice : forall bs, {set O} -> @OStar O bs.
 
 Definition m : mech.type n := 
-  mech.new (fun bs => (map_tuple (fun a : A => price a (fun=> arg_OStar bs)) (agent.agents n), bs)).
+  mech.new (fun bs => (map_tuple (fun a => price a (oStar_choice bs)) (agent.agents n), bs)).
 
 Variable v : A -> bidding O.
 
 Definition p : prefs.type m :=
   prefs.new v 
     (fun i (mo : mech.O m) => let: (ps, bs) := mo in 
-                              v i (o (arg_OStar bs)) - tnth ps i)
+                           let oSc := oStar_choice bs in
+                           v i (o (oSc (oStars bs))) - tnth ps i)
     v.
 
 Theorem truthful_General : truthful p.
@@ -146,7 +140,9 @@ rewrite (@eq_bigr _ _ _ _ _ _ (bidSum_i i bs) (bidSum_i i bs')) //.
 rewrite ?2!subnBA ?leq_sub2r //; 
   [|by rewrite eq_Sum_i; apply: bigmax_sup|by apply: bigmax_sup].
 rewrite /action_on /prefs.v /= in value_is_bid.
-by rewrite -value_is_bid -eq_Sum_i -!bidSumD1 -bigmax_eq_arg// leq_bigmax.
+rewrite -value_is_bid -eq_Sum_i -!bidSumD1.  
+move: (oin (oStar_choice bs (oStars bs))).
+by rewrite !inE => /andP [_ /forallP/(_ (o (oStar_choice bs' (oStars bs'))))/implyP/(_ erefl)].
 Qed.
 
 End Truthfulness.

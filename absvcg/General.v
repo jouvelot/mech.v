@@ -37,6 +37,8 @@ Unset Printing Implicit Defensive.
 
 From mech.lib Require Import lib labelling mech.
 
+(** Agents **)
+
 Variable (n'' : nat).
 
 Definition n' := n''.+1.
@@ -50,7 +52,11 @@ Module VCG.
 
 Section Algorithm.
 
-Variable (O : finType) (i : A).
+Variable (O : finType) (o0 : O).
+
+Definition OStar_choice : Type := forall (s : {set O}) (_ : s != set0), {o : O | o \in s}. 
+
+Variable (i : A).
 
 Definition bidding := {ffun O -> nat}.
 Definition biddings := n.-tuple bidding.
@@ -65,16 +71,31 @@ Definition bidSum_i o := \sum_(j < n | j != i) 'bidding_j o.
 
 Definition oStars := arg_maxs xpredT bidSum.
 
-Record OStar := mkOStar {
-                   o : O;
-                   oin: o \in oStars
-                 }.
+Definition OStar := {o : O | o \in oStars}.
 
-Variable oStar_choice : {set O} -> OStar.
+Variable oStar_choice : OStar_choice.
 
-Definition oStar := oStar_choice oStars.
+Definition arg_OStar_o := [arg max_(o > o0) (bidSum o)].
 
-Definition welfare_with_i := bidSum_i (o oStar).
+Lemma arg_OStar_in : arg_OStar_o \in oStars.
+Proof.
+rewrite inE andTb. 
+apply/forallP => a.
+by apply/implyP => _; rewrite -bigmax_eq_arg // leq_bigmax.
+Qed.
+
+Definition sig_OStar (o : O) (oin : o \in oStars): OStar.
+by exists o.
+Defined.
+
+Definition arg_OStar bs := sig_OStar arg_OStar_in.
+
+Lemma oStars_ne0 : oStars != set0.
+Proof. apply/set0Pn; exists arg_OStar_o; exact: arg_OStar_in. Qed.
+
+Definition oStar := oStar_choice oStars_ne0.
+
+Definition welfare_with_i := bidSum_i (sval oStar).
 
 Definition welfare_without_i := \max_o bidSum_i o.
 
@@ -87,10 +108,11 @@ Theorem no_positive_transfer : (* 0 <= price *)
  welfare_with_i <= welfare_without_i.
 Proof. exact: leq_bigmax. Qed.
 
-Theorem bid_rational : price <= tnth bs i (o oStar).
+Theorem bid_rational : price <= tnth bs i (sval oStar).
 Proof.
 rewrite leq_subLR addnC -bidSumD1.
-rewrite -(bigmax_eq_args (oin oStar)) //.
+move: (proj2_sig oStar) => oin /=.
+rewrite -(bigmax_eq_args oin) //.
 apply: max_monotonic => o.
 by rewrite (bidSumD1 o) leq_addl.
 Qed.
@@ -99,7 +121,7 @@ Variable (value : bidding).
 
 Hypothesis value_is_bid : 'bidding_i = value.
 
-Theorem rational : price <= value (o oStar).
+Theorem rational : price <= value (sval oStar).
 Proof. by rewrite -value_is_bid bid_rational. Qed.
 
 Section BidSumProps.
@@ -115,18 +137,22 @@ Section Truthfulness.
 
 Variable (O : finType) (o0 : O).
 
-Variable oStar_choice : forall bs, {set O} -> @OStar O bs.
+Variable oStar_choice : OStar_choice O.
 
 Definition m : mech.type n := 
-  mech.new (fun bs => (map_tuple (fun a => price a (oStar_choice bs)) (agent.agents n), bs)).
+  mech.new (fun bs => (map_tuple 
+                      (fun a => @price _ o0 a bs oStar_choice)
+                      (agent.agents n),
+                     bs)).
 
 Variable v : A -> bidding O.
 
 Definition p : prefs.type m :=
   prefs.new v 
-    (fun i (mo : mech.O m) => let: (ps, bs) := mo in 
-                           let oSc := oStar_choice bs in
-                           v i (o (oSc (oStars bs))) - tnth ps i)
+    (fun i (mo : mech.O m) => 
+       let: (ps, bs) := mo in 
+       let oSc := oStar_choice (oStars_ne0 o0 bs) in
+       v i (sval oSc) - tnth ps i)
     v.
 
 Theorem truthful_General : truthful p.
@@ -140,9 +166,10 @@ rewrite (@eq_bigr _ _ _ _ _ _ (bidSum_i i bs) (bidSum_i i bs')) //.
 rewrite ?2!subnBA ?leq_sub2r //; 
   [|by rewrite eq_Sum_i; apply: bigmax_sup|by apply: bigmax_sup].
 rewrite /action_on /prefs.v /= in value_is_bid.
-rewrite -value_is_bid -eq_Sum_i -!bidSumD1.  
-move: (oin (oStar_choice bs (oStars bs))).
-by rewrite !inE => /andP [_ /forallP/(_ (o (oStar_choice bs' (oStars bs'))))/implyP/(_ erefl)].
+rewrite -value_is_bid -eq_Sum_i/= /oStar -!bidSumD1.   
+move: (proj2_sig (oStar_choice (oStars_ne0 o0 bs))).  
+set oc' := (sval (oStar_choice (oStars_ne0 o0 bs'))). 
+by rewrite !inE andTb => /forallP/(_ oc')/implyP/(_ erefl). 
 Qed.
 
 End Truthfulness.
@@ -152,8 +179,10 @@ End Truthfulness.
 Section Alternative.
 
 Variable (O : finType) (i : A).
+Variable (o0 : O).
 
-Variable (bs : biddings O) (oStar_choice : {set O} -> (OStar bs)).
+Variable (bs : biddings O).
+Variable (op : O) (oStar_choice : OStar_choice O).
 
 Notation "'set_o* bs" := (@oStars O bs) (at level 10).
 Notation "'bidding_ j" := (tnth bs j) (at level 10).
@@ -168,7 +197,7 @@ Definition bidSum'' o := \sum_(j < n) 'bidding''_j o.
 
 Definition welfare_without_i'' := \max_o bidSum'' o.
 
-Definition price'' := welfare_without_i'' - welfare_with_i i oStar_choice.
+Definition price'' := welfare_without_i'' - welfare_with_i o0 i bs oStar_choice.
 
 Lemma eq_bidSum'' o : bidSum'' o = bidSum_i i bs o.
 Proof.
@@ -186,7 +215,7 @@ rewrite (eq_bigr bidSum'') => [//=|o _].
 by rewrite eq_bidSum''.
 Qed.
 
-Lemma eq_price'' : price i oStar_choice = price''.
+Lemma eq_price'' : price o0 i bs oStar_choice = price''.
 Proof. by rewrite /price'' -eq_welfare''. Qed.
 
 End Alternative.
@@ -195,7 +224,7 @@ End Alternative.
 
 Section Perm.
 
-Variable (O : finType).
+Variable (O : finType) (o0 : O).
 
 Variable (bs : biddings O).
 
@@ -221,20 +250,21 @@ apply: functional_extensionality => o.
 exact: perm_bidSum.
 Qed.
 
-Variable (oStar_choice : {set O} -> OStar bs).
-Variable (oStar_choice' : {set O} -> OStar bs').
+Variable (oStar_choice : OStar_choice O).
 
-Hypothesis eq_oStar : o (oStar oStar_choice) = o (oStar oStar_choice').
+Hypothesis eq_oStar : 
+  sval (oStar o0 bs oStar_choice) = sval (oStar o0 bs' oStar_choice).
 
-Lemma relabelled_price : price i' oStar_choice' = price i oStar_choice.
+Lemma relabelled_price : price o0 i' bs' oStar_choice = price o0 i bs oStar_choice.
 Proof.
 congr (_ - _); last by rewrite /welfare_with_i eq_oStar // perm_bidSum_i.
 apply/eqP; rewrite eqn_leq /welfare_without_i.
 apply/andP. 
-rewrite (@eq_bigr _ _ _ _ _ _ (bidSum_i i bs) (bidSum_i i' bs')) // => o0 _. 
+rewrite (@eq_bigr _ _ _ _ _ _ (bidSum_i i bs) (bidSum_i i' bs')) // => o _. 
 by rewrite perm_bidSum_i.
 Qed.
 
 End Perm.
 
 End VCG.
+

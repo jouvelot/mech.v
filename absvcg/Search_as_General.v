@@ -30,21 +30,25 @@
   Licence: CeCILL-B.
 
 *)
- 
-From Coq Require Import Unicode.Utf8 Logic.FunctionalExtensionality.
+
+
+From Coq Require Import Init.Prelude Unicode.Utf8.
 From mathcomp Require Import all_ssreflect order.
+
 From mathcomp.fingroup Require Import perm.
 
 From mech.lib Require Import lib labelling mech.
-From mech.absvcg Require Import General. 
+From mech.absvcg Require Import General.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(* [n] agents are bidding. *)
+(* Move to lib *)
 
-Notation A := (@agent.type n).
+Definition inspect {A} (a : A) : {b | a = b} := exist _ a erefl.
+
+(* [n] agents are bidding. *)
 
 Notation last_agent := (@agent.last n').
 Notation agent_succ := (@agent.succ n').
@@ -209,7 +213,7 @@ Canonical O_subCountType := Eval hnf in [subCountType of O].
 Canonical O_finType := Eval hnf in FinType _ [finMixin    of O by <:].
 Canonical O_subFinType := Eval hnf in [subFinType of O].
 
-(* mathcomp system, complementary O_finTy*)
+(* mathcomp system, complementary O_finType *)
 
 Set Warnings "-projection-no-head-constant".
 Canonical O_predType := PredType (fun o x => x \in obidders o).
@@ -564,6 +568,20 @@ Qed.
 
 End Welfare.
 
+Definition set_pick (s : {set O}) : s != set0 -> {o | o \in s}.
+move=> /set0Pn/sigW [x p].
+exact: (exist (fun x => x \in s) x p).
+Defined.
+
+Lemma eq_set_pick (s s' : {set O_finType}) : 
+  forall (ss' : s = s') (s0 : s != set0) (s'0 : s' != set0),
+    sval (set_pick s0) = sval (set_pick s'0).
+Proof.
+move=> <- s0 s'0.
+apply: proj1_sig_eq.
+by rewrite (@Classical_Prop.proof_irrelevance _ s0 s'0).
+Qed.
+
 Section Properties.
 
 Variable (bs : bids).
@@ -616,9 +634,18 @@ split; first by exact: mem_oStar.
 exact: mem_oStar_inv. 
 Qed.
 
+Definition stable_choice : VCG.OStar_choice O_finType :=
+  fun (s : {set O_finType}) (s0 : s != set0) => 
+    match inspect (OStar.oStar bs \in s) with
+    | exist true oin => @exist _ (fun o => o \in s) (OStar.oStar bs) oin
+    | exist false _ => set_pick s0
+    end.
+
 End Properties.
 
 End OStar.
+
+Notation stable_choice := OStar.stable_choice.
 
 (** Optimal outcome for sorted bids. *)
 
@@ -766,18 +793,16 @@ rewrite /VCG.bidSum !bidsSum_sumBid -!valid_bidSum !bidSum_slot.
 exact: OStar.le_welfare_o_oStar.
 Qed.
 
-Definition VCG_oStar := VCG.o (VCG.mkOStar HoStar).
-
-Definition stable_choice (set_oStars : {set O_finType}) := VCG.mkOStar HoStar.
+Definition VCG_oStar := VCG.sig_OStar HoStar.
 
 Definition max_bidSum_spec := (@extremum_spec [eqType of nat] geq O_finType predT bidSum).
 
-Lemma VCG_oStar_extremum : max_bidSum_spec VCG_oStar.
+Lemma VCG_oStar_extremum : max_bidSum_spec (sval VCG_oStar).
 Proof.
 rewrite/max_bidSum_spec; apply: ExtremumSpec; first by [].
 move=> j pj.
 rewrite/geq/=.
-rewrite -(@bigmax_eq_args _ predT bidSum VCG_oStar) ;
+rewrite -(@bigmax_eq_args _ predT bidSum (sval VCG_oStar)) ;
   first by rewrite leq_bigmax_cond.
 exact: HoStar.
 Qed.
@@ -853,7 +878,7 @@ End BidSum.
 (* New *)
 
 Lemma eq_bidSum bs (sorted_bs : sorted_bids bs) :
-  bidSum bs (VCG_oStar bs) = bidSum bs oStar.
+  bidSum bs (sval (VCG_oStar bs)) = bidSum bs oStar.
 Proof.
 rewrite -(eq_oStar_iota sorted_bs).
 move: VCG_oStar_extremum oStar_extremum => [] o1 _ mo1 [] o2 _ mo2.
@@ -962,10 +987,10 @@ Lemma o_without_i_uniq (o : O) (i' : A)
       (neii' : i != i')
       (noi'ino : i' \notin o) :
   let t_o_without_i :=  map_tuple (fun j : A => if j != i then j else i') o in
-  uniq o -> uniq t_o_without_i.
+  uniq t_o_without_i.
 Proof.
-move=> uniqo.
-rewrite map_inj_in_uniq // => j1 j2 j1ino j2ino. 
+move: (ouniq o) => uniqo.
+rewrite /= map_inj_in_uniq // => j1 j2 j1ino j2ino. 
 case: (j1 == i) / eqP => [->|_] /=. 
 - case: (j2 == i) / eqP => [-> //=|_ //= eqi'j2] /=.
   by move: noi'ino; rewrite eqi'j2 j2ino.
@@ -993,7 +1018,7 @@ have [i' _ noi'ino]: exists2 i', i' \in A & i' \notin o.
   move: (ouniq o) => /card_uniqP ->.
   by rewrite size_tuple card_ord lt_k_n.
 have neii': i != i' by move: noi'ino; apply: contra => /eqP <-.
-exists (Outcome (o_without_i_uniq neii' noi'ino (ouniq o))).
+exists (Outcome (o_without_i_uniq neii' noi'ino)).
 exists i' => s /=.
 - split.
   rewrite tnth_map => ->.
@@ -1109,7 +1134,8 @@ Qed.
 
 End ArgBidSum.
 
-Definition welfare_with_i := (@VCG.welfare_with_i O_finType i (biddings bs) (stable_choice bs)).
+Definition welfare_with_i := 
+  (@VCG.welfare_with_i O_finType o0 i (biddings bs) (stable_choice bs)).
 
 Definition welfare_without_i'' := VCG.welfare_without_i'' i (biddings bs).
 
@@ -1128,11 +1154,29 @@ rewrite /OStar.t_oStar /t_oStar sorted_tlabel.
 - by apply/sorted_bids_sorted.
 Qed.
 
-Lemma bidding_i_eq0 : bidding bs i (VCG_oStar bs) = 0.
+Lemma bidding_i_eq0 : bidding bs i (sval (VCG_oStar bs)) = 0.
 Proof.
 rewrite /bidding ffunE /t_bidding /bid_in.
 rewrite ifF // /VCG_oStar /=.
 by rewrite eq_t_oStar_oStar.
+Qed.
+
+Lemma eq_VCG_oStar_stable bs : 
+  sval (VCG_oStar bs) =  sval (VCG.oStar o0  (biddings bs) (stable_choice bs)).
+Proof.
+rewrite /VCG.oStar/stable_choice. 
+case: (inspect (OStar.oStar bs \in VCG.oStars (biddings bs))).
+by case => [p//=|]; last by move: (HoStar bs) => ->.
+Qed.
+
+Lemma eq_stable_oStar bs : 
+  sorted_bids bs -> sval (VCG.oStar o0  (biddings bs) (stable_choice bs)) = oStar.
+Proof.
+move=> sbs.
+rewrite /VCG.oStar/stable_choice. 
+case: (inspect (OStar.oStar bs \in VCG.oStars (biddings bs))).
+case => [p//=|]; last by move: (HoStar bs) => ->.
+by rewrite eq_oStar_iota.
 Qed.
 
 Let eq_welfare_with_i :
@@ -1140,10 +1184,14 @@ Let eq_welfare_with_i :
 Proof.
 rewrite /welfare_with_i /VCG.welfare_with_i /VCG.bidSum_i -/(VCG_oStar bs).
 rewrite -bidSum_bid_ctr_slot bidsSum_sumBid. 
-apply/eqP; rewrite -(eqn_add2l (bidding bs i (VCG_oStar bs))); apply/eqP.
+apply/eqP; rewrite -(eqn_add2l (bidding bs i (sval (VCG_oStar bs)))); apply/eqP.
 under (eq_bigl (fun j => true && (j != i))) => j; first by rewrite andTb.
-rewrite -(bigD1 i) //= -valid_bidSum bidding_i_eq0.
-by rewrite add0n eq_bidSum.
+rewrite eq_VCG_oStar_stable eq_stable_oStar.
+rewrite -(bigD1 i) //= -valid_bidSum. 
+have -> : bidding bs i oStar = 0. 
+  by move: bidding_i_eq0; rewrite eq_VCG_oStar_stable eq_stable_oStar.
+by rewrite add0n.
+exact: sorted_bs.
 Qed.
 
 (* Welfare without i. *)
@@ -1244,7 +1292,7 @@ Qed.
 (** Price equality, when agent [i] loses. *)
 
 Lemma eq_sorted_VCG_price_loses :  
-  price bs i = @VCG.price O_finType i (biddings bs) (stable_choice bs).
+  price bs i = @VCG.price O_finType o0 i (biddings bs) (stable_choice bs).
 Proof.
 rewrite /price /is_winner tsortK ?idxaK // /price /externality VCG.eq_price'' /VCG.price''.
 rewrite -/welfare_without_i'' -/welfare_with_i.
@@ -1319,7 +1367,7 @@ Qed.
 
 (* Welfare with i. *)
 
-Lemma eq_VCG_oStar_oStar : (VCG_oStar bs) = oStar.
+Lemma eq_VCG_oStar_oStar : sval (VCG_oStar bs) = oStar.
 Proof.
 rewrite /(VCG_oStar bs)/(stable_choice bs)/VCG.oStar.
 apply: val_inj; rewrite /=.
@@ -1333,10 +1381,11 @@ Let eq_welfare_with_i :
 Proof. 
 rewrite /welfare_with_i /VCG.welfare_with_i /VCG.bidSum_i -/(VCG_oStar bs).
 rewrite (bidsSum_sumBid (fun j => j != i)).
-apply/eqP; rewrite -(eqn_add2l (bidding bs i (VCG_oStar bs))); apply/eqP.
-under (eq_bigl (fun j => true && (j != i))) => j; first by rewrite andTb.
+apply/eqP; rewrite -(eqn_add2l (bidding bs i (sval (VCG_oStar bs)))); apply/eqP.
+under (eq_bigl (fun j => true && (j != i))) => j; first by rewrite andTb. 
+rewrite eq_VCG_oStar_stable.
 rewrite -(bigD1 i) //= -valid_bidSum /bidding ffunE /t_bidding.  
-set siVo := slot_of i (VCG_oStar bs); pose sio := slot_of i oStar.
+set siVo := slot_of i (sval (VCG_oStar bs)); pose sio := slot_of i oStar.
 have finbid : 
   bidSum bs oStar =
     bid_in bs i sio +
@@ -1344,9 +1393,10 @@ have finbid :
   rewrite /bid_in -/(bid_ctr_agent bs i) eq_bid_ctr -/sOi. 
   rewrite addnA [X in _ = X + _]addnC -(sum_split_i (bid_ctr_slot bs)). 
   exact: bidSum_bid_ctr_slot.
-rewrite ifT // /VCG_oStar /=; last by rewrite eq_t_oStar_oStar.
-rewrite/siVo eq_VCG_oStar_oStar -/sio.
-by rewrite eq_bidSum// finbid.
+rewrite -eq_VCG_oStar_stable.
+rewrite ifT // /VCG_oStar //=; last by rewrite eq_t_oStar_oStar.
+have -> : (OStar.t_oStar bs) = OStar.oStar bs by [].
+by rewrite !eq_oStar_iota// finbid.
 Qed.
 
 (* Welfare without i. *)
@@ -1708,7 +1758,7 @@ Qed.
 (** Price equality, when agent [i] wins. *)
 
 Lemma eq_sorted_VCG_price_wins :  
-  price bs i = @VCG.price O_finType i (biddings bs) (stable_choice bs).
+  price bs i = @VCG.price O_finType o0 i (biddings bs) (stable_choice bs).
 Proof.
 rewrite /price /is_winner tsortK ?idxaK //. 
 rewrite /price /is_winner /externality VCG.eq_price'' /VCG.price''.
@@ -1772,7 +1822,7 @@ Qed.
 End Wins.
 
 Lemma eq_sorted_VCG_price :
-  price bs i = @VCG.price O_finType i (biddings bs) (stable_choice bs).
+  price bs i = @VCG.price O_finType o0 i (biddings bs) (stable_choice bs).
 Proof.
 have [] := boolP (i < k) => iisslot; 
   first by rewrite eq_sorted_VCG_price_wins // (mem_oStar sorted_bs0).
@@ -1843,18 +1893,12 @@ Proof.
 rewrite in_set; apply/andP; split; first by [].
 apply/forallP=> x; rewrite implyTb.
 rewrite ?sorted_relabelled_biddings.
-rewrite /VCG.bidSum.
-rewrite !bidsSum_sumBid.
-rewrite -!valid_bidSum.
-rewrite !bidSum_slot.
+rewrite /VCG.bidSum !bidsSum_sumBid -!valid_bidSum !bidSum_slot.
 exact: OStar.le_welfare_o_oStar.
 Qed.
 
-Definition instance_stable_choice' (set_oStars : {set O_finType}) := 
-  VCG.mkOStar instance_HoStar'.
-
-Definition instance_vcg_price' := 
-  @VCG.price O_finType i' (instance_biddings bs') (instance_stable_choice').
+Definition instance_vcg_price' :=
+  @VCG.price O_finType o0 i' (instance_biddings bs') (@stable_choice bs').
 
 Definition instance_oStars := @VCG.oStars O_finType (instance_biddings bs).
 
@@ -1863,32 +1907,66 @@ Proof.
 by rewrite /instance_oStars/= (VCG.perm_oStars instance_perm_biddings) instance_HoStar'.
 Qed.
 
-Definition instance_stable_choice (set_oStars : {set O_finType}) := 
-  (VCG.mkOStar instance_HoStar).
+Definition instance_vcg_price :=
+  @VCG.price O_finType o0 i (instance_biddings bs) (@stable_choice bs').
 
-Definition instance_vcg_price := 
-  @VCG.price O_finType i (instance_biddings bs) (instance_stable_choice).
+Lemma oStar_perm_choice' (T : finType) (u u' : {set T}) (uu' : u = u') (o' : T) 
+  (o2 : {o1 : T | o1 \in u})  (o2' : {o1 : T | o1 \in u'})
+  (o2o2' : sval o2 = sval o2') (o'u' : o' \in u') :
+  sval
+    (let (x, oin) := inspect (o' \in u) in
+     (if x as x0 return ((o' \in u) = x0 → {o1 : T | o1 \in u})
+      then [eta exist (λ o1 : T, o1 \in u) o']
+      else fun=> o2) oin) =
+  sval
+    (let (x, oin) := inspect (o' \in u') in
+     (if x as x0 return ((o' \in u') = x0 → {o1 : T | o1 \in u'})
+      then [eta exist (λ o1 : T, o1 \in u') o']
+      else fun=> o2')
+       oin).
+Proof.
+set rhs := (X in (_ = X)).
+have <- : o' = rhs.
+  rewrite /rhs.
+  case: (inspect (o' \in u')).
+  by case=> [p /=|p]; last by rewrite o'u' in p.
+case: (inspect (o' \in u)). 
+by case=> [p //|p]; last by rewrite uu' o'u' in p.
+Qed.
+
+Lemma oStar_perm_choice :
+  sval (VCG.oStar o0  (instance_biddings bs) (stable_choice bs')) =
+  sval (VCG.oStar o0  (instance_biddings bs') (stable_choice bs')).
+Proof.
+set u' := VCG.oStars (instance_biddings (tsort bs)); set u := VCG.oStars (instance_biddings bs).
+have eqo : u = u' by apply: VCG.perm_oStars; exact: instance_perm_biddings.
+apply: oStar_perm_choice'; first by exact: eqo.
+- exact: OStar.eq_set_pick.
+- exact: instance_HoStar'.
+Qed.
 
 Lemma eq_instance_vcg_price : instance_vcg_price' = instance_vcg_price.
 Proof. 
 rewrite /instance_vcg_price /instance_vcg_price'.
-apply: (@VCG.relabelled_price _ (instance_biddings bs) (instance_biddings bs') _ i i');
-  last by [].
-- exact: instance_perm_biddings.
-- rewrite !tnth_mktuple.
-  apply/ffunP => o'.
-  exact: relabelled_bidding. 
+move: (@VCG.relabelled_price O_finType o0 (instance_biddings bs) (instance_biddings bs')
+         instance_perm_biddings i i').
+rewrite !tnth_mktuple.
+have -> : instance_bidding bs' i' = instance_bidding bs i.
+  apply: eq_dffun => o.
+  move: (@relabelled_bidding i o).
+  by rewrite /instance_bidding !ffunE. 
+by move/(_ erefl)/(_ (stable_choice bs')) => ->; last by exact: oStar_perm_choice.
 Qed.
 
 (** Price equality, in all cases. *)
  
 Theorem eq_instance_VCG_price :
-  price bs i = VCG.price i (instance_stable_choice).
+  price bs i = VCG.price o0 i (instance_biddings bs) (stable_choice bs').
 Proof.
-rewrite -eq_relabelled_price -/instance_vcg_price -eq_instance_vcg_price //.
+rewrite -eq_relabelled_price -/instance_vcg_price  -eq_instance_vcg_price //.
 rewrite eq_sorted_VCG_price //; last by exact: tsorted_bids_sorted.
-rewrite /stable_choice/= /instance_vcg_price' /instance_stable_choice'.
-by rewrite /VCG.price /VCG.welfare_with_i/VCG.o/= ?sorted_relabelled_biddings.
+rewrite /stable_choice/= /instance_vcg_price'. 
+by rewrite /VCG.price /VCG.welfare_with_i/= ?sorted_relabelled_biddings.
 Qed.
 
 End VCGforSearchPrice.

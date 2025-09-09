@@ -1910,39 +1910,35 @@ Qed.
 Definition instance_vcg_price :=
   @VCG.price O_finType o0 i (instance_biddings bs) (@stable_choice bs').
 
-Lemma oStar_perm_choice' (T : finType) (u u' : {set T}) (uu' : u = u') (o' : T) 
-  (o2 : {o1 : T | o1 \in u})  (o2' : {o1 : T | o1 \in u'})
-  (o2o2' : sval o2 = sval o2') (o'u' : o' \in u') :
-  sval
-    (let (x, oin) := inspect (o' \in u) in
-     (if x as x0 return ((o' \in u) = x0 → {o1 : T | o1 \in u})
-      then [eta exist (λ o1 : T, o1 \in u) o']
-      else fun=> o2) oin) =
-  sval
-    (let (x, oin) := inspect (o' \in u') in
-     (if x as x0 return ((o' \in u') = x0 → {o1 : T | o1 \in u'})
-      then [eta exist (λ o1 : T, o1 \in u') o']
-      else fun=> o2')
-       oin).
+Lemma oStar_perm_choice' (T : finType) 
+  (u u' : {set T}) (uu' : u = u') 
+  (o' : T)  (o'u' : o' \in u')
+  (o2 : {o1 : T | o1 \in u})  (o2' : {o1 : T | o1 \in u'}) (o2o2' : sval o2 = sval o2') :
+  sval (let (x, oin) := inspect (o' \in u) in
+        (if x as x0 return ((o' \in u) = x0 → {o1 : T | o1 \in u})
+         then [eta exist (λ o1 : T, o1 \in u) o']
+         else fun=> o2) oin) =
+  sval (let (x, oin) := inspect (o' \in u') in
+        (if x as x0 return ((o' \in u') = x0 → {o1 : T | o1 \in u'})
+         then [eta exist (λ o1 : T, o1 \in u') o']
+         else fun=> o2') oin).
 Proof.
 set rhs := (X in (_ = X)).
 have <- : o' = rhs.
-  rewrite /rhs.
-  case: (inspect (o' \in u')).
-  by case=> [p /=|p]; last by rewrite o'u' in p.
+  by rewrite /rhs; case: (inspect (o' \in u')); by case=> [p /=|p]; last by rewrite o'u' in p.
 case: (inspect (o' \in u)). 
 by case=> [p //|p]; last by rewrite uu' o'u' in p.
 Qed.
 
 Lemma oStar_perm_choice :
-  sval (VCG.oStar o0  (instance_biddings bs) (stable_choice bs')) =
-  sval (VCG.oStar o0  (instance_biddings bs') (stable_choice bs')).
+  sval (VCG.oStar o0 (instance_biddings bs) (stable_choice bs')) =
+  sval (VCG.oStar o0 (instance_biddings bs') (stable_choice bs')).
 Proof.
 set u' := VCG.oStars (instance_biddings (tsort bs)); set u := VCG.oStars (instance_biddings bs).
 have eqo : u = u' by apply: VCG.perm_oStars; exact: instance_perm_biddings.
 apply: oStar_perm_choice'; first by exact: eqo.
-- exact: OStar.eq_set_pick.
 - exact: instance_HoStar'.
+- exact: OStar.eq_set_pick.
 Qed.
 
 Lemma eq_instance_vcg_price : instance_vcg_price' = instance_vcg_price.

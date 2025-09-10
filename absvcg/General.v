@@ -88,7 +88,7 @@ Definition sig_OStar (o : O) (oin : o \in oStars): OStar.
 by exists o.
 Defined.
 
-Definition arg_OStar bs := sig_OStar arg_OStar_in.
+Definition arg_OStar := sig_OStar arg_OStar_in.
 
 Lemma oStars_ne0 : oStars != set0.
 Proof. apply/set0Pn; exists arg_OStar_o; exact: arg_OStar_in. Qed.

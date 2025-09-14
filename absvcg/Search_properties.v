@@ -36,8 +36,6 @@ From mathcomp Require Import fingroup.perm.
 From mech.lib Require Import lib labelling mech.
 From mech.absvcg Require Import General Search_as_General.
 
-Require Import Coq.Logic.Decidable Coq.Structures.Equalities.
-
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.

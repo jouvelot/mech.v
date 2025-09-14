@@ -641,6 +641,15 @@ Definition stable_choice : VCG.OStar_choice O_finType :=
     | exist false _ => set_pick s0
     end.
 
+Lemma stable_choice_in (s : {set O_finType}) (s0 : s != set0) :
+  OStar.oStar bs \in s -> sval (stable_choice s0) = OStar.oStar bs.
+Proof.
+move=> oin.
+rewrite /stable_choice.
+case: (inspect (OStar.oStar bs \in s)).
+by case=> p //=; last by rewrite p in oin.
+Qed.
+
 End Properties.
 
 End OStar.

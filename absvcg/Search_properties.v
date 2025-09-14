@@ -42,21 +42,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(* A proposer comme lemme dans finset.v *)
-
-Lemma cards01P (T : finType) (A : {set T}) :
-  reflect (forall x y (xin : x \in A) (yin : y \in A), x = y) (#|A| <= 1).
-Proof.
-apply/introP => [].
-- rewrite leq_eqVlt => /orP [/cards1P [x0 ->] a1 y|]; first by rewrite !inE => /eqP -> /eqP ->.
-  by rewrite ltnS leqn0 cards_eq0 => /eqP -> x y /=; rewrite inE.
-- apply: contraNnot. 
-  move: (set_0Vmem A) => [->|[x xin]]; first by rewrite cards0.
-  move: (set_0Vmem (A :\ x)) => [|[y /setD1P [yx yin] /(_ x y xin yin) /eqP xy]];
-    last by rewrite eq_sym xy in yx.                               
-  by rewrite -[in _ <= _](setD1K xin) => ->; rewrite cardsU1 cards0 in_set0.
-Qed.
-
 Module S := Search_as_General.
 
 (** No positive transfer. *)
@@ -504,13 +489,13 @@ Notation A1s := (VCG.biddings O1).
 
 Section M1.
 
-Variable G_choice1 : VCG.OStar_choice O1.
+Variable G_choice : VCG.OStar_choice O1.
 
-Definition O1_winners (a1s : A1s) := (proj1_sig (G_choice1 (VCG.oStars_ne0 o10 a1s))).1.1.
+Definition O1_winners (a1s : A1s) := (proj1_sig (G_choice (VCG.oStars_ne0 o10 a1s))).1.1.
 
 Definition O1_prices (a1s : A1s) : k.-tuple P := 
   map_tuple 
-    (inord \o (fun i => VCG.price o10 i a1s G_choice1))
+    (inord \o (fun i => VCG.price o10 i a1s G_choice))
     (O1_winners a1s).
 
 Definition O1_outcome a1s := (O1_winners a1s, O1_prices a1s, a2s0).
@@ -534,7 +519,7 @@ Definition p1 : prefs.type m1 :=
 
 Variable bid_bounded : forall (a1s : A1s) i o, tnth a1s i o <= r. 
 
-Lemma price_bounded a1s i : VCG.price o10 i a1s G_choice1 < (n * r).+1.
+Lemma price_bounded a1s i : VCG.price o10 i a1s G_choice < (n * r).+1.
 Proof.
 rewrite /VCG.price.
 apply: (@leq_ltn_trans (VCG.welfare_without_i i a1s)); first by rewrite leq_subr.
@@ -554,9 +539,9 @@ Proof. by apply: contra_neqT => /negPf/slot_not_in. Qed.
 Lemma truthful_General_VCG : truthful p1.
 Proof.
 move=> bs bs' i d tv.  
-pose oGc1 := G_choice1 (VCG.oStars_ne0 o10 bs).
-have tvi : action_on bs i = prefs.v (VCG.p (proj1_sig oGc1) G_choice1 v1) i by rewrite tv.
-move: (@VCG.truthful_General _ o10 G_choice1 v1 bs bs' i d tvi). 
+pose oGc1 := G_choice (VCG.oStars_ne0 o10 bs).
+have tvi : action_on bs i = prefs.v (VCG.p (proj1_sig oGc1) G_choice v1) i by rewrite tv.
+move: (@VCG.truthful_General _ o10 G_choice v1 bs bs' i d tvi). 
 rewrite /VCG.p /VCG.m/=.
 case: ifP => // iw'.
 case: ifP => iw.
@@ -586,7 +571,7 @@ Definition G_choice (a1s : A1s) (op : O1) (s : {set O1}) (s0 : s != set0) : {o |
   let: os := VCG.oStars a1s in
   match inspect (os == s) with
   | exist true a1ss =>
-      match inspect (op \in VCG.oStars a1s) with
+      match inspect (op \in os) with
       | exist true opin => @eq_rect _ os P1 (@VCG.sig_OStar O1 a1s op opin) s (eqP a1ss)
       | exist false _ => set_pick' s0
       end
@@ -607,7 +592,6 @@ have/(_ (op \in VCG.oStars a1s) po opin) -> // : forall b (p1 : b = true) (p2 : 
 by congr (eq_rect _); by apply: eq_irrelevance.
 Qed.
 
-
 Lemma G_choice_nop (a1s : A1s) (op : O1) (s : {set O1}) (s0 : s != set0) 
   (opnin : op \notin VCG.oStars a1s) : 
     G_choice a1s op s0 = set_pick' s0. 
@@ -619,9 +603,6 @@ case: (inspect (op \in VCG.oStars a1s)).
 by case=> [p|p //]; first by rewrite p in opnin.
 Qed.
 
-Definition S_choice (a1s : A1s) (op : O1) : ∀ s : {set O1}, s != set0 → {o | o \in s} := 
-  G_choice a1s (O2_outcome op.2).
-
 Section Relations.
 
 Definition Ra (i : agent) (a1 : A1) (a2 : A2) : Prop :=
@@ -632,7 +613,7 @@ Definition fR (i : agent) (a2 : A2) : A1 :=
 
 Definition fRi (a2s : A2s) : A1s := [tuple fR i (tnth a2s i) | i < n].
 
-Lemma o2_in_ofRi a2s : O2_outcome a2s \in VCG.oStars (fRi a2s).
+Lemma o2_in_ofRi2 a2s : O2_outcome a2s \in VCG.oStars (fRi a2s).
 Proof.
 rewrite inE andTb. 
 apply/forallP => o1.
@@ -653,12 +634,20 @@ have eqo : forall o, bidSum a2s o = \sum_(i < n) tnth a2s i * 'ctr_ (slot_of i o
 by rewrite !eqo.
 Qed.
 
+Lemma Ri_ofRi a1s a2s : mech.Ri Ra a1s a2s -> a1s = fRi a2s.
+Proof.
+move=> mri.
+apply: eq_from_tnth => j.
+rewrite /mech.Ri /action_on /Ra in mri.
+apply/ffunP => o1.
+by rewrite mri /fRi tnth_map /fR ffunE tnth_ord_tuple.
+Qed.
+
 Definition Ri (a1s : A1s) (a2s : A2s) : Prop :=
   (forall i, Ra i (action_on a1s i) (action_on a2s i)) /\ 
     let: o2 := O2_outcome a2s in
     let: oS := VCG.oStars a1s in
-    (o2 \in oS) /\
-      (forall (o2in : o2 \in oS), G_choice a1s o2 (VCG.oStars_ne0 o10 a1s) = VCG.sig_OStar o2in).
+    o2 \in oS.
 
 Lemma fRP : forall (i : agent) (a2 : A2), Ra i (fR i a2) a2. 
 Proof. 
@@ -675,9 +664,7 @@ Section Outcome.
 Lemma fRiP (a2s : A2s) :  Ri (fRi a2s) a2s .
 Proof.
 split; first by move=> i o; rewrite /action_on tnth_map /fR ffunE tnth_ord_tuple. 
-have o2f : O2_outcome a2s \in VCG.oStars (fRi a2s) by exact: o2_in_ofRi.  
-split=> // o2in.
-by rewrite G_choice_op.
+by have o2f : O2_outcome a2s \in VCG.oStars (fRi a2s) by exact: o2_in_ofRi2.  
 Qed.
 
 Lemma fRdP a2s a2s' i (hd : differ_on a2s a2s' i) : differ_on (fRi a2s) (fRi a2s') i.
@@ -738,24 +725,22 @@ apply/eqP; rewrite eqn_leq; apply/andP; split.
   by rewrite leq_bigmax_cond.
 Qed.
 
-Lemma stable_choice_in bs (s : {set O_finType}) (s0 : s != set0) :
-  OStar.oStar bs \in s -> sval (stable_choice bs s0) = OStar.oStar bs.
-Admitted.
-
-Lemma stable_choice_out bs (s : {set O_finType}) (s0 : s != set0) :
-  OStar.oStar bs \notin s -> stable_choice bs s0 = set_pick' s0. 
-Admitted.
-
 Lemma MR (a1s : A1s) (a2s : A2s) (ri : Ri a1s a2s) : 
-  Ro (m1 (S_choice a1s (O2_outcome a2s)) a1s) (m2 a2s).
+  Ro (m1 (G_choice a1s (O2_outcome a2s)) a1s) (m2 a2s).
 Proof.
-move: (ri) => [acts [o2in Gc1]].
-congr (_, _) => //; first by rewrite /O1_winners /O2_winners /S_choice/= Gc1.
+move: (ri) => [acts o2in].
+have Gc1:     
+  let: o2 := O2_outcome a2s in
+  let: oS := VCG.oStars a1s in
+  forall (o2in : o2 \in oS), G_choice a1s o2 (VCG.oStars_ne0 o10 a1s) = VCG.sig_OStar o2in.
+  move=> o2in'.
+  by rewrite G_choice_op.
+congr (_, _) => //; first by rewrite /O1_winners /O2_winners /= Gc1.
 apply: eq_from_tnth => s.
 rewrite !tnth_map/= /O1_winners tnth_ord_tuple.
 congr (inord _).
 rewrite eq_instance_VCG_price/=.
-rewrite /S_choice Gc1 tnth_map tnth_ord_tuple.
+rewrite Gc1 tnth_map tnth_ord_tuple.
 set i := (X in VCG.price _ X).
 have <- : i = tnth (tlabel a2s) (slot_as_agent s) by []. 
 rewrite /VCG.price /VCG.welfare_with_i /VCG.welfare_without_i /=.  
@@ -766,10 +751,10 @@ have tOs : (map_tuple (tnth (tlabel a2s)) oStar) = OStar.t_oStar a2s.
   by apply: eq_from_tnth => t; rewrite !tnth_map widen_slot_as_agent.
 apply: eq_bigr => j _.
 rewrite acts tnth_map -relabelled_bidding tnth_ord_tuple sorted_relabelled_bidding /VCG.oStar.  
-pose oo := (OStar.oStar (tsort a2s) \in VCG.oStars (instance_biddings a2s)). 
-case: (inspect oo). 
+pose oo := (OStar.oStar (tsort a2s) \in VCG.oStars (instance_biddings a2s)).
+ case: (inspect oo). 
 case=> [p/=|p].  
-- rewrite stable_choice_in// G_choice_op/=.
+- rewrite OStar.stable_choice_in// G_choice_op/=.
   rewrite /bidding ffunE /t_bidding /bid_in (labelling_spec_idxa a2s).
   case: ifP => [jin|/=].
   - congr (_ * 'ctr_ _) => /=.
@@ -789,183 +774,130 @@ case=> [p/=|p].
         by apply: val_inj.
     move=> ->.
     by rewrite S.last_ctr_eq0/= muln0.
-- rewrite Gc1 stable_choice_out; last by move: p; rewrite /oo => ->.
-  rewrite /bidding/t_bidding ffunE/bid_in.
-  
-- rewrite labelling_in => /slot_not_in. 
-  rewrite ; 
-  rewrite tOs Gc1 => ->.
-  by rewrite S.last_ctr_eq0/= muln0.
-
-
-
-rewrite /bidding ffunE /t_bidding /bid_in (labelling_spec_idxa a2s)/=.
-  rewrite -/oo.
-  case: (inspect oo).
-  case=> [q|q].
-
-rewrite /bidding ffunE /t_bidding /bid_in (labelling_spec_idxa a2s).
-case: ifP => [jin|].
-- congr (_ * 'ctr_ _) => /=.
-  rewrite (@relabel_slot a2s)//.  
-  rewrite eq_oStar_iota in jin *; last by exact: tsorted_bids_sorted.
-  by rewrite tOs Gc1.
-- rewrite labelling_in => /slot_not_in. 
-  rewrite eq_t_oStar_oStar; last by exact: tsorted_bids_sorted.
-  rewrite tOs Gc1 => ->.
-  by rewrite S.last_ctr_eq0/= muln0.
+- move: (instance_HoStar' a2s) => q.
+  rewrite /instance_oStars' -(VCG.perm_oStars (instance_perm_biddings a2s)) in q.
+  by rewrite /oo q in p.
 Qed.
 
-Notation U1 o1 := (@prefs.U A1 _ (m1 o1 S_choice) (p1 o1 S_choice)).
-Notation U2 := (@prefs.U A2 _ m2 p2).
+Definition U1 a1s (o1 : O1) := (@prefs.U A1 _ (m1 (G_choice a1s o1)) (p1 (G_choice a1s o1))).
+Definition U2 := (@prefs.U A2 _ m2 p2).
 
-Lemma RelFP (op o1 : O1) (o2 : O2) : Ro o1 o2 -> forall (i : A), @U1 op i o1 = @U2 i o2.
+Lemma RelFP (a1s : A1s) (o1 : O1) (o2 : O2) : 
+  Ro o1 o2 -> forall (i : A), (@U1 a1s o1) i o1 = @U2 i o2.
 Proof. 
 move=> ro i.
-rewrite /(U1 o1) /U2 /p1 /p2/=.
+rewrite /U1/U2 /p1 /p2/=.
 rewrite /Ro in ro.
 by rewrite /v1 /v2 !ffunE !ro.
 Qed.
 
-Definition oStars_singleton (a2s : A2s) := #|G.oStars (fRi a2s)| = 1.
+(*
 
-(* A lemma to intuitively relate oStars_singleton to VCG for Search. *)
+  All prices are bounded in VCG for Search. This needs to be added to General VCG explicitly.
 
-Lemma oStars2_singleton (a2s : A2s) : oStars_singleton a2s -> singleton (max_bidSum_spec a2s).
+*)
+
+Hypothesis bid_bounded : forall (a1s : A1s) i o, tnth a1s i o <= r. 
+
+(* 
+
+  The oStars_singleton hypothesis is obviously false. The proper way to handle this is 
+  to define a new "singleton_truthful" property that is restricted only to a2s tuples 
+  that have the singleton property (in a way similar to "uniq_truthful".
+
+*)
+
+Hypothesis oStars_singleton : forall (a2s : A2s), #|VCG.oStars (fRi a2s)| = 1.
+
+(* Relations between oStars_singleton to the direct VCG for Search singleton restriction. *)
+
+Lemma Search_oStars_singleton (a2s : A2s) : singleton (max_bidSum_spec a2s).
 Proof.
-move=> oS1 o1 o2 {o1 o2} [o1 _ x1] [o2 _ x2].
-pose o1': O1 := (o1, mktuple (fun p => ord0), a2s); pose o2' : O1 := (o2, mktuple (fun p => ord0), a2s).
-have bGb : forall (o' : O), bidSum a2s o'.1.1 = G.bidSum (fRi a2s) o'.
+have oS1 := oStars_singleton a2s.
+move=> o1 o2 {o1 o2} [o1 _ x1] [o2 _ x2].
+pose o1': O1 := (o1, mktuple (fun p => ord0), a2s); 
+pose o2' : O1 := (o2, mktuple (fun p => ord0), a2s).
+have bGb : forall (o' : O), bidSum a2s o'.1.1 = VCG.bidSum (fRi a2s) o'.
   move=> o'. 
   apply: eq_bigr => i _.
   rewrite /fRi /fR /biddings /bidding /t_bidding /bid_in !tnth_map tnth_ord_tuple !ffunE /=.
   case: ifP => [//|/slot_not_in ->]; last by rewrite S.last_ctr_eq0/= muln0. 
 have o'S (o' : O) : 
-  (∀ j : S.O, predT j -> geq (bidSum a2s o'.1.1) (bidSum a2s j)) -> o' \in G.oStars (fRi a2s).
+  (∀ j : S.O, predT j -> geq (bidSum a2s o'.1.1) (bidSum a2s j)) -> o' \in VCG.oStars (fRi a2s).
   move=> x'.
   rewrite inE andTb.
   apply/forallP => o.
   apply/implyP => _.
   rewrite -!bGb. 
   exact: x'.
-have eqos (x y : O1) (xin : x \in G.oStars (fRi a2s)) (yin : y \in G.oStars (fRi a2s)) : x = y.
-  by have /eq_leq/cards01P/(_ x y) := oS1; apply.
+have eqos (x y : O1) (xin : x \in VCG.oStars (fRi a2s)) (yin : y \in VCG.oStars (fRi a2s)) : 
+  x = y by have /eq_leq/cards01P/(_ x y) := oS1; apply.
 move: (eqos o1' o2' (o'S o1' x1) (o'S o2' x2)).
 by case.
 Qed.
 
-Lemma S_choicenP a2s (oS1 : oStars_singleton a2s)
-  op o 
-  (opnin : op \notin G.oStars (fRi a2s)) (oin : o \in G.oStars (fRi a2s)) : 
-  @S_choice (fRi a2s) o op oin = G.sig_OStar oin.
+Lemma max_bidSum_fRi a2s x (xin : x \in VCG.oStars (fRi a2s)) : max_bidSum_spec a2s x.1.1.
 Proof.
-have eqos (x y : O1) (xin : x \in G.oStars (fRi a2s)) (yin : y \in G.oStars (fRi a2s)) : x = y.
-  by have /eq_leq/cards01P/(_ x y) := oS1; apply.
-rewrite /S_choice. 
-set op2 := (O2_outcome op.2 \in G.oStars (fRi a2s)).
-have [o2in|noin2] := boolP op2.
-- rewrite /G_choice eqxx.
-  case: (inspect op2). 
-  case=> [p|p]. 
-  all: apply: val_inj => /=.
-  all: apply: eqos => //.
-  exact: G.arg_OStar_in.
-- by rewrite G_choice_nop// G.arg_OStar_in.
+apply: ExtremumSpec=> // o _ /=.
+have bGb : forall (o : O_finType), let: o' := (o, mktuple (fun p => ord0), a2s) in
+                              bidSum a2s o = VCG.bidSum (fRi a2s) o'.
+  move=> o'. 
+  apply: eq_bigr => i _.
+  rewrite /fRi /fR /biddings /bidding /t_bidding /bid_in !tnth_map tnth_ord_tuple !ffunE /=.
+  by case: ifP => [//|/slot_not_in ->]; last by rewrite S.last_ctr_eq0/= muln0. 
+rewrite (bGb o).
+have bGbx : bidSum a2s x.1.1 = VCG.bidSum (fRi a2s) x.
+  apply: eq_bigr => i _.
+  rewrite /fRi /fR /biddings /bidding /t_bidding /bid_in !tnth_map tnth_ord_tuple !ffunE /=.
+  by case: ifP => [//|/slot_not_in ->]; last by rewrite S.last_ctr_eq0/= muln0. 
+rewrite bGbx.
+move: xin.
+pose o' : O1 := (o, [tuple ord0  | _ < k], a2s).
+by rewrite inE => /andP [_]/forallP /(_ o')/implyP/(_ erefl).
 Qed.
 
-Lemma S_choiceI a2s (oS1 : oStars_singleton a2s)
-  o (oin : o \in G.oStars (fRi a2s)) : 
-  @S_choice (fRi a2s) o o oin = G.arg_OStar o10 (fRi a2s) (fRi a2s).
+Lemma Search_singleton_truthful : truthful p2.
 Proof. 
-have eqos (x y : O1) (xin : x \in G.oStars (fRi a2s)) (yin : y \in G.oStars (fRi a2s)) : x = y.
-  by have /eq_leq/cards01P/(_ x y) := oS1; apply.
-rewrite /S_choice.
-have [o2in|noin2] := boolP (O2_outcome o.2 \in G.oStars (fRi a2s)).
-- rewrite /S_choice G_choice_op//. 
-  apply: val_inj => /=.
-  apply: eqos => //.
-  by rewrite G.arg_OStar_in.
-- rewrite /G_choice eqxx.
-  set o2in := (O2_outcome o.2 \in G.oStars (fRi a2s)).
-  case: (inspect o2in). 
-  case=> [p|p]. 
-  all: apply: val_inj => /=.
-  all: apply: eqos => //.
-  all: exact: G.arg_OStar_in.
-Qed.   
-
-Section SingleTruthfulness. (* for G.oStars-singleton action types *)
-
-Notation A := A2.
-
-Notation prefs := (@prefs.type A n).
-
-Variable m : @mech.type A n.
-
-Variable p : @prefs m.
-
-Notation "'v_ i" := (prefs.v p i) (at level 10).
-Notation "'U_ i" := (prefs.U p i) (at level 10).
-Notation "'s_ i" := (prefs.s p i) (at level 10).
-
-Notation bids := A2s.
-
-Definition action_on := tnth.
-
-Definition eq_differ_on (bs bs' : bids) i := 
-  forall j, j != i -> action_on bs' j = action_on bs j.
-
-Definition single_truthful' 
-  (bs : bids) (os1 : oStars_singleton bs) 
-  (bs' : bids) (os1' : oStars_singleton bs') i :=
-  eq_differ_on bs bs' i -> action_on bs i = 'v_i -> 'U_i (m bs') <= 'U_i (m bs).
-
-Definition single_truthful :=
-  forall (bs : bids) (os1 : oStars_singleton bs)
-    (bs' : bids) (os1' : oStars_singleton bs') i, 
-    single_truthful' os1 os1' i.
-
-End SingleTruthfulness.
-
-Variable bid_bounded : forall (a1s : A1s) i o, tnth a1s i o <= r. 
-
-Lemma Search_single_truthful_rel : single_truthful p2.
-Proof. 
-move=> a2s os1 a2s' os1' i hd2 hv2.  
+move=> a2s a2s' i hd2 hv2.  
 have ho := MR (fRiP a2s).
 have ho' := MR (fRiP a2s').
-pose out2 := (O2_outcome a2s); set out2' := (O2_outcome a2s').
-have hu := RelFP out2 ho i.
-have hu' := RelFP out2' ho' i.
-rewrite -hu -hu'.
-rewrite /Ro in ho ho'.  
-pose op := proj1_sig (G.arg_OStar o10 (fRi a2s) (fRi a2s)).
-pose opin := G.arg_OStar_in o10 (fRi a2s).
-have /eq_leq/cards01P eqos := os1.
-have eq22': @S_choice (fRi a2s) op out2' opin = @S_choice (fRi a2s) op out2 opin.
-  case out2'in: (out2' \in G.oStars (fRi a2s)).
-  - by move: (eqos out2 op (o2_in_ofRi a2s) opin) (eqos op out2' opin out2'in) => /= -> <-.
-  - by rewrite S_choicenP// ?out2'in// (eqos out2 op (o2_in_ofRi a2s) opin) S_choiceI.
-have : U1 out2' i (m1 out2' S_choice (fRi a2s)) <= U1 out2 i (m1 out2 S_choice (fRi a2s)). 
-  rewrite /(U1 out2') /(U1 out2) /p1/= /is_winner1 /O1_winners/= /M1 /v1 !ffunE /O1_outcome.
-  rewrite /O1_winners/= eq22'.
-  have -> // : (O1_prices out2' S_choice (fRi a2s)) = (O1_prices out2 S_choice (fRi a2s)). 
-    apply: eq_from_tnth => s.
-    rewrite !tnth_map/=. 
-    rewrite /O1_winners/= /m1 eq22' /G.price /G.welfare_with_i/= /G.bidSum_i.
-    congr (inord (_ - _)).
-    apply: eq_bigr => j no2.
-    by rewrite !tnth_map/= !tnth_ord_tuple /fR !ffunE /G.oStar eq22'.
-have/(_ (fRi a2s) (fRi a2s') i (fRdP hd2) (fRviP hv2)) : truthful (p1 out2' S_choice).
-  apply: truthful_General_VCG => a1s j o1.
-  exact: bid_bounded.
-exact: leq_trans.
+rewrite /Ro in ho ho'.
+set g' := G_choice (fRi a2s') (O2_outcome a2s').
+set G' := G_choice (fRi a2s') (m1 g' (fRi a2s')).
+have eqGc' bs o : (m1 (G_choice (fRi bs) o) (fRi bs)).1 = (m1 G' (fRi bs)).1.
+  rewrite /G' /m1/=. 
+  pose oS := VCG.oStars (fRi bs); pose oSne0 := VCG.oStars_ne0 o10 (fRi bs).
+  have /eq_leq/cards01P eqos := oStars_singleton bs.
+  have o2in : sval (G_choice (fRi bs) o oSne0) \in oS.
+    exact: (@proj2_sig _ (fun x => x \in oS)). 
+  have g'in : sval (G_choice (fRi a2s') (M1 g' (fRi a2s')) oSne0) \in oS.
+    exact: (@proj2_sig _ (fun x => x \in oS)). 
+  congr (_, _); first by rewrite /O1_winners (@eqos _ _ o2in g'in).
+  rewrite /O1_prices.
+  apply: eq_from_tnth => s.
+  rewrite !tnth_map/= /O1_winners/= /m1 (@eqos _ _ o2in g'in). 
+  rewrite /VCG.price /VCG.welfare_with_i/= /VCG.bidSum_i.
+  congr (inord (_ - _)).
+  apply: eq_bigr => j no2.
+  by rewrite !tnth_map/= !tnth_ord_tuple /fR !ffunE /VCG.oStar (@eqos _ _ o2in g'in).
+have MR' : ∀ (bs1 : n.-tuple A1) (bs2 : A2s), mech.Ri Ra bs1 bs2 → Ro (m1 G' bs1) (m2 bs2). 
+  move=> bs1 bs2 mri.
+  have := @MR bs1 bs2. 
+  rewrite (Ri_ofRi mri) /Ro eqGc'.
+  apply=> //.
+  split=> //; last by rewrite o2_in_ofRi2.
+  by rewrite /mech.Ri -(Ri_ofRi mri).
+have RelFP' : ∀ (o1 : mech.O (m1 G')) (o2 : mech.O m2),
+    Ro o1 o2 → (prefs.U (p1 G'))^~ o1 =1 (prefs.U p2)^~ o2.
+  by move=> o1 o2 ro12; apply: RelFP; first by exists (fRi a2s); rewrite size_tuple.
+rewrite (@MP n _ _ _ _ Ra fR (p1 G') p2 fRP fRvP Ro MR' RelFP')//.
+exact: truthful_General_VCG.
 Qed.
 
 End Relational.
 
-Check Search_single_truthful_rel.
-Print Assumptions Search_single_truthful_rel.
+Check Search_singleton_truthful.
+Print Assumptions Search_singleton_truthful.
 
 
 

@@ -24,6 +24,21 @@ Section Misc.
 
 Definition singleton (T : eqType) (P : T -> Type) := forall (x y : T), P x -> P y -> x = y. 
 
+(* A proposer comme lemme dans finset.v *)
+
+Lemma cards01P (T : finType) (A : {set T}) :
+  reflect (forall x y, x \in A -> y \in A -> x = y) (#|A| <= 1).
+Proof.
+apply/introP => [].
+- rewrite leq_eqVlt => /orP [/cards1P [x0 ->] a1 y|]; first by rewrite !inE => /eqP -> /eqP ->.
+  by rewrite ltnS leqn0 cards_eq0 => /eqP -> x y /=; rewrite inE.
+- apply: contraNnot. 
+  move: (set_0Vmem A) => [->|[x xin]]; first by rewrite cards0.
+  move: (set_0Vmem (A :\ x)) => [|[y /setD1P [yx yin] /(_ x y xin yin) /eqP xy]];
+    last by rewrite eq_sym xy in yx.                               
+  by rewrite -[in _ <= _](setD1K xin) => ->; rewrite cardsU1 cards0 in_set0.
+Qed.
+
 End Misc.
 
 (** Arithmetic lemmas *)

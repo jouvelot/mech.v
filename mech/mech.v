@@ -325,36 +325,7 @@ End Strategy.
 
 (** Truthfulness (i.e., "incentive-compatible") Prop and bool definitions and properties. *)
 
-Section UniqTruthfulness. (* for uniq action types *)
-
-Variable (n : nat) (A : eqType).
-
-Notation prefs := (@prefs.type A n).
-
-Variable m : @mech.type A n.
-
-Variable p : @prefs m.
-
-Notation "'v_ i" := (prefs.v p i) (at level 10).
-Notation "'U_ i" := (prefs.U p i) (at level 10).
-Notation "'s_ i" := (prefs.s p i) (at level 10).
-
-Notation bids := (n.-tuple A).
-
-Definition action_on := tnth.
-
-Definition eq_differ_on (bs bs' : bids) i := 
-  forall j, j != i -> action_on bs' j = action_on bs j.
-
-Definition uniq_truthful' (bs : bids) (us : uniq bs) (bs' : bids) (us' : uniq bs') i :=
-  eq_differ_on bs bs' i -> action_on bs i = 'v_i -> 'U_i (m bs') <= 'U_i (m bs).
-
-Definition uniq_truthful := forall (bs : bids) (us : uniq bs) (bs' : bids) (us' : uniq bs') i, 
-    uniq_truthful' us us' i.
-
-End UniqTruthfulness.
-
-Section Truthfulness. (* for arbitrary action types *)
+Section Truthfulness. 
 
 Variable (n : nat) (A : Type).
 
@@ -369,6 +340,8 @@ Notation "'U_ i" := (prefs.U p i) (at level 10).
 Notation "'s_ i" := (prefs.s p i) (at level 10).
 
 Notation bids := (n.-tuple A).
+
+Definition action_on := tnth.
 
 Definition differ_on (bs bs' : bids) i := 
   forall j, j != i -> action_on bs' j = action_on bs j.
@@ -921,16 +894,21 @@ Definition anonymous :=
                                    /\ (forall i, i != i1 /\ i != i2 -> p o i = p o21 i).
 End Auction.
 
-(** Relational mapping between auctions. *)
+End auction.
 
-Section Relational.
+Coercion auction.b : auction.type >-> mech.type.
 
-Variable (n m : nat ).
+Module Partial.
+
+Section Relational. (* Truthfulness for arbitrary action types, but P-constrained bids *)
+
+Variable (n : nat ) (A1 : Type) (A2 : eqType).
+
+Variable (P : n.-tuple A2 -> Prop) .
 
 Notation agent := (agent.type n).
-Notation A := 'I_m.   (* actions are bids *)
 
-Variable (m1 : @mech.type A n) (m2 : @mech.type A n).
+Variable (m1 : @mech.type A1 n) (m2 : @mech.type A2 n).
 
 Notation O1 := (mech.O m1).
 Notation O2 := (mech.O m2).
@@ -941,37 +919,71 @@ Variable p2 : prefs.type m2.
 Notation v1 := (@prefs.v _ n m1 p1).
 Notation v2 := (@prefs.v _ n m2 p2).
 
-(* Auction prices *)
+Notation U1 := (@prefs.U A1 _ m1 p1).
+Notation U2 := (@prefs.U A2 _ m2 p2).
 
-Variable r1 : mech.O m1 -> agent -> option nat.
-Variable r2 : mech.O m2 -> agent -> option nat.
+Definition partial_truthful'
+  (bs : n.-tuple A2) (us : P bs) (bs' : n.-tuple A2) (us' : P bs') i :=
+  differ_on bs bs' i -> action_on bs i = v2 i -> U2 i (m2 bs') <= U2 i (m2 bs).
 
-Definition act1 := new r1.
-Definition act2 := new r2.
+Definition partial_truthful :=
+  forall (bs : n.-tuple A2) (us : P bs) (bs' : n.-tuple A2) (us' : P bs') i,
+    partial_truthful' us us' i.
 
-(* Relational framework *)
+(* Relation between inputs. *)
+
+Variable Ra : agent -> A1 -> A2 -> Prop.
+
+Definition Ri (i1 : n.-tuple A1) (i2 : n.-tuple A2) : Prop :=
+  forall i, Ra i (action_on i1 i) (action_on i2 i).
+
+(* Special case when the input for M1 can be produced from the input for M2. *)
+
+Variable fR : agent -> A2 -> A1.
+
+Definition fRi (bs2 : n.-tuple A2) := [tuple fR i (tnth bs2 i) | i < n].
+
+Hypothesis fRP : forall i a2, Ra i (fR i a2) a2.
+Hypothesis fRvP : forall i, fR i (v2 i) = v1 i.
+
+Lemma fRiP bs2:  Ri (fRi bs2) bs2.
+Proof. by rewrite /fRi /Ri => i; rewrite /action_on !tnth_map !tnth_ord_tuple. Qed.
+
+Lemma fRdP bs2 bs2' i (hd : differ_on bs2 bs2' i) :
+  differ_on (fRi bs2) (fRi bs2') i.
+Proof.
+move=> j /hd ha; rewrite /action_on in ha.
+by rewrite /fRi /action_on !tnth_map !tnth_ord_tuple ha.
+Qed.
+
+Lemma fRviP cs i (ha : action_on cs i = v2 i) : action_on (fRi cs) i = v1 i.
+Proof. by rewrite /action_on /fRi !tnth_map !tnth_ord_tuple in ha *; rewrite ha fRvP. Qed.
+
+(* There are two lemmas to prove to use the relational framework:
+
+   - refinement: M1 M2 send related inputs to related outputs;
+   - compatibility of Ro with utility: if outcomes are related, utilities
+      are related (here, with equality).  *)
 
 Variable Ro : O1 -> O2 -> Prop.
 
-Variable RelFP : forall o1 o2 i, Ro o1 o2 -> @p _ _ act1 o1 i = @p _ _ act2 o2 i.
-Variable RelFvP : forall i, v1 i = v2 i.
+Variable MR : forall bs1 bs2 (u2 : P bs2) (ri : Ri bs1 bs2), Ro (m1 bs1) (m2 bs2).
 
-(* Functional variant *)
+Variable RelFP : forall o1 o2, Ro o1 o2 -> U1^~o1 =1 U2^~o2.
 
-Variable Mo : O2 -> O1.
-
-Hypothesis fRo : forall o2, Ro (Mo o2) o2.
-
-Lemma MP : rational act1 v1 -> rational act2 v2. 
-Proof.
-move=> h1 i o2. 
-rewrite -(@RelFP (Mo o2) o2 i) -?RelFvP; last exact: fRo.
-exact: h1.
+Lemma partial_MP : truthful p1  -> partial_truthful.
+Proof. 
+move=> h1 bs2 u2 bs2' u'2 i hd1 ht1 /=.
+have ho := MR u2 (fRiP bs2).
+have ho' := MR u'2 (fRiP bs2').
+have hu := RelFP ho.
+have hu' := RelFP ho'.
+rewrite -hu -hu'.
+by apply/h1; [apply/fRdP|apply/fRviP].
 Qed.
 
 End Relational.
 
-End auction.
+End Partial.
 
-Coercion auction.b : auction.type >-> mech.type.
 

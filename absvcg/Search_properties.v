@@ -799,19 +799,21 @@ Hypothesis bid_bounded : forall (a1s : A1s) i o, tnth a1s i o <= r.
 
 (* 
 
-  The oStars_singleton hypothesis is obviously false. The proper way to handle this is 
+  The oStars_singleton hypothesis (see below) is obviously false. 
+  The proper way to handle this is 
   to define a new "singleton_truthful" property that is restricted only to a2s tuples 
   that have the singleton property (in a way similar to "uniq_truthful".
 
 *)
 
-Hypothesis oStars_singleton : forall (a2s : A2s), #|VCG.oStars (fRi a2s)| = 1.
+Definition oStars_singleton (a2s : A2s) := #|VCG.oStars (fRi a2s)| = 1.
 
 (* Relations between oStars_singleton to the direct VCG for Search singleton restriction. *)
 
-Lemma Search_oStars_singleton (a2s : A2s) : singleton (max_bidSum_spec a2s).
+Lemma fRi_max_bidSum (a2s : A2s) : 
+  oStars_singleton a2s -> singleton (max_bidSum_spec a2s).
 Proof.
-have oS1 := oStars_singleton a2s.
+move=> oS1.
 move=> o1 o2 {o1 o2} [o1 _ x1] [o2 _ x2].
 pose o1': O1 := (o1, mktuple (fun p => ord0), a2s); 
 pose o2' : O1 := (o2, mktuple (fun p => ord0), a2s).
@@ -834,8 +836,10 @@ move: (eqos o1' o2' (o'S o1' x1) (o'S o2' x2)).
 by case.
 Qed.
 
-Lemma max_bidSum_fRi a2s x (xin : x \in VCG.oStars (fRi a2s)) : max_bidSum_spec a2s x.1.1.
+Lemma max_bidSum_fRi a2s x : VCG.oStars (fRi a2s) = [set x] -> max_bidSum_spec a2s x.1.1.
 Proof.
+move=> oSx.
+move: (set11 x); rewrite -oSx => xin.
 apply: ExtremumSpec=> // o _ /=.
 have bGb : forall (o : O_finType), let: o' := (o, mktuple (fun p => ord0), a2s) in
                               bidSum a2s o = VCG.bidSum (fRi a2s) o'.
@@ -854,48 +858,52 @@ pose o' : O1 := (o, [tuple ord0  | _ < k], a2s).
 by rewrite inE => /andP [_]/forallP /(_ o')/implyP/(_ erefl).
 Qed.
 
-Lemma Search_singleton_truthful : truthful p2.
+Notation partial_truthful := @Partial.partial_truthful.
+Notation partial_MP := @Partial.partial_MP.
+
+Lemma Search_singleton_truthful_rel : @partial_truthful _ _ oStars_singleton _ p2.
 Proof. 
-move=> a2s a2s' i hd2 hv2.  
+move=> a2s g2 a2s' g2' i hd2 hv2.  
 have ho := MR (fRiP a2s).
 have ho' := MR (fRiP a2s').
 rewrite /Ro in ho ho'.
 set g' := G_choice (fRi a2s') (O2_outcome a2s').
 set G' := G_choice (fRi a2s') (m1 g' (fRi a2s')).
-have eqGc' bs o : (m1 (G_choice (fRi bs) o) (fRi bs)).1 = (m1 G' (fRi bs)).1.
-  rewrite /G' /m1/=. 
+have eqGc' bs o : 
+  oStars_singleton bs -> (m1 (G_choice (fRi bs) o) (fRi bs)).1 = (m1 G' (fRi bs)).1.
+  move=> /eq_leq/cards01P eqos.
   pose oS := VCG.oStars (fRi bs); pose oSne0 := VCG.oStars_ne0 o10 (fRi bs).
-  have /eq_leq/cards01P eqos := oStars_singleton bs.
   have o2in : sval (G_choice (fRi bs) o oSne0) \in oS.
     exact: (@proj2_sig _ (fun x => x \in oS)). 
   have g'in : sval (G_choice (fRi a2s') (M1 g' (fRi a2s')) oSne0) \in oS.
     exact: (@proj2_sig _ (fun x => x \in oS)). 
   congr (_, _); first by rewrite /O1_winners (@eqos _ _ o2in g'in).
-  rewrite /O1_prices.
   apply: eq_from_tnth => s.
   rewrite !tnth_map/= /O1_winners/= /m1 (@eqos _ _ o2in g'in). 
   rewrite /VCG.price /VCG.welfare_with_i/= /VCG.bidSum_i.
   congr (inord (_ - _)).
   apply: eq_bigr => j no2.
   by rewrite !tnth_map/= !tnth_ord_tuple /fR !ffunE /VCG.oStar (@eqos _ _ o2in g'in).
-have MR' : ∀ (bs1 : n.-tuple A1) (bs2 : A2s), mech.Ri Ra bs1 bs2 → Ro (m1 G' bs1) (m2 bs2). 
-  move=> bs1 bs2 mri.
+have MR' : ∀ (bs1 : n.-tuple A1) (bs2 : A2s),
+    oStars_singleton bs2 -> mech.Ri Ra bs1 bs2 → Ro (m1 G' bs1) (m2 bs2). 
+  move=> bs1 bs2 g1 mri.
   have := @MR bs1 bs2. 
-  rewrite (Ri_ofRi mri) /Ro eqGc'.
+  rewrite (Ri_ofRi mri) /Ro eqGc'//.
   apply=> //.
   split=> //; last by rewrite o2_in_ofRi2.
   by rewrite /mech.Ri -(Ri_ofRi mri).
 have RelFP' : ∀ (o1 : mech.O (m1 G')) (o2 : mech.O m2),
     Ro o1 o2 → (prefs.U (p1 G'))^~ o1 =1 (prefs.U p2)^~ o2.
   by move=> o1 o2 ro12; apply: RelFP; first by exists (fRi a2s); rewrite size_tuple.
-rewrite (@MP n _ _ _ _ Ra fR (p1 G') p2 fRP fRvP Ro MR' RelFP')//.
+apply: (partial_MP n A1 [eqType of bid] oStars_singleton _ _ (p1 G') p2  
+         Ra fR fRP fRvP Ro MR' RelFP') => //.
 exact: truthful_General_VCG.
 Qed.
 
 End Relational.
 
-Check Search_singleton_truthful.
-Print Assumptions Search_singleton_truthful.
+Check Search_singleton_truthful_rel.
+Print Assumptions Search_singleton_truthful_rel.
 
 
 

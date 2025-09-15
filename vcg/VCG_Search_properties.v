@@ -511,6 +511,8 @@ rewrite /Ro in o12.
 by rewrite !o12.
 Qed.
 
+Notation uniq_truthful := (@Partial.partial_truthful _ _ uniq _).
+
 Lemma MP (uniq_ctrs : uniq S.cs) : truthful p1 -> uniq_truthful p2.
 Proof. 
 move=> h1 a2s u2 a2s' u2' i hd1 ht1.

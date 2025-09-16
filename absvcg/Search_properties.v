@@ -790,25 +790,22 @@ by rewrite /v1 /v2 !ffunE !ro.
 Qed.
 
 (*
-
   All prices are bounded in VCG for Search. This needs to be added to General VCG explicitly.
-
 *)
 
 Hypothesis bid_bounded : forall (a1s : A1s) i o, tnth a1s i o <= r. 
 
 (* 
-
-  The oStars_singleton hypothesis (see below) is obviously false. 
-  The proper way to handle this is 
-  to define a new "singleton_truthful" property that is restricted only to a2s tuples 
-  that have the singleton property (in a way similar to "uniq_truthful".
-
+  We define a new "singleton_truthful" property that is restricted only to a2s tuples 
+  that have the singleton property (in a way similar to "uniq_truthful").
 *)
 
 Definition oStars_singleton (a2s : A2s) := #|VCG.oStars (fRi a2s)| = 1.
 
-(* Relations between oStars_singleton to the direct VCG for Search singleton restriction. *)
+(* 
+   For informations, we relaten oStars_singleton to the direct VCG for Search "singleton" 
+   restriction. 
+*)
 
 Lemma fRi_max_bidSum (a2s : A2s) : 
   oStars_singleton a2s -> singleton (max_bidSum_spec a2s).

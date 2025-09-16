@@ -26,8 +26,7 @@ Definition singleton (T : eqType) (P : T -> Type) := forall (x y : T), P x -> P 
 
 (* A proposer comme lemme dans finset.v *)
 
-Lemma cards01P (T : finType) (A : {set T}) :
-  reflect (forall x y, x \in A -> y \in A -> x = y) (#|A| <= 1).
+Lemma cards01P (T : finType) (A : {set T}) : reflect ({in A &, forall x y, x = y}) (#|A| <= 1).
 Proof.
 apply/introP => [].
 - rewrite leq_eqVlt => /orP [/cards1P [x0 ->] a1 y|]; first by rewrite !inE => /eqP -> /eqP ->.

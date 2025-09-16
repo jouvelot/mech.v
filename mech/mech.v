@@ -916,57 +916,46 @@ Notation O2 := (mech.O m2).
 Variable p1 : prefs.type m1.
 Variable p2 : prefs.type m2.
 
-Notation v1 := (@prefs.v _ n m1 p1).
-Notation v2 := (@prefs.v _ n m2 p2).
-
-Notation U1 := (@prefs.U A1 _ m1 p1).
-Notation U2 := (@prefs.U A2 _ m2 p2).
-
 (* Relation between inputs. *)
 
 Variable Ra : agent -> A1 -> A2 -> Prop.
 
-Definition Ri (i1 : n.-tuple A1) (i2 : n.-tuple A2) : Prop :=
-  forall i, Ra i (action_on i1 i) (action_on i2 i).
+Definition Ri (i1 : n.-tuple A1) (i2 : n.-tuple A2) : Prop := Ri Ra i1 i2.
 
 (* Special case when the input for M1 can be produced from the input for M2. *)
 
 Variable fR : agent -> A2 -> A1.
 
-Definition fRi (bs2 : n.-tuple A2) := [tuple fR i (tnth bs2 i) | i < n].
+Definition fRi (bs2 : n.-tuple A2) := fRi fR bs2. 
 
 Hypothesis fRP : forall i a2, Ra i (fR i a2) a2.
+
+Notation v1 := (@prefs.v _ n m1 p1).
+Notation v2 := (@prefs.v _ n m2 p2).
+
 Hypothesis fRvP : forall i, fR i (v2 i) = v1 i.
 
-Lemma fRiP bs2:  Ri (fRi bs2) bs2.
-Proof. by rewrite /fRi /Ri => i; rewrite /action_on !tnth_map !tnth_ord_tuple. Qed.
+Lemma fRiP bs2 :  Ri (fRi bs2) bs2.
+Proof. by exact: fRiP. Qed.
 
-Lemma fRdP bs2 bs2' i (hd : differ_on bs2 bs2' i) :
-  differ_on (fRi bs2) (fRi bs2') i.
-Proof.
-move=> j /hd ha; rewrite /action_on in ha.
-by rewrite /fRi /action_on !tnth_map !tnth_ord_tuple ha.
-Qed.
+Lemma fRdP bs2 bs2' i (hd : differ_on bs2 bs2' i) : differ_on (fRi bs2) (fRi bs2') i.
+Proof. by exact: fRdP. Qed.
 
 Lemma fRviP cs i (ha : action_on cs i = v2 i) : action_on (fRi cs) i = v1 i.
-Proof. by rewrite /action_on /fRi !tnth_map !tnth_ord_tuple in ha *; rewrite ha fRvP. Qed.
-
-(* There are two lemmas to prove to use the relational framework:
-
-   - refinement: M1 M2 send related inputs to related outputs;
-   - compatibility of Ro with utility: if outcomes are related, utilities
-      are related (here, with equality).  *)
+Proof. by exact: fRviP. Qed.
 
 Variable Ro : O1 -> O2 -> Prop.
 
 Variable MR : forall bs1 bs2 (u2 : P bs2) (ri : Ri bs1 bs2), Ro (m1 bs1) (m2 bs2).
 
+Notation U1 := (@prefs.U A1 _ m1 p1).
+Notation U2 := (@prefs.U A2 _ m2 p2).
+
 Variable RelFP : forall o1 o2, Ro o1 o2 -> U1^~o1 =1 U2^~o2.
 
 Definition pbids := {bs2 : n.-tuple A2 | P bs2}.
 
-Definition partial_truthful' (bs bs' : n.-tuple A2) i :=
-  differ_on bs bs' i -> action_on bs i = v2 i -> U2 i (m2 bs') <= U2 i (m2 bs).
+Definition partial_truthful' (bs bs' : n.-tuple A2) i := truthful' p2 bs bs' i.
 
 Definition partial_truthful := 
   forall (bs bs' : pbids) i, partial_truthful' (sval bs) (sval bs') i.

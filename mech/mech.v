@@ -922,14 +922,6 @@ Notation v2 := (@prefs.v _ n m2 p2).
 Notation U1 := (@prefs.U A1 _ m1 p1).
 Notation U2 := (@prefs.U A2 _ m2 p2).
 
-Definition partial_truthful'
-  (bs : n.-tuple A2) (us : P bs) (bs' : n.-tuple A2) (us' : P bs') i :=
-  differ_on bs bs' i -> action_on bs i = v2 i -> U2 i (m2 bs') <= U2 i (m2 bs).
-
-Definition partial_truthful :=
-  forall (bs : n.-tuple A2) (us : P bs) (bs' : n.-tuple A2) (us' : P bs') i,
-    partial_truthful' us us' i.
-
 (* Relation between inputs. *)
 
 Variable Ra : agent -> A1 -> A2 -> Prop.
@@ -971,9 +963,17 @@ Variable MR : forall bs1 bs2 (u2 : P bs2) (ri : Ri bs1 bs2), Ro (m1 bs1) (m2 bs2
 
 Variable RelFP : forall o1 o2, Ro o1 o2 -> U1^~o1 =1 U2^~o2.
 
+Definition pbids := {bs2 : n.-tuple A2 | P bs2}.
+
+Definition partial_truthful' (bs bs' : n.-tuple A2) i :=
+  differ_on bs bs' i -> action_on bs i = v2 i -> U2 i (m2 bs') <= U2 i (m2 bs).
+
+Definition partial_truthful := 
+  forall (bs bs' : pbids) i, partial_truthful' (sval bs) (sval bs') i.
+
 Lemma partial_MP : truthful p1  -> partial_truthful.
 Proof. 
-move=> h1 bs2 u2 bs2' u'2 i hd1 ht1 /=.
+move=> h1 [bs2 u2] [bs2' u'2] i hd1 ht1 /=.
 have ho := MR u2 (fRiP bs2).
 have ho' := MR u'2 (fRiP bs2').
 have hu := RelFP ho.

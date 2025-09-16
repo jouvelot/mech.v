@@ -515,7 +515,7 @@ Notation uniq_truthful := (@Partial.partial_truthful _ _ uniq _).
 
 Lemma MP (uniq_ctrs : uniq S.cs) : truthful p1 -> uniq_truthful p2.
 Proof. 
-move=> h1 a2s u2 a2s' u2' i hd1 ht1.
+move=> h1 [a2s u2] [a2s' u2'] i hd1 ht1.
 have ho := MR (fRiP u2 uniq_ctrs).
 have ho' := MR (fRiP u2' uniq_ctrs).
 have hu := RelFP ho.

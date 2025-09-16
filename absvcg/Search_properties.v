@@ -892,8 +892,7 @@ have MR' : ∀ (bs1 : n.-tuple A1) (bs2 : A2s),
 have RelFP' : ∀ (o1 : mech.O (m1 G')) (o2 : mech.O m2),
     Ro o1 o2 → (prefs.U (p1 G'))^~ o1 =1 (prefs.U p2)^~ o2.
   by move=> o1 o2 ro12; apply: RelFP; first by exists (fRi a2s); rewrite size_tuple.
-apply: (partial_MP n A1 [eqType of bid] oStars_singleton _ _ (p1 G') p2  
-         Ra fR fRP fRvP Ro MR' RelFP') => //.
+apply: (partial_MP _ _ _ oStars_singleton _ _ (p1 G') p2 _ _ fRP fRvP _ MR' RelFP') => //.
 exact: truthful_General_VCG.
 Qed.
 

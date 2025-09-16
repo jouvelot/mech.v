@@ -898,15 +898,19 @@ End auction.
 
 Coercion auction.b : auction.type >-> mech.type.
 
+(* Truthfulness for arbitrary action types, but partially constrained bids *)
+
 Module Partial.
 
-Section Relational. (* Truthfulness for arbitrary action types, but P-constrained bids *)
+Section Relational. 
+
+(* Import general truthfulness definitions. *)
 
 Variable (n : nat ) (A1 : Type) (A2 : eqType).
 
-Variable (P : n.-tuple A2 -> Prop) .
-
 Notation agent := (agent.type n).
+
+Variable (P : n.-tuple A2 -> Prop) .
 
 Variable (m1 : @mech.type A1 n) (m2 : @mech.type A2 n).
 
@@ -916,13 +920,9 @@ Notation O2 := (mech.O m2).
 Variable p1 : prefs.type m1.
 Variable p2 : prefs.type m2.
 
-(* Relation between inputs. *)
-
 Variable Ra : agent -> A1 -> A2 -> Prop.
 
 Definition Ri (i1 : n.-tuple A1) (i2 : n.-tuple A2) : Prop := Ri Ra i1 i2.
-
-(* Special case when the input for M1 can be produced from the input for M2. *)
 
 Variable fR : agent -> A2 -> A1.
 
@@ -946,6 +946,8 @@ Proof. by exact: fRviP. Qed.
 
 Variable Ro : O1 -> O2 -> Prop.
 
+(* Introduce bid constraint, P. *)
+
 Variable MR : forall bs1 bs2 (u2 : P bs2) (ri : Ri bs1 bs2), Ro (m1 bs1) (m2 bs2).
 
 Notation U1 := (@prefs.U A1 _ m1 p1).
@@ -955,14 +957,10 @@ Variable RelFP : forall o1 o2, Ro o1 o2 -> U1^~o1 =1 U2^~o2.
 
 Definition pbids := {bs2 : n.-tuple A2 | P bs2}.
 
-Definition partial_truthful' (bs bs' : n.-tuple A2) i := truthful' p2 bs bs' i.
-
-Definition partial_truthful := 
-  forall (bs bs' : pbids) i, partial_truthful' (sval bs) (sval bs') i.
+Definition partial_truthful := forall (bs bs' : pbids) i, truthful' p2 (sval bs) (sval bs') i.
 
 Lemma partial_MP : truthful p1  -> partial_truthful.
-Proof. 
-move=> h1 [bs2 u2] [bs2' u'2] i hd1 ht1 /=.
+Proof. move=> h1 [bs2 u2] [bs2' u'2] i/= hd1 ht1.
 have ho := MR u2 (fRiP bs2).
 have ho' := MR u'2 (fRiP bs2').
 have hu := RelFP ho.

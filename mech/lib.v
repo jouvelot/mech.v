@@ -24,19 +24,33 @@ Section Misc.
 
 Definition singleton (T : eqType) (P : T -> Type) := forall (x y : T), P x -> P y -> x = y. 
 
-(* A proposer comme lemme dans finset.v *)
-
 Lemma cards01P (T : finType) (A : {set T}) : reflect ({in A &, forall x y, x = y}) (#|A| <= 1).
 Proof.
-apply/introP => [].
-- rewrite leq_eqVlt => /orP [/cards1P [x0 ->] a1 y|]; first by rewrite !inE => /eqP -> /eqP ->.
-  by rewrite ltnS leqn0 cards_eq0 => /eqP -> x y /=; rewrite inE.
-- apply: contraNnot. 
-  move: (set_0Vmem A) => [->|[x xin]]; first by rewrite cards0.
-  move: (set_0Vmem (A :\ x)) => [|[y /setD1P [yx yin] /(_ x y xin yin) /eqP xy]];
-    last by rewrite eq_sym xy in yx.                               
-  by rewrite -[in _ <= _](setD1K xin) => ->; rewrite cardsU1 cards0 in_set0.
+apply/introP => [/card_le1_eqP aeq x y xa /aeq /(_ xa)//|].
+by apply: contraNnot => aeq; apply/card_le1_eqP => x y xa /aeq /(_ xa).
 Qed.
+
+Lemma setxU: forall {T : finType} (A B : {set T}), maxn #|A| #|B| <= #|A :|: B|.
+Proof.
+move=> T A B.
+rewrite cardsU.
+wlog: A B / #|A| <= #|B| => H.
+  by move: (leq_total #|A| #|B|) => /orP [/H//|/H]; rewrite maxnC addnC setIC.
+by rewrite (@leq_trans #|B|) ?geq_max ?H//= addnC -addnBA ?leq_addr ?subset_leq_card ?subsetIl.
+Qed.
+
+Lemma setnI: forall {T : finType} (A B : {set T}), #|A :&: B| <= minn #|A| #|B|. 
+Proof.
+move=> T A B.
+rewrite cardsI.
+wlog: A B / #|A| <= #|B| => H.
+  move: (leq_total #|A| #|B|) => /orP [/H//|/H]; last by rewrite minnC addnC setUC.
+rewrite (@leq_trans #|A|)//; last by rewrite leq_min H andbT.
+by rewrite leq_subLR [leqRHS]addnC leq_add2l (leq_trans _ (setxU A B))// leq_max leqnn orbT.
+Qed.
+
+Lemma setxD: forall {T : finType} (A B : {set T}), #|A :\: B| <= #|A|.
+Proof. by move=> T A B; rewrite cardsD leq_subr. Qed.
 
 End Misc.
 

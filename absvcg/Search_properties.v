@@ -800,15 +800,89 @@ Hypothesis bid_bounded : forall (a1s : A1s) i o, tnth a1s i o <= r.
   that have the singleton property (in a way similar to "uniq_truthful").
 *)
 
-Definition oStars_singleton (a2s : A2s) := #|VCG.oStars (fRi a2s)| = 1.
+Section SingletonOStars.
+
+Variable a2s : A2s.
+
+Definition oStars_singleton := #|VCG.oStars (fRi a2s)| = 1.
+
+(* The oStars_singleton property translates to the arg_maxs of the Search welfares. *)
+
+Lemma arg_maxs_bidSum_singleton : oStars_singleton -> #|arg_maxs predT (S.welfare a2s)| = 1.
+Proof.
+move=> oS.
+rewrite -oS.  
+have -> : S.welfare a2s = S.bidSum a2s.
+  apply: Logic.FunctionalExtensionality.functional_extensionality => o.
+  by rewrite S.bidSum_slot.
+pose ao := VCG.arg_OStar o0 (fRi a2s).
+set Sx := arg_maxs predT (S.bidSum a2s).
+set Vx := VCG.oStars (fRi a2s).
+have Vxo : Vx = [set sval ao].  
+  have: sval ao \in Vx by rewrite VCG.arg_OStar_in.
+  rewrite -sub1set => /eqVproper [-> //|].
+  by rewrite properEcard cards1 oS/= andbF.
+pose oo o : O1 := (o, mktuple (fun p => ord0), a2s).
+have SV11 : forall o1 : O1, S.bidSum a2s o1.1.1 = VCG.bidSum (fRi a2s) o1.
+    move=> o1'.
+    apply: eq_bigr => j _.
+    rewrite !tnth_map !tnth_ord_tuple /S.biddings/S.bidding/S.t_bidding/=/S.bid_in.
+    rewrite /fR !ffunE//=.
+    by case: ifP => [//|/slot_not_in ->]; last by rewrite S.last_ctr_eq0/= muln0. 
+have SV : forall o, S.bidSum a2s o = VCG.bidSum (fRi a2s) (oo o).
+  by move=> o; have -> : o = (oo o).1.1 by []; exact: SV11.
+have wino (o : S.O) : o \in Sx -> o \in (fst \o fst) @: Vx.
+  rewrite inE => /andP [_ oxw].
+  have -> : o = (fst \o fst) (oo o) by [].
+  rewrite imset_f// inE andTb.
+  apply/forallP => o1; rewrite implyTb.
+  move: oxw => /forallP/(_ o1.1.1)/=.
+  by rewrite SV11 SV.
+pose oao := fst (fst (sval ao)).
+have /setD1K <-:  oao \in Sx.
+  have := (@VCG.arg_OStar_in _ _ (fRi a2s)) => /(_ o0). 
+  rewrite /VCG.oStars !inE !andTb => /forallP Vle.
+  apply/forallP => o; apply/implyP => _.
+  move: (Vle (oo o)) => /implyP/(_ erefl).
+  by rewrite SV SV11.
+rewrite cardsU !cards1.  
+have [/existsP [oao' /andP [noo']]|] := 
+  boolP ([exists oao', (oao' != oao) && (oao' \in Sx :\ oao)]).
+- rewrite in_setD1 noo' andTb => /wino oao'V. 
+  move: (oao'V) => /imsetP [o oin /= oao'o].
+  have [ao' [ao'in ao'ao]] : exists ao', ao' \in Vx /\ ao'.1.1 != oao. 
+    by exists o; rewrite oin -oao'o noo'.
+  move: (oS) oao'V; rewrite /oStars_singleton -/Vx => /esym /eqP. 
+  have -> : Vx = Vx :|: [set sval ao; ao']. 
+    apply/eqP; rewrite eqEsubset subsetUl subUset subxx !andTb.
+    apply/subsetP => x.      
+    rewrite in_set2 => /orP [/eqP ->|/eqP ->//].
+    exact: VCG.arg_OStar_in.
+  have /ltn_eqF -> // : 1 < #|Vx :|: [set sval ao; ao']|.
+    move: (setxU Vx [set VCG.arg_OStar_o o0 (fRi a2s); ao']).
+    rewrite cards2. 
+    have -> /= : (VCG.arg_OStar_o o0 (fRi a2s) != ao'). 
+      move: (ao'ao).
+      apply: contra_neq.
+      rewrite (surjective_pairing ao') (surjective_pairing (VCG.arg_OStar_o o0 (fRi a2s)))/=.
+      rewrite (surjective_pairing ao'.1) (surjective_pairing (VCG.arg_OStar_o o0 (fRi a2s)).1).
+      by move=> [] <- /=.
+    exact: (leq_trans (leq_maxr #|Vx| 2)).
+- rewrite negb_exists => u.
+  have -> /=: Sx :\ oao = set0.
+    move: u; apply: contraTeq => /set0Pn [x xin].
+    rewrite negb_forall; apply/existsP; exists x.
+    rewrite negbK xin andbT.
+    by move: xin => /setD1P [].
+  by rewrite setI0 !cards0 addn0 subn0 oS.
+Qed.
 
 (* 
-   For informations, we relaten oStars_singleton to the direct VCG for Search "singleton" 
+   For informations, we relate oStars_singleton to the direct VCG for Search "singleton" 
    restriction. 
 *)
 
-Lemma fRi_max_bidSum (a2s : A2s) : 
-  oStars_singleton a2s -> singleton (max_bidSum_spec a2s).
+Lemma fRi_max_bidSum : oStars_singleton -> singleton (max_bidSum_spec a2s).
 Proof.
 move=> oS1.
 move=> o1 o2 {o1 o2} [o1 _ x1] [o2 _ x2].
@@ -833,7 +907,7 @@ move: (eqos o1' o2' (o'S o1' x1) (o'S o2' x2)).
 by case.
 Qed.
 
-Lemma max_bidSum_fRi a2s x : VCG.oStars (fRi a2s) = [set x] -> max_bidSum_spec a2s x.1.1.
+Lemma max_bidSum_fRi x : VCG.oStars (fRi a2s) = [set x] -> max_bidSum_spec a2s x.1.1.
 Proof.
 move=> oSx.
 move: (set11 x); rewrite -oSx => xin.
@@ -854,6 +928,8 @@ move: xin.
 pose o' : O1 := (o, [tuple ord0  | _ < k], a2s).
 by rewrite inE => /andP [_]/forallP /(_ o')/implyP/(_ erefl).
 Qed.
+
+End SingletonOStars.
 
 Notation partial_truthful := @Partial.partial_truthful.
 Notation partial_MP := @Partial.partial_MP.

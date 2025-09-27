@@ -800,6 +800,9 @@ Hypothesis bid_bounded : forall (a1s : A1s) i o, tnth a1s i o <= r.
 (* 
   We define a new "singleton_truthful" property that is restricted only to a2s tuples 
   that have the singleton property (in a way similar to "uniq_truthful").
+
+  We seem to need this since it's difficult to relate the (specific) omega* currently defined 
+  in Search to the (possibly many) omegas* available via General. 
 *)
 
 Section SingletonOStars.
@@ -810,9 +813,9 @@ Definition oStars_singleton := #|VCG.oStars (fRi a2s)| = 1.
 
 (* The oStars_singleton property translates to the arg_maxs of the Search welfares. *)
 
-Lemma fRi_bidSum : forall o1 : O1, S.bidSum a2s o1.1.1 = VCG.bidSum (fRi a2s) o1.
+Lemma fRi_bidSum (o1 : O1) : S.bidSum a2s o1.1.1 = VCG.bidSum (fRi a2s) o1.
 Proof.
-move=> o1'; apply: eq_bigr => j _.
+apply: eq_bigr => j _.
 rewrite !tnth_map !tnth_ord_tuple /S.biddings/S.bidding/S.t_bidding/=/S.bid_in.
 rewrite /fR !ffunE//=.
 by case: ifP => [//|/slot_not_in ->]; last by rewrite S.last_ctr_eq0/= muln0. 
@@ -821,7 +824,6 @@ Qed.
 Lemma arg_maxs_bidSum_singleton : oStars_singleton -> #|arg_maxs predT (S.welfare a2s)| = 1.
 Proof.
 move=> oS.
-rewrite -oS.  
 have -> : S.welfare a2s = S.bidSum a2s.
   apply: Logic.FunctionalExtensionality.functional_extensionality => o.
   by rewrite S.bidSum_slot.
@@ -876,7 +878,7 @@ have [/existsP [oao' /andP [noo']]|] :=
     rewrite negb_forall; apply/existsP; exists x.
     rewrite negbK xin andbT.
     by move: xin => /setD1P [].
-  by rewrite setI0 !cards0 addn0 subn0 oS.
+  by rewrite setI0 !cards0 addn0 subn0.
 Qed.
 
 (* 
@@ -886,8 +888,7 @@ Qed.
 
 Lemma fRi_max_bidSum : oStars_singleton -> singleton (max_bidSum_spec a2s).
 Proof.
-move=> oS1.
-move=> o1 o2 {o1 o2} [o1 _ x1] [o2 _ x2].
+move=> oS1 o1 o2 {o1 o2} [o1 _ x1] [o2 _ x2].
 have o'S (o' : O) : 
   (∀ j : S.O, predT j -> geq (bidSum a2s o'.1.1) (bidSum a2s j)) -> o' \in VCG.oStars (fRi a2s).
   move=> x'.

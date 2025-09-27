@@ -447,7 +447,9 @@ Definition a2s0 : A2s := mktuple (fun b => S.bid0).
 
 Definition O := [finType of (S.O * k.-tuple P * A2s)].
 
-Definition o0 : O := ((S.o0, mktuple (fun p => ord0)), mktuple (fun b => bid0)).
+Definition o2o (o : S.O) : O := ((o, mktuple (fun p => ord0)), mktuple (fun b => bid0)).
+
+Definition o0 : O := o2o o0.
 
 (* Mech2 = VCG for Search. *)
 
@@ -830,12 +832,11 @@ have Vxo : Vx = [set sval ao].
   have: sval ao \in Vx by rewrite VCG.arg_OStar_in.
   rewrite -sub1set => /eqVproper [-> //|].
   by rewrite properEcard cards1 oS/= andbF.
-pose oo o : O1 := (o, mktuple (fun p => ord0), a2s).
-have SV : forall o, S.bidSum a2s o = VCG.bidSum (fRi a2s) (oo o).
-  by move=> o; have -> : o = (oo o).1.1 by []; exact: fRi_bidSum.
+have SV : forall o, S.bidSum a2s o = VCG.bidSum (fRi a2s) (o2o o).
+  by move=> o; have -> : o = (o2o o).1.1 by []; exact: fRi_bidSum.
 have wino (o : S.O) : o \in Sx -> o \in (fst \o fst) @: Vx.
   rewrite inE => /andP [_ oxw].
-  have -> : o = (fst \o fst) (oo o) by [].
+  have -> : o = (fst \o fst) (o2o o) by [].
   rewrite imset_f// inE andTb.
   apply/forallP => o1; rewrite implyTb.
   move: oxw => /forallP/(_ o1.1.1)/=.
@@ -845,7 +846,7 @@ have /setD1K <-:  oao \in Sx.
   have := (@VCG.arg_OStar_in _ _ (fRi a2s)) => /(_ o0). 
   rewrite !inE !andTb => /forallP Vle.
   apply/forallP => o; apply/implyP => _.
-  move: (Vle (oo o)) => /implyP/(_ erefl).
+  move: (Vle (o2o o)) => /implyP/(_ erefl).
   by rewrite fRi_bidSum SV.
 rewrite cardsU !cards1.  
 have [/existsP [oao' /andP [noo']]|] := 
@@ -887,20 +888,17 @@ Lemma fRi_max_bidSum : oStars_singleton -> singleton (max_bidSum_spec a2s).
 Proof.
 move=> oS1.
 move=> o1 o2 {o1 o2} [o1 _ x1] [o2 _ x2].
-pose o1': O1 := (o1, mktuple (fun p => ord0), a2s); 
-pose o2' : O1 := (o2, mktuple (fun p => ord0), a2s). 
-have bGb : forall (o' : O), bidSum a2s o'.1.1 = VCG.bidSum (fRi a2s) o' by exact: fRi_bidSum.
 have o'S (o' : O) : 
   (∀ j : S.O, predT j -> geq (bidSum a2s o'.1.1) (bidSum a2s j)) -> o' \in VCG.oStars (fRi a2s).
   move=> x'.
   rewrite inE andTb.
   apply/forallP => o.
   apply/implyP => _.
-  rewrite -!bGb. 
+  rewrite -!fRi_bidSum. 
   exact: x'.
 have eqos (x y : O1) (xin : x \in VCG.oStars (fRi a2s)) (yin : y \in VCG.oStars (fRi a2s)) : 
   x = y by have /eq_leq/cards01P/(_ x y) := oS1; apply.
-move: (eqos o1' o2' (o'S o1' x1) (o'S o2' x2)).
+move: (eqos (o2o o1) (o2o o2) (o'S (o2o o1) x1) (o'S (o2o o2) x2)).
 by case.
 Qed.
 
@@ -909,12 +907,11 @@ Proof.
 move=> oSx.
 move: (set11 o1); rewrite -oSx => xin.
 apply: ExtremumSpec=> // o _ /=.
-pose oo o : O1 := (o, mktuple (fun p => ord0), a2s). 
-have -> : forall (o : O_finType), bidSum a2s o = VCG.bidSum (fRi a2s) (oo o)
-  by move=> o'; exact: (fRi_bidSum (o', mktuple (fun p => ord0), a2s)).
+have -> : forall (o : O_finType), bidSum a2s o = VCG.bidSum (fRi a2s) (o2o o)
+  by move=> o'; exact: (fRi_bidSum (o2o o')).
 rewrite fRi_bidSum.
 move: xin.
-by rewrite inE => /andP [_]/forallP /(_ (oo o))/implyP/(_ erefl).
+by rewrite inE => /andP [_]/forallP /(_ (o2o o))/implyP/(_ erefl).
 Qed.
 
 End SingletonOStars.

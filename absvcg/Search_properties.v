@@ -142,7 +142,7 @@ Section EqualSwap.
 
 Variable bs0 : bids.
 
-Variable a1 a2 : A. (* i1 et i2 *)
+Variable a1 a2 : A. (* i1 and i2 *)
 
 Variable uniq_ctrs : uniq S.cs.
 

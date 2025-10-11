@@ -136,7 +136,7 @@ End Rationality.
 Check VCG_for_Search_rational.
 Print Assumptions VCG_for_Search_rational.
 
-(* Analysis of impact of swaps of equal bids on utility. *)
+(* Analysis of impact of swaps of equal bidders on utility. *)
 
 Section EqualSwap.
 
@@ -221,23 +221,25 @@ Proof. by move=> a1wins; rewrite !wonE -/i ?inordK// ?idxaK// 1?(ltn_trans a1win
 Lemma a2winsj : j < S.k' -> slot_won bs j = slot_won bs0 a2.
 Proof. by move=> a2wins; rewrite !wonE -/j ?inordK// ?idxaK// 1?(ltn_trans a2wins). Qed.
 
+Notation c1 := ('ctr_ (slot_won bs0 a1)).
+Notation c2 := ('ctr_ (slot_won bs0 a2)).
+
 Lemma eq_price_bid_a1 (a1wins : is_winner bs0 a1) (a2loses : S.k' <= j):
-  price bs0 a1 = tnth bs0 a1 * 'ctr_(slot_won bs0 a1).
+  price bs0 a1 = tnth bs0 a1 * c1.
 Proof.
-rewrite /price ifT // /externality -/i.
-rewrite slot_as_agentK => [|s lis]; last by rewrite ltnW// andTb (@leq_trans S.k')// ?leq_ord//.
+rewrite /price ifT// /externality -/i.
+rewrite slot_as_agentK => [|s lis]; last by rewrite ltnW// andTb (@leq_trans S.k')// ?leq_ord.
 rewrite labelling.labelling_spec_idxa.
-apply/eqP; rewrite eqn_mul2l; apply/orP; right.
+apply/eqP; rewrite eqn_mul2l; apply/orP; right. 
 under eq_bigl=> i0.
   have -> : (i < i0) = (slot_won bs i < i0 <= last_slot).
-    by rewrite leq_ord andbT wonE idxaK // inordK // (ltn_trans a1wins).
-  over.
-  rewrite sum_diffs //=; last by rewrite idxaK // /minn ifT.
-  by rewrite S.last_ctr_eq0 subn0 a1winsi// subnn.
+    by rewrite leq_ord andbT wonE idxaK// inordK// (ltn_trans a1wins).
+over.
+rewrite sum_diffs //=; last by rewrite idxaK // /minn ifT.
+by rewrite S.last_ctr_eq0 subn0 a1winsi// subnn.
 Qed.
 
-Lemma Uterm : U a1 (tnth bs0 a1 * 'ctr_ (slot_won bs0 a1)) =
-                U a2 (tnth bs0 a2 * 'ctr_ (slot_won bs0 a2)).
+Lemma Uterm : U a1 (tnth bs0 a1 * c1) = U a2 (tnth bs0 a2 * c2).
 Proof.
 rewrite -eq_bid0/U/is_winner -/i -/j.
 have [] := boolP (is_winner bs0 a1); rewrite a_winner -/i => a1wins.
@@ -247,21 +249,18 @@ have [] := boolP (is_winner bs0 a1); rewrite a_winner -/i => a1wins.
     rewrite addnC subnDAC.
     under eq_bigl=> i0.
       have -> : (i < i0 <= j) = (slot_won bs i < i0 <= slot_won bs j).
-        by rewrite !wonE !idxaK ?inordK// 1?(ltn_trans a1wins) // 1?(ltn_trans a2wins).
+        by rewrite !wonE !idxaK ?inordK// 1?(ltn_trans a1wins)// 1?(ltn_trans a2wins).
     over.
-    rewrite sum_diffs //=; last by rewrite !idxaK// /minn !ifT.
-    rewrite mulnBr subnA //; last first.
-    - rewrite labelling.labelling_spec_idxa
-      leq_mul2l; apply/orP; right; apply: S.sorted_ctrs.
-      by rewrite a1winsi.
+    rewrite sum_diffs//=; last by rewrite !idxaK// /minn !ifT.
+    rewrite mulnBr subnA//; last first.
+    - by rewrite labelling.labelling_spec_idxa leq_mul2l S.sorted_ctrs ?orbT// a1winsi.
     - rewrite leq_mul2l//; apply/orP; right. 
       rewrite !wonE// !idxaK//; apply: S.sorted_ctrs.
       by rewrite !inordK 1?(ltnW ij)// ?(ltn_trans jwins (ltnSn S.k'))// 1?(@ltn_trans S.k').
     - rewrite a2wins labelling.labelling_spec_idxa.
-      by rewrite a1winsi // subnn add0n /price /is_winner -/j a2wins a2winsj.
+      by rewrite a1winsi// subnn add0n /price /is_winner -/j a2wins a2winsj.
   - move: (eq_price_bid_a1 a1wins a2wins). 
-    rewrite /price ifT// ltnNge a2wins//= => ->.
-    by rewrite subnn.
+    by rewrite /price ifT// ltnNge a2wins//= => ->; rewrite subnn.
 - rewrite -(negbK (i < S.k')) a1wins//= ifF//.
   apply: negbTE; rewrite -leqNgt leq_eqVlt;  apply/orP; right. 
   by rewrite (leq_ltn_trans _ ij)// leqNgt.
@@ -278,13 +277,10 @@ Proof. by rewrite/utility/utility_swap vb -{1}eq_bid0 tpermR; exact: Uterm. Qed.
 Lemma truthful_utility_swap_invariant a :
   true_click_value a = tnth bs0 a -> utility a = utility_swap a.
 Proof.
-have [/eqP|] := boolP (a1 == a) => ifa1; first by rewrite -ifa1; apply utility_swap_invariant_a1.
+have [/eqP|] := boolP (a1 == a) => ifa1; first by rewrite -ifa1; exact: utility_swap_invariant_a1.
 have [/eqP|] := boolP (a2 == a) => ifa2; last by rewrite stableUtility_notijf.
 by rewrite -ifa2 => ta2; rewrite utility_swap_invariant_a2.  
 Qed.
-
-Lemma bs0_labelling_spec_idxa a : tnth bs0 a = tnth bs (idxa bs0 a).
-Proof. by rewrite labelling.labelling_spec_idxa. Qed.
 
 Lemma positive_ctrs (s : slot) : s < last_slot -> 0 < 'ctr_ s. 
 Proof.
@@ -299,10 +295,10 @@ Qed.
 
 Lemma leq_price_bid a : price bs0 a <= tnth bs0 a * 'ctr_ (slot_won bs0 a).
 Proof.
-rewrite/price.
+rewrite /price.
 have [] := boolP (is_winner bs0 a); [|rewrite a_winner; rewrite -leqNgt]=> awins//.
 move: (leq_price_bidding awins).
-by rewrite /price ifT// bs0_labelling_spec_idxa.
+by rewrite /price ifT// labelling.labelling_spec_idxa. 
 Qed.
 
 Lemma underbid_utility_swap_inferior_a1 (underbida1: tnth bs0 a1 < true_click_value a1) :
@@ -312,30 +308,26 @@ rewrite /utility/utility_swap tpermL/U.
 have [] := boolP (is_winner bs0 a1); rewrite a_winner -/i; [|rewrite -leqNgt] => a1wins.
 - have [|//] := boolP (is_winner bs0 a2). 
   rewrite a_winner -/j => a2wins.  
-  (* LHS *)
-  rewrite -(@subn0 (true_click_value a1 * 'ctr_ (slot_won bs0 a2))).
-  rewrite -(@subnn (tnth bs0 a2 * 'ctr_ (slot_won bs0 a2))).
+  rewrite -(@subn0 (true_click_value a1 * c2)) -(@subnn (tnth bs0 a2 * c2)). 
   rewrite subnA //; last first.
-    rewrite leq_pmul2r; first by rewrite -eq_bid0; apply: ltnW.
+  - rewrite leq_pmul2r; first by rewrite -eq_bid0; apply: ltnW.
     apply: positive_ctrs.
     by rewrite wonE -/j ?inordK //; apply: (ltn_trans a2wins); rewrite ltnSn.
-  (* RHS *)
-  rewrite -(@subn0 (true_click_value a1 * 'ctr_ (slot_won bs0 a1))).
-  rewrite -(@subnn (tnth bs0 a1 * 'ctr_ (slot_won bs0 a1))).
-  rewrite subnA //; last first.
-    rewrite leq_pmul2r; first exact: ltnW.
-    apply: positive_ctrs.
-    by rewrite wonE -/i ?inordK //; apply: (ltn_trans a1wins); rewrite ltnSn.
-  rewrite -!mulnBl -addnBA; last by apply: leq_price_bid.
-  rewrite -addnBA; last by apply: leq_price_bid.
-  apply: leq_add.
-  - rewrite -eq_bid0 leq_mul2l; apply/orP; right.
-    apply: ac.
-    by rewrite !wonE // -/i-/j !inordK ltnW.
-  - rewrite leq_eqVlt; apply/orP; left.
-    move/eqP: Uterm.
-    by rewrite {1}eq_sym/U !ifT.
-- rewrite ifF // a_winner -/j.
+  - rewrite -(@subn0 (true_click_value a1 * c1)) -(@subnn (tnth bs0 a1 * c1)).
+    rewrite subnA//; last first.
+    - rewrite leq_pmul2r; first exact: ltnW.
+      apply: positive_ctrs.
+      by rewrite wonE -/i ?inordK//; apply: (ltn_trans a1wins); rewrite ltnSn.
+    - rewrite -!mulnBl -addnBA; last by apply: leq_price_bid.
+      rewrite -addnBA; last by apply: leq_price_bid.
+      apply: leq_add.
+      - rewrite -eq_bid0 leq_mul2l; apply/orP; right.
+        apply: ac.
+        by rewrite !wonE// -/i-/j !inordK ltnW.
+      - rewrite leq_eqVlt; apply/orP; left.
+        move/eqP: Uterm.
+        by rewrite {1}eq_sym/U !ifT.
+- rewrite ifF// a_winner -/j.
   apply: negbTE; rewrite -leqNgt.
   by apply: (leq_trans a1wins); apply: ltnW.
 Qed.
@@ -343,32 +335,31 @@ Qed.
 Lemma overbid_utility_swap_superior_a1 (overbida1: true_click_value a1 < tnth bs0 a1) :
   utility a1 <= utility_swap a1.
 Proof.
-rewrite/utility/utility_swap tpermL /U.
-have [] := boolP (is_winner bs0 a1); rewrite a_winner -/i; [|rewrite -leqNgt //] => a1wins.
-set c1 := 'ctr_ (slot_won bs0 a1); set c2 := 'ctr_ (slot_won bs0 a2).
+rewrite /utility/utility_swap tpermL /U.
+have [] := boolP (is_winner bs0 a1); rewrite a_winner -/i; [|rewrite -leqNgt//] => a1wins.
 have overbida1_imp : true_click_value a1 * c1 <= tnth bs0 a1 * c1.
-  by rewrite leq_pmul2r ?(ltnW overbida1) // ?positive_ctrs//
-       wonE -/i -/j ?inordK // (ltn_trans a1wins)// ltnSn.
+  by rewrite leq_pmul2r ?(ltnW overbida1)// ?positive_ctrs//
+       wonE -/i -/j ?inordK// (ltn_trans a1wins)// ltnSn.
 have [] := boolP (is_winner bs0 a2); rewrite a_winner -/j; [|rewrite -leqNgt] => a2wins. 
 - all: rewrite -(@subn0 (true_click_value a1 * c1)) -(@subnn (tnth bs0 a1 * c1)).
   rewrite -(@subn0 (true_click_value a1 * c2)) -(@subnn (tnth bs0 a2 * c2)).
-  all: rewrite !subnCBA // subnAC.
+  all: rewrite !subnCBA// subnAC.
   rewrite (@subnAC _ (tnth bs0 a2 * c2) (price bs0 a2)).
   all: rewrite addnC.
   rewrite (@addnC (tnth bs0 a2 * c2)).
   all: rewrite -addnBA; last by apply: leq_price_bid.
   rewrite -(@addnBA (true_click_value a1 * c2) _ _); last by apply: leq_price_bid.
-  all: rewrite subDnCAC ?overbida1_imp //.
+  all: rewrite subDnCAC ?overbida1_imp//.
   rewrite subDnCAC; 
-    [|by rewrite -eq_bid0; rewrite leq_pmul2r ?(ltnW overbida1) //;
+    [|by rewrite -eq_bid0; rewrite leq_pmul2r ?(ltnW overbida1)//;
      apply: positive_ctrs;
-     rewrite wonE -/i -/j ?inordK //; apply: (ltn_trans a2wins); rewrite ltnSn].
+     rewrite wonE -/i -/j ?inordK//; apply: (ltn_trans a2wins); rewrite ltnSn].
   apply: leq_sub; 
-    last by rewrite -eq_bid0 -!mulnBl leq_pmul2l ?subn_gt0// ac// !wonE // -/i-/j !inordK ltnW.
+    last by rewrite -eq_bid0 -!mulnBl leq_pmul2l ?subn_gt0// ac// !wonE// -/i-/j !inordK ltnW.
   rewrite leq_eqVlt; apply/orP; left.
   move/eqP: Uterm.
-  by rewrite /U !ifT //.
-- by rewrite subBnAC leq_sub// -addnABC ?eq_price_bid_a1 ?overbida1_imp // leq_addr.
+  by rewrite /U !ifT.
+- by rewrite subBnAC leq_sub// -addnABC ?eq_price_bid_a1 ?overbida1_imp// leq_addr.
 Qed.
 
 End EqualSwap. 

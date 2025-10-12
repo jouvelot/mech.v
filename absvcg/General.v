@@ -2,7 +2,7 @@
 
   General.v
 
-  A formalization project for the Vickrey‑Clarke‑Groves auction mechanism, 
+  A formalization project for the Abstract Vickrey‑Clarke‑Groves auction mechanism, 
   targeting:
 
   - a specification of the "General VCG" algorithm (here, an abstract version that manages

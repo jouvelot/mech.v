@@ -2,7 +2,7 @@
 
   Search_as_General_VCG.v
 
-  A formalization project for the Vickrey‑Clarke‑Groves auctions, targeting:
+  A formalization project for the Abstract Vickrey‑Clarke‑Groves auctions, targeting:
 
   - a specification of the "VCG for Search" auction variant (we assume that the bidders'
     weights are all equal to 1).

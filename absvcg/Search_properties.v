@@ -1,18 +1,17 @@
 (**
 
-  VCG_Search_Properties.v
+  Search_Properties.v
 
-  A formalization project for the Vickrey‑Clarke‑Groves auction.
+  A formalization project for the Abstract Vickrey‑Clarke‑Groves auction.
 
   Properties of the VCG for Search auction variant:
 
   - no positive transfer;
   - rationality;
-  - truthfulness (for uniq bids and specified optimal outcomes);
-  - SP as a special case of VCG for Search;
-  - surplus as maximum welfare.
+  - utility equality in the presence of equal bids;
+  - truthfulness (for specified optimal outcomes);
 
-  See Tim Roughtgarden lecture notes for more details.
+  See Tim Roughgarden lecture notes for more details.
   (http://timroughgarden.org/f16/l/l15.pdf)
 
   Authors: Pierre Jouvelot(+), Lucas Sguerra(+), Emilio Gallego Arias(++), Zhan Jing (+, +++)
@@ -239,7 +238,7 @@ rewrite sum_diffs //=; last by rewrite idxaK // /minn ifT.
 by rewrite S.last_ctr_eq0 subn0 a1winsi// subnn.
 Qed.
 
-Lemma Uterm : U a1 (tnth bs0 a1 * c1) = U a2 (tnth bs0 a2 * c2).
+Lemma eq_U : U a1 (tnth bs0 a1 * c1) = U a2 (tnth bs0 a2 * c2).
 Proof.
 rewrite -eq_bid0/U/is_winner -/i -/j.
 have [] := boolP (is_winner bs0 a1); rewrite a_winner -/i => a1wins.
@@ -268,11 +267,11 @@ Qed.
 
 Lemma utility_swap_invariant_a1 (vb : true_click_value a1 = tnth bs0 a1) :
   utility a1 = utility_swap a1.
-Proof. by rewrite/utility/utility_swap vb {2}eq_bid0 tpermL; exact: Uterm. Qed.
+Proof. by rewrite/utility/utility_swap vb {2}eq_bid0 tpermL; exact: eq_U. Qed.
 
 Lemma utility_swap_invariant_a2 (vb : true_click_value a2 = tnth bs0 a2) :
   utility_swap a2 = utility a2.
-Proof. by rewrite/utility/utility_swap vb -{1}eq_bid0 tpermR; exact: Uterm. Qed.
+Proof. by rewrite/utility/utility_swap vb -{1}eq_bid0 tpermR; exact: eq_U. Qed.
 
 Lemma truthful_utility_swap_invariant a :
   true_click_value a = tnth bs0 a -> utility a = utility_swap a.
@@ -325,7 +324,7 @@ have [] := boolP (is_winner bs0 a1); rewrite a_winner -/i; [|rewrite -leqNgt] =>
         apply: ac.
         by rewrite !wonE// -/i-/j !inordK ltnW.
       - rewrite leq_eqVlt; apply/orP; left.
-        move/eqP: Uterm.
+        move/eqP: eq_U.
         by rewrite {1}eq_sym/U !ifT.
 - rewrite ifF// a_winner -/j.
   apply: negbTE; rewrite -leqNgt.
@@ -357,7 +356,7 @@ have [] := boolP (is_winner bs0 a2); rewrite a_winner -/j; [|rewrite -leqNgt] =>
   apply: leq_sub; 
     last by rewrite -eq_bid0 -!mulnBl leq_pmul2l ?subn_gt0// ac// !wonE// -/i-/j !inordK ltnW.
   rewrite leq_eqVlt; apply/orP; left.
-  move/eqP: Uterm.
+  move/eqP: eq_U.
   by rewrite /U !ifT.
 - by rewrite subBnAC leq_sub// -addnABC ?eq_price_bid_a1 ?overbida1_imp// leq_addr.
 Qed.
@@ -763,9 +762,8 @@ rewrite /fR !ffunE//=.
 by case: ifP => [//|/slot_not_in ->]; last by rewrite S.last_ctr_eq0/= muln0. 
 Qed.
 
-Lemma arg_maxs_bidSum_singleton : oStars_singleton -> #|arg_maxs predT (S.welfare a2s)| = 1.
+Lemma arg_maxs_bidSum_singleton (oS : oStars_singleton) : #|arg_maxs predT (S.welfare a2s)| = 1.
 Proof.
-move=> oS.
 have -> : S.welfare a2s = S.bidSum a2s.
   apply: Logic.FunctionalExtensionality.functional_extensionality => o.
   by rewrite S.bidSum_slot.
@@ -776,38 +774,32 @@ have Vxo : Vx = [set sval ao].
   have: sval ao \in Vx by rewrite VCG.arg_OStar_in.
   rewrite -sub1set => /eqVproper [-> //|].
   by rewrite properEcard cards1 oS/= andbF.
-have SV : forall o, S.bidSum a2s o = VCG.bidSum (fRi a2s) (o2o o).
-  by move=> o; have -> : o = (o2o o).1.1 by []; exact: fRi_bidSum.
+have SV o : S.bidSum a2s o = VCG.bidSum (fRi a2s) (o2o o).
+  by have -> : o = (o2o o).1.1 by []; exact: fRi_bidSum.
 have wino (o : S.O) : o \in Sx -> o \in (fst \o fst) @: Vx.
   rewrite inE => /andP [_ oxw].
   have -> : o = (fst \o fst) (o2o o) by [].
   rewrite imset_f// inE andTb.
   apply/forallP => o1; rewrite implyTb.
-  move: oxw => /forallP/(_ o1.1.1)/=.
-  by rewrite fRi_bidSum SV.
+  by move: oxw => /forallP/(_ o1.1.1)/=; rewrite fRi_bidSum SV.
 pose oao := fst (fst (sval ao)).
 have /setD1K <-:  oao \in Sx.
   have := (@VCG.arg_OStar_in _ _ (fRi a2s)) => /(_ o0). 
   rewrite !inE !andTb => /forallP Vle.
   apply/forallP => o; apply/implyP => _.
-  move: (Vle (o2o o)) => /implyP/(_ erefl).
-  by rewrite fRi_bidSum SV.
+  by move: (Vle (o2o o)) => /implyP/(_ erefl); rewrite fRi_bidSum SV.
 rewrite cardsU !cards1.  
-have [/existsP [oao' /andP [noo']]|] := 
-  boolP ([exists oao', (oao' != oao) && (oao' \in Sx :\ oao)]).
+have [/existsP [oao' /andP [noo']]|] := boolP ([exists oao', (oao' != oao) && (oao' \in Sx :\ oao)]).
 - rewrite in_setD1 noo' andTb => /wino oao'V. 
   move: (oao'V) => /imsetP [o oin /= oao'o].
-  have [ao' [ao'in ao'ao]] : exists ao', ao' \in Vx /\ ao'.1.1 != oao. 
-    by exists o; rewrite oin -oao'o noo'.
+  have [ao' [ao'in ao'ao]] : exists ao', ao' \in Vx /\ ao'.1.1 != oao by exists o; rewrite oin -oao'o noo'.
   move: (oS) oao'V; rewrite /oStars_singleton -/Vx => /esym /eqP. 
   have -> : Vx = Vx :|: [set sval ao; ao']. 
     apply/eqP; rewrite eqEsubset subsetUl subUset subxx !andTb.
     apply/subsetP => x.      
-    rewrite in_set2 => /orP [/eqP ->|/eqP ->//].
-    exact: VCG.arg_OStar_in.
+    by rewrite in_set2 => /orP [/eqP ->|/eqP ->//]; exact: VCG.arg_OStar_in.
   have /ltn_eqF -> // : 1 < #|Vx :|: [set sval ao; ao']|.
-    move: (setxU Vx [set VCG.arg_OStar_o o0 (fRi a2s); ao']).
-    rewrite cards2. 
+    move: (setxU Vx [set VCG.arg_OStar_o o0 (fRi a2s); ao']); rewrite cards2. 
     have -> /= : (VCG.arg_OStar_o o0 (fRi a2s) != ao'). 
       apply: (contra_neq _ (ao'ao)).
       rewrite (surjective_pairing ao') (surjective_pairing (VCG.arg_OStar_o o0 (fRi a2s)))/=.
@@ -828,9 +820,9 @@ Qed.
    restriction. 
 *)
 
-Lemma fRi_max_bidSum : oStars_singleton -> singleton (max_bidSum_spec a2s).
+Lemma fRi_max_bidSum (oS1 : oStars_singleton) : singleton (max_bidSum_spec a2s).
 Proof.
-move=> oS1 o1 o2 {o1 o2} [o1 _ x1] [o2 _ x2].
+move=> o1 o2 {o1 o2} [o1 _ x1] [o2 _ x2].
 have o'S (o' : O) : 
   (∀ j : S.O, predT j -> geq (bidSum a2s o'.1.1) (bidSum a2s j)) -> o' \in VCG.oStars (fRi a2s).
   move=> x'.
@@ -853,8 +845,7 @@ apply: ExtremumSpec=> // o _ /=.
 have -> : forall (o : O_finType), bidSum a2s o = VCG.bidSum (fRi a2s) (o2o o)
   by move=> o'; exact: (fRi_bidSum (o2o o')).
 rewrite fRi_bidSum.
-move: xin.
-by rewrite inE => /andP [_]/forallP /(_ (o2o o))/implyP/(_ erefl).
+by move: xin; rewrite inE => /andP [_]/forallP /(_ (o2o o))/implyP/(_ erefl).
 Qed.
 
 End SingletonOStars.

@@ -143,9 +143,9 @@ Variable bs0 : bids.
 
 Variable a1 a2 : A. (* i1 and i2 *)
 
-Variable uniq_ctrs : uniq S.cs.
-
 Hypothesis eq_bid0 : tnth bs0 a1 = tnth bs0 a2.
+
+Hypothesis positive_ctrs : forall (s : slot), s < last_slot -> 0 < 'ctr_ s. 
 
 Let rho : {perm A} := tperm a1 a2.
 
@@ -279,17 +279,6 @@ Proof.
 have [/eqP|] := boolP (a1 == a) => ifa1; first by rewrite -ifa1; exact: utility_swap_invariant_a1.
 have [/eqP|] := boolP (a2 == a) => ifa2; last by rewrite stableUtility_notijf.
 by rewrite -ifa2 => ta2; rewrite utility_swap_invariant_a2.  
-Qed.
-
-Lemma positive_ctrs (s : slot) : s < last_slot -> 0 < 'ctr_ s. 
-Proof.
-apply: contra_ltn. 
-rewrite leqn0.
-move: S.last_ctr_eq0 => /eqP.
-rewrite -(inj_eq val_inj)/= !(tnth_nth ord0) => /eqP <- /eqP eqnn.
-move: uniq_ctrs => /(uniqP ord0)/(_ s S.last_slot).
-rewrite !inE !size_tuple => /(_ (ltn_ord s) (ltn_ord S.last_slot)) => ->//=.
-exact: val_inj.
 Qed.
 
 Lemma leq_price_bid a : price bs0 a <= tnth bs0 a * 'ctr_ (slot_won bs0 a).

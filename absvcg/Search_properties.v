@@ -842,7 +842,7 @@ End SingletonOStars.
 Notation partial_truthful := @Partial.partial_truthful.
 Notation partial_MP := @Partial.partial_MP.
 
-Lemma Search_singleton_truthful_rel : @partial_truthful _ _ oStars_singleton _ p2.
+Lemma search_singleton_truthful_rel : @partial_truthful _ _ oStars_singleton _ p2.
 Proof. 
 move=> [a2s g2] [a2s' g2'] i hd2 hv2.  
 have ho := MR (fRiP a2s).
@@ -882,8 +882,8 @@ Qed.
 
 End Relational.
 
-Check Search_singleton_truthful_rel.
-Print Assumptions Search_singleton_truthful_rel.
+Check search_singleton_truthful_rel.
+Print Assumptions search_singleton_truthful_rel.
 
 
 

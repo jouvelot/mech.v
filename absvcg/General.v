@@ -133,41 +133,6 @@ End BidSumProps.
 
 End Algorithm.
 
-Section Indifference.
-
-(**
-Each truthful agent is indifferent among the outcomes induced by the 
-VCG mechanism.
-*)
-Variable (O : finType) (o0 : O).
-
-Variable (i : A).
-
-Variable (bs : biddings O).
-
-Variable (oStar_choice1 oStar_choice2 : OStar_choice O).
-
-Let oStar1 := sval (oStar o0 bs oStar_choice1).
-Let oStar2 := sval (oStar o0 bs oStar_choice2).
-
-Local Notation "'bidding_ j" := (tnth bs j) (at level 10).
-
-Variable (value :  bidding O).
-
-Hypothesis value_is_bid : 'bidding_i = value.
-
-Lemma truthful_breaking_indifferent : value oStar1 - price o0 i bs oStar_choice1 = 
-value oStar2 - price o0 i bs oStar_choice2.
-Proof.
-rewrite /price !subnCBA ?leq_bigmax //.
-rewrite -value_is_bid addnC -bidSumD1 addnC -bidSumD1.
-rewrite -(@bigmax_eq_args _ xpredT (bidSum bs) oStar1).
-rewrite -(@bigmax_eq_args _ xpredT (bidSum bs) oStar2) //.
-all: apply: valP.
-Qed.
-
-End Indifference.
-
 Section Truthfulness.
 
 Variable (O : finType) (o0 : O).
@@ -178,16 +143,15 @@ Definition m : mech.type n :=
   mech.new (fun bs => (map_tuple 
                       (fun a => @price _ o0 a bs oStar_choice)
                       (agent.agents n),
-                     bs)).
+                       sval (oStar o0 bs oStar_choice))).
 
 Variable v : A -> bidding O.
 
 Definition p : prefs.type m :=
   prefs.new v 
     (fun i (mo : mech.O m) => 
-       let: (ps, bs) := mo in 
-       let oSc := oStar_choice (oStars_ne0 o0 bs) in
-       v i (sval oSc) - tnth ps i)
+       let: (ps, oSc) := mo in 
+       v i oSc - tnth ps i)
     v.
 
 Theorem truthful_General : truthful p.

@@ -133,92 +133,7 @@ End BidSumProps.
 
 End Algorithm.
 
-Section Truthfulness.
-
-Variable (O : finType) (o0 : O).
-
-Variable oStar_choice : OStar_choice O.
-
-Definition m : mech.type n := 
-  mech.new (fun bs => (map_tuple 
-                      (fun a => @price _ o0 a bs oStar_choice)
-                      (agent.agents n),
-                       sval (oStar o0 bs oStar_choice))).
-
-Variable v : A -> bidding O.
-
-Definition p : prefs.type m :=
-  prefs.new v 
-    (fun i (mo : mech.O m) => 
-       let: (ps, oSc) := mo in 
-       v i oSc - tnth ps i)
-    v.
-
-Theorem truthful_General : truthful p.
-Proof.
-move=> bs bs' i diff value_is_bid /=.
-rewrite !tnth_map /price /welfare_without_i /welfare_with_i tnth_ord_tuple.
-have eq_Sum_i : bidSum_i i bs =1 bidSum_i i bs'.
-  move=> o; apply: eq_bigr => j neji. 
-  by move: (diff j neji); rewrite /action_on => ->.
-rewrite (@eq_bigr _ _ _ _ _ _ (bidSum_i i bs) (bidSum_i i bs')) //.
-rewrite ?2!subnBA ?leq_sub2r //; 
-  [|by rewrite eq_Sum_i; apply: bigmax_sup|by apply: bigmax_sup].
-rewrite /action_on /prefs.v /= in value_is_bid.
-rewrite -value_is_bid -eq_Sum_i/= /oStar -!bidSumD1.   
-move: (proj2_sig (oStar_choice (oStars_ne0 o0 bs))).  
-set oc' := (sval (oStar_choice (oStars_ne0 o0 bs'))). 
-by rewrite !inE andTb => /forallP/(_ oc')/implyP/(_ erefl). 
-Qed.
-
-End Truthfulness.
-
-Section Indifference2.
-
-(**
-Each truthful agent is indifferent among the outcomes induced by the 
-VCG mechanism.
-*)
-
-Variable (O : finType) (o0 : O).
-
-Variable oStar_choice1 oStar_choice2 : OStar_choice O.
-
-Variable (bs : biddings O).
-
-Definition outcomes oStar_choice' :=  m o0 oStar_choice' bs.
-
-Definition outcome1 := outcomes oStar_choice1.
-Definition outcome2 := outcomes oStar_choice2.
-
-Variable (v : A -> bidding O).
-
-Variable (i : A).
-
-Hypothesis truthful_bid : v i = tnth bs i.
-
-Definition oStar1 := sval (oStar o0 bs oStar_choice1).
-Definition oStar2 := sval (oStar o0 bs oStar_choice2).
-
-Definition u := fun outcome => 
-  let: (ps, oSc) := outcome in v i oSc - tnth ps i.
-
-Lemma truthful_breaking_indifferent2 : u outcome1 = u outcome2.
-Proof.
-rewrite /= !tnth_map /price /welfare_with_i /welfare_without_i 
-  tnth_ord_tuple.
-rewrite !subnCBA ?leq_bigmax //.
-rewrite truthful_bid addnC -bidSumD1 addnC -bidSumD1.
-rewrite -(@bigmax_eq_args _ xpredT (bidSum bs) oStar1).
-rewrite -(@bigmax_eq_args _ xpredT (bidSum bs) oStar2) //.
-all: apply: valP.
-Qed.
-
-End Indifference2.
-
-Check truthful_breaking_indifferent2.
-
-(* Alternative formulation, and useful properties *)
+(* Alternative formulation of price. *)
 
 Section Alternative.
 
@@ -264,7 +179,88 @@ Proof. by rewrite /price'' -eq_welfare''. Qed.
 
 End Alternative.
 
-(** Invariance via permutations. *)
+Section Truthfulness.
+
+Variable (O : finType) (o0 : O).
+
+Variable oStar_choice : OStar_choice O.
+
+Definition m : mech.type n := 
+  mech.new (fun bs => (map_tuple 
+                      (fun a => @price _ o0 a bs oStar_choice)
+                      (agent.agents n),
+                       sval (oStar o0 bs oStar_choice))).
+
+Variable v : A -> bidding O.
+
+Definition p : prefs.type m :=
+  prefs.new v 
+    (fun i (mo : mech.O m) => 
+       let: (ps, oSc) := mo in 
+       v i oSc - tnth ps i)
+    v.
+
+Theorem truthful_General : truthful p.
+Proof.
+move=> bs bs' i diff value_is_bid /=.
+rewrite !tnth_map /price /welfare_without_i /welfare_with_i tnth_ord_tuple.
+have eq_Sum_i : bidSum_i i bs =1 bidSum_i i bs'.
+  move=> o; apply: eq_bigr => j neji. 
+  by move: (diff j neji); rewrite /action_on => ->.
+rewrite (@eq_bigr _ _ _ _ _ _ (bidSum_i i bs) (bidSum_i i bs')) //.
+rewrite ?2!subnBA ?leq_sub2r //; 
+  [|by rewrite eq_Sum_i; apply: bigmax_sup|by apply: bigmax_sup].
+rewrite /action_on /prefs.v /= in value_is_bid.
+rewrite -value_is_bid -eq_Sum_i/= /oStar -!bidSumD1.   
+move: (proj2_sig (oStar_choice (oStars_ne0 o0 bs))).  
+set oc' := (sval (oStar_choice (oStars_ne0 o0 bs'))). 
+by rewrite !inE andTb => /forallP/(_ oc')/implyP/(_ erefl). 
+Qed.
+
+End Truthfulness.
+
+Section Indifference.
+
+(* Each truthful agent is indifferent among the outcomes induced by the 
+   VCG mechanism. *)
+
+Variable (O : finType) (o0 : O).
+
+Variable oStar_choice1 oStar_choice2 : OStar_choice O.
+
+Variable (bs : biddings O).
+
+Definition outcomes oStar_choice' :=  m o0 oStar_choice' bs.
+
+Definition outcome1 := outcomes oStar_choice1.
+Definition outcome2 := outcomes oStar_choice2.
+
+Variable (v : A -> bidding O).
+
+Variable (i : A).
+
+Hypothesis truthful_bid : v i = tnth bs i.
+
+Definition oStar1 := sval (oStar o0 bs oStar_choice1).
+Definition oStar2 := sval (oStar o0 bs oStar_choice2).
+
+Definition u := fun outcome => 
+  let: (ps, oSc) := outcome in v i oSc - tnth ps i.
+
+Lemma truthful_breaking_indifferent2 : u outcome1 = u outcome2.
+Proof.
+rewrite /= !tnth_map /price /welfare_with_i /welfare_without_i 
+  tnth_ord_tuple.
+rewrite !subnCBA ?leq_bigmax //.
+rewrite truthful_bid addnC -bidSumD1 addnC -bidSumD1.
+rewrite -(@bigmax_eq_args _ xpredT (bidSum bs) oStar1).
+rewrite -(@bigmax_eq_args _ xpredT (bidSum bs) oStar2) //.
+all: apply: valP.
+Qed.
+
+End Indifference.
+
+(** Invariance of price via permutations. *)
 
 Section Perm.
 

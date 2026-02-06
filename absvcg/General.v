@@ -173,6 +173,51 @@ Qed.
 
 End Truthfulness.
 
+Section Indifference2.
+
+(**
+Each truthful agent is indifferent among the outcomes induced by the 
+VCG mechanism.
+*)
+
+Variable (O : finType) (o0 : O).
+
+Variable oStar_choice1 oStar_choice2 : OStar_choice O.
+
+Variable (bs : biddings O).
+
+Definition outcomes oStar_choice' :=  m o0 oStar_choice' bs.
+
+Definition outcome1 := outcomes oStar_choice1.
+Definition outcome2 := outcomes oStar_choice2.
+
+Variable (v : A -> bidding O).
+
+Variable (i : A).
+
+Hypothesis truthful_bid : v i = tnth bs i.
+
+Definition oStar1 := sval (oStar o0 bs oStar_choice1).
+Definition oStar2 := sval (oStar o0 bs oStar_choice2).
+
+Definition u := fun outcome => 
+  let: (ps, oSc) := outcome in v i oSc - tnth ps i.
+
+Lemma truthful_breaking_indifferent2 : u outcome1 = u outcome2.
+Proof.
+rewrite /= !tnth_map /price /welfare_with_i /welfare_without_i 
+  tnth_ord_tuple.
+rewrite !subnCBA ?leq_bigmax //.
+rewrite truthful_bid addnC -bidSumD1 addnC -bidSumD1.
+rewrite -(@bigmax_eq_args _ xpredT (bidSum bs) oStar1).
+rewrite -(@bigmax_eq_args _ xpredT (bidSum bs) oStar2) //.
+all: apply: valP.
+Qed.
+
+End Indifference2.
+
+Check truthful_breaking_indifferent2.
+
 (* Alternative formulation, and useful properties *)
 
 Section Alternative.

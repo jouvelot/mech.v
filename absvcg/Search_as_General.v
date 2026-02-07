@@ -420,6 +420,12 @@ Section Welfare.
 
 Variable (bs : bids).
 
+Let bs' := tsort bs.
+
+Let efficient_profile := [tuple tnth bs' (slot_as_agent s)| s < k].
+
+Definition oStars := [set o : O | (map_tuple (tnth bs) (obidders o)) == efficient_profile].
+
 Notation "'bid_ j" := (tnth bs j) (at level 10).
 
 Notation "'a* s" := (tnth (tlabel bs) (slot_as_agent s)) (at level 10).

@@ -420,12 +420,6 @@ Section Welfare.
 
 Variable (bs : bids).
 
-Let bs' := tsort bs.
-
-Let efficient_profile := [tuple tnth bs' (slot_as_agent s)| s < k].
-
-Definition oStars := [set o : O | (map_tuple (tnth bs) (obidders o)) == efficient_profile].
-
 Notation "'bid_ j" := (tnth bs j) (at level 10).
 
 Notation "'a* s" := (tnth (tlabel bs) (slot_as_agent s)) (at level 10).
@@ -570,6 +564,70 @@ elim=> [o _ //=|x xs IH o /= /andP [bi xoi]].
     apply: eq_from_tnth => s'.
     by rewrite !tnth_map tnth_ord_tuple.
   by rewrite permC; congr (bid_in _ (tnth _ _) (slot_of (tnth _ _) _)).
+Qed.
+
+(* Define the set oStars of which the bidding profile is sorted, 
+along with oStar_choice*)
+Let bs' := tsort bs. (**)
+
+Let efficient_profile := [tuple tnth bs' (slot_as_agent s)| s < k]. (**)
+
+Definition oStars := (**)
+[set o : O | (map_tuple (tnth bs) (obidders o)) == efficient_profile].
+
+Definition OStar := {o : O | o \in oStars}. (**)
+
+Lemma oStar_in : oStar \in oStars. (**)
+Proof.
+rewrite inE.
+apply/eqP; apply: eq_from_tnth; rewrite/eqfun => s.
+rewrite !tnth_map tnth_ord_tuple.
+by rewrite -(labelling_spec_idxa bs ('a* s)) (cancel_inv_idxa bs).
+Qed.
+
+Definition sig_OStar (o : O) (oin : o \in oStars): OStar.
+by exists o.
+Defined.
+
+Lemma oStars_ne0 : oStars != set0.
+Proof.
+apply/set0Pn; exists oStar; exact: oStar_in. Qed.
+
+Variable (oStar_choice : VCG.OStar_choice O_finType).
+
+(*
+Definition OStar_choice : Type := forall (s : {set O}) (_ : s != set0), {o : O | o \in s}. 
+
+Variable (oStar_choice : OStar_choice).
+*)
+
+Definition oStar_chosen := sval (oStar_choice oStars_ne0).
+
+Lemma oStar_chosen_in : oStar_chosen \in oStars.
+Proof.
+by rewrite /oStar_chosen; move: (oStar_choice oStars_ne0) => [o Ho].
+Qed.
+
+Lemma eq_welfare_oStar_oStar_chosen :
+  welfare oStar_chosen = max_welfare.
+Proof.
+apply: eq_bigr => s _.
+rewrite !ffunE /t_bidding !mem_tnth !cancel_slot.
+apply/eqP; rewrite eqn_mul2r; apply/orP; right.
+rewrite /oStar_chosen.
+move: (oStar_choice oStars_ne0)=> [o Ho] /=.
+rewrite in_set in Ho; move/eqP in Ho.
+move: (congr1 (fun t => tnth t s) Ho).
+rewrite !tnth_map tnth_ord_tuple.
+move=> ->.
+by rewrite -(labelling_spec_idxa bs) (cancel_inv_idxa bs).
+Qed.
+
+Lemma le_welfare_o_oStar_chosen (o : O) : 
+  welfare o <= welfare oStar_chosen.
+Proof.
+rewrite eq_welfare_oStar_oStar_chosen.
+exact: le_welfare_o_oStar.
 Qed.
 
 End Welfare.

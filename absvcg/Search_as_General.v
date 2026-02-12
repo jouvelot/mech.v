@@ -593,13 +593,13 @@ Lemma oStars_ne0 : oStars != set0.
 Proof.
 apply/set0Pn; exists oStar; exact: oStar_in. Qed.
 
-Variable (oStar_choice : VCG.OStar_choice O_finType).
-
 (*
+Variable (oStar_choice : VCG.OStar_choice O_finType).
+*)
+
 Definition OStar_choice : Type := forall (s : {set O}) (_ : s != set0), {o : O | o \in s}. 
 
 Variable (oStar_choice : OStar_choice).
-*)
 
 Definition oStar_chosen := sval (oStar_choice oStars_ne0).
 
@@ -629,6 +629,13 @@ Proof.
 rewrite eq_welfare_oStar_oStar_chosen.
 exact: le_welfare_o_oStar.
 Qed.
+
+Definition i'_chosen i := (@inord k' (index i (obidders oStar_chosen))).
+
+Definition is_winner_chosen i := (i'_chosen i) < k'.
+
+Definition price_chosen i :=
+  if is_winner_chosen i then \sum_(s < k | (i'_chosen i).+1 <= s) externality bs s else 0.
 
 End Welfare.
 

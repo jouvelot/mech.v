@@ -64,7 +64,7 @@ Definition value := true_value a * 'ctr_(slot_won bs a).
 
 Definition utility := if (is_winner bs a) then (value - price bs a) else 0.
 
-Notation bs' := (tsort bs). 
+Notation bs' := (tsort bs).
 Notation i := (idxa bs a).
 
 Variable (awins : is_winner bs a).
@@ -407,6 +407,17 @@ Definition p2 : prefs.type m2 :=
                if is_winner2 o2.1.1 i then v2 i * 'ctr_s - tnth o2.1.2 s 
                else 0)
             v2.
+
+Notation C2 := OStar.OStar_choice. (**)
+
+Definition O2_winners_b a2s c2 := OStar.oStar_chosen a2s c2. (* _b  stands for breaking *)
+
+Notation O2_winners_ref := O2_winners. (**)
+
+Definition O2_prices_b (a2s : A2s) (c2 : C2): k.-tuple P := (**)
+  map_tuple (inord \o (fun i => price a2s i)) (O2_winners_b a2s c2).
+
+Print price.
 
 (* Mech1 = General VCG *)
 
@@ -884,6 +895,3 @@ End Relational.
 
 Check search_singleton_truthful_rel.
 Print Assumptions search_singleton_truthful_rel.
-
-
-

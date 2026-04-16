@@ -67,11 +67,9 @@ Let i' := idxa bs0 i.
 
 Definition is_winner := i' < k.
 
-Notation "'[bid' j 'in' bs ']'" := (tnth bs j) (at level 10).
+Definition slot_won : slot := sub_ord (k' - i').
 
-Definition slot_won := @sub_ord k' (k' - i').
-
-Definition price := [bid (agent_succ i') in bs] * 'ctr_slot_won.
+Definition price := tnth bs (agent_succ i') * 'ctr_slot_won.
 
 End Algorithm.
 

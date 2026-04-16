@@ -67,7 +67,7 @@ Let i' := idxa bs0 i.
 
 Definition is_winner := i' < k.
 
-Definition slot_won : slot := sub_ord (k' - i').
+Definition slot_won : slot := sub_ord (k' - i'). (* i' *)
 
 Definition price := tnth bs (agent_succ i') * 'ctr_slot_won.
 
